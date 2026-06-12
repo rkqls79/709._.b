@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>뚝딱뚝딱 작업실</title>
+<style>
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
+
+:root {
+  --bg: #fbf6ee;
+  --surface: #ffffff;
+  --text: #3a2e26;
+  --text-dim: #8a7a6e;
+  --muted: #b8a99c;
+  --border: #ece2d1;
+  --accent: #d97757;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, sans-serif;
+  font-weight: 500;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100vh;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+  line-height: 1.5;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  padding: 88px 28px 120px;
+}
+
+header {
+  margin-bottom: 40px;
+}
+
+h1 {
+  font-size: 36px;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.15;
+  color: var(--text);
+  margin-bottom: 10px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+h1 .title-icon {
+  font-size: 34px;
+  line-height: 1;
+  display: inline-block;
+  transform: rotate(-12deg);
+}
+
+.sub {
+  font-size: 15px;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+
+/* ====== 프로젝트 리스트 ====== */
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.item {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 22px;
+  text-decoration: none;
+  color: inherit;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+}
+
+.item:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: 0 6px 18px rgba(217, 119, 87, 0.10), 0 1px 3px rgba(58, 46, 38, 0.04);
+}
+
+.item .icon-box {
+  flex-shrink: 0;
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background: #fbe9dc;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
+  line-height: 1;
+}
+
+.item .body {
+  flex: 1;
+  min-width: 0;
+}
+
+.item h2 {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text);
+  letter-spacing: -0.015em;
+  margin-bottom: 3px;
+}
+
+.item .desc {
+  font-size: 13.5px;
+  color: var(--text-dim);
+  font-weight: 500;
+  line-height: 1.45;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.item .arrow {
+  flex-shrink: 0;
+  color: var(--muted);
+  font-size: 18px;
+  transition: transform 0.2s ease, color 0.2s ease;
+}
+
+.item:hover .arrow {
+  color: var(--accent);
+  transform: translateX(3px);
+}
+
+/* 준비 중 카드 */
+.item.coming-soon {
+  background: transparent;
+  border-style: dashed;
+}
+
+.item.coming-soon:hover {
+  transform: none;
+  border-color: var(--border);
+  box-shadow: none;
+}
+
+.item.coming-soon .icon-box {
+  background: #f0e6d6;
+  opacity: 0.7;
+}
+
+.item.coming-soon h2,
+.item.coming-soon .desc {
+  color: var(--muted);
+}
+
+.item.coming-soon .arrow { display: none; }
+
+/* 아이콘별 컬러 변형 */
+.icon-box.tone-coral { background: #fbe9dc; }
+.icon-box.tone-yellow { background: #fdefcb; }
+.icon-box.tone-mint { background: #e0f0e3; }
+.icon-box.tone-blue { background: #e1ecf5; }
+.icon-box.tone-lilac { background: #ece4f3; }
+.icon-box.tone-pink { background: #f8e1e4; }
+
+footer {
+  margin-top: 64px;
+  padding-top: 22px;
+  border-top: 1px solid var(--border);
+  color: var(--muted);
+  font-size: 13px;
+  font-weight: 500;
+}
+
+@media (max-width: 600px) {
+  .wrap { padding: 60px 20px 80px; }
+  h1 { font-size: 30px; }
+  h1 .title-icon { font-size: 28px; }
+  .item { padding: 16px 18px; gap: 14px; }
+  .item .icon-box { width: 40px; height: 40px; font-size: 20px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <h1><span class="title-icon">🔨</span>뚝딱뚝딱 작업실</h1>
+    <div class="sub">이것저것 만들어 보는 중이에요</div>
+  </header>
+
+  <div class="list">
+
+    <!-- ===== 종소세 표지 ===== -->
+    <a class="item" href="tax-cover/">
+      <div class="icon-box tone-blue">🧾</div>
+      <div class="body">
+        <h2>종소세 표지</h2>
+        <div class="desc">종합소득세 신고 표지 도구</div>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+
+    <!-- ===== 점심조 뽑기 ===== -->
+    <a class="item" href="lunch-squad/">
+      <div class="icon-box tone-coral">🍱</div>
+      <div class="body">
+        <h2>점심조 뽑기</h2>
+        <div class="desc">8가지 미니게임으로 점심 팀을 랜덤으로 정해요</div>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+
+    <!-- ===== 휴가 신청서 ===== -->
+    <a class="item" href="휴가신청서/">
+      <div class="icon-box tone-mint">🏖️</div>
+      <div class="body">
+        <h2>휴가 신청서</h2>
+        <div class="desc">휴가 신청서를 간편하게 작성해요</div>
+      </div>
+      <span class="arrow">→</span>
+    </a>
+
+    <!-- ===== 문자 뚝딱 보내기 ===== -->
+    <a class="item" href="문자 뚝딱 보내기/index.html">
+     <div class="icon-box tone-blue">💬</div>
+     <div class="body">
+       <h2>문자 뚝딱 보내기</h2>
+       <div class="desc">세금 안내 문자를 간편하게 작성해요</div>
+     </div>
+     <span class="arrow">→</span>
+    </a>
+
+    <!-- ===== 준비 중 칸 ===== -->
+    <div class="item coming-soon">
+      <div class="icon-box">✨</div>
+      <div class="body">
+        <h2>다음 프로젝트</h2>
+        <div class="desc">여기에 새 프로젝트를 추가할 수 있어요</div>
+      </div>
+
+    </div>
+
+  </div>
+
+  <footer>
+    Made with ☕ · Hosted on GitHub Pages
+  </footer>
+</div>
+</body>
+</html>
