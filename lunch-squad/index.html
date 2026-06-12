@@ -1,0 +1,5336 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1200">
+<title>점심조 뽑기 - LUNCH SQUAD</title>
+<style>
+/* ============ FONTS ============ */
+@import url('https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.css');
+@import url('https://fonts.googleapis.com/css2?family=Black+Han+Sans&display=swap');
+
+/* ============ MODERN DARK PALETTE ============ */
+:root {
+  --c-bg-0: #0b0d1a;
+  --c-bg-1: #131628;
+  --c-bg-2: #1c2038;
+  --c-bg-3: #262b48;
+  --c-text: #f5f7ff;
+  --c-text-dim: #a8aec9;
+  --c-muted: #5b6087;
+  --c-border: #2e3454;
+  --c-accent: #ffd84d;
+  --c-accent-2: #ff8a3d;
+
+  --team-a: #ff4d6d;   /* coral red */
+  --team-b: #4cc9f0;   /* sky cyan */
+  --team-c: #ffd166;   /* warm yellow */
+  --team-d: #06d6a0;   /* mint green */
+
+  --shadow-soft: 0 8px 24px rgba(0,0,0,0.5);
+  --shadow-glow: 0 0 24px rgba(255, 216, 77, 0.3);
+
+  /* Compatibility aliases for legacy references */
+  --c-black: var(--c-bg-0);
+  --c-darkblue: var(--c-bg-2);
+  --c-purple: var(--c-bg-3);
+  --c-darkgreen: #1a8a6b;
+  --c-brown: #5b4a3e;
+  --c-darkgray: var(--c-muted);
+  --c-lightgray: var(--c-text-dim);
+  --c-white: var(--c-text);
+  --c-red: var(--team-a);
+  --c-orange: var(--c-accent-2);
+  --c-yellow: var(--c-accent);
+  --c-green: var(--team-d);
+  --c-blue: var(--team-b);
+  --c-lavender: var(--c-muted);
+  --c-pink: #ff7a9c;
+  --c-peach: #ffccaa;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body {
+  height: 100%;
+  font-family: 'Pretendard Variable', Pretendard, -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 600;
+  background: var(--c-bg-0);
+  color: var(--c-text);
+  overflow: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  letter-spacing: -0.01em;
+}
+
+body {
+  background:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(76, 201, 240, 0.08) 0%, transparent 60%),
+    radial-gradient(ellipse 70% 50% at 80% 80%, rgba(255, 77, 109, 0.08) 0%, transparent 60%),
+    linear-gradient(135deg, var(--c-bg-0) 0%, var(--c-bg-1) 100%);
+  position: relative;
+}
+
+/* ============ LAYOUT ============ */
+#app {
+  width: 100vw;
+  height: 100vh;
+  position: relative;
+}
+
+.screen {
+  position: absolute;
+  inset: 0;
+  display: none;
+  padding: 24px;
+  overflow: auto;
+}
+.screen.active { display: flex; flex-direction: column; }
+
+/* ============ COMMON COMPONENTS ============ */
+.pixel-border {
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-2);
+  padding: 14px 20px;
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+}
+
+.btn {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0;
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 100%);
+  color: #1a1a2e;
+  border: none;
+  padding: 14px 28px;
+  cursor: pointer;
+  border-radius: 12px;
+  box-shadow: 0 6px 16px rgba(255, 138, 61, 0.35), 0 2px 4px rgba(0,0,0,0.3);
+  transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  user-select: none;
+}
+.btn:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 10px 24px rgba(255, 138, 61, 0.5), 0 4px 8px rgba(0,0,0,0.3);
+  filter: brightness(1.05);
+}
+.btn:active { transform: translateY(0); }
+.btn.secondary {
+  background: linear-gradient(135deg, #4cc9f0 0%, #3b82f6 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(76, 201, 240, 0.35), 0 2px 4px rgba(0,0,0,0.3);
+}
+.btn.secondary:hover { box-shadow: 0 10px 24px rgba(76, 201, 240, 0.5), 0 4px 8px rgba(0,0,0,0.3); }
+.btn.danger {
+  background: linear-gradient(135deg, #ff4d6d 0%, #c9184a 100%);
+  color: #fff;
+  box-shadow: 0 6px 16px rgba(255, 77, 109, 0.35), 0 2px 4px rgba(0,0,0,0.3);
+}
+.btn.danger:hover { box-shadow: 0 10px 24px rgba(255, 77, 109, 0.5), 0 4px 8px rgba(0,0,0,0.3); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+
+.title-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+}
+.title-bar h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-text);
+  letter-spacing: -0.02em;
+}
+.title-bar .controls { display: flex; gap: 10px; }
+
+/* ============ MAIN SCREEN ============ */
+#screen-main {
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+.main-logo {
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  font-size: 96px;
+  font-weight: 900;
+  letter-spacing: -0.04em;
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 50%, #ff4d6d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+  filter: drop-shadow(0 4px 24px rgba(255, 138, 61, 0.4));
+}
+.main-sub {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  margin-bottom: 24px;
+  letter-spacing: 0.04em;
+}
+.main-month {
+  font-size: 44px;
+  font-weight: 900;
+  color: var(--c-text);
+  margin-bottom: 36px;
+  letter-spacing: -0.03em;
+}
+.main-press {
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  margin-bottom: 20px;
+  letter-spacing: 0.2em;
+  animation: pulse-soft 1.6s ease-in-out infinite;
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 0.5; }
+  50% { opacity: 1; }
+}
+.main-buttons {
+  display: flex;
+  gap: 14px;
+  justify-content: center;
+  margin-top: 20px;
+}
+.main-buttons .btn { font-size: 18px; padding: 16px 36px; }
+.main-credits {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c-muted);
+  letter-spacing: 0.1em;
+}
+.pixel-mascot {
+  font-size: 56px;
+  margin: 8px 0 16px;
+  display: inline-block;
+  animation: float 3s ease-in-out infinite;
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+
+/* ============ SALAD SELECT ============ */
+#screen-salad .salad-info {
+  text-align: center;
+  margin-bottom: 20px;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text-dim);
+}
+.salad-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 22px;
+  margin: 0 auto;
+  max-width: 1300px;
+}
+.salad-card {
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(160deg, #2a3050 0%, #1c2038 100%);
+  border: 2px solid var(--c-border);
+  padding: 20px 14px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-text);
+  cursor: pointer;
+  position: relative;
+  border-radius: 16px;
+  transition: all 0.2s ease;
+  user-select: none;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35), inset 0 1px 0 rgba(255,255,255,0.06);
+  overflow: hidden;
+}
+.salad-card::after {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
+  opacity: 0.55;
+}
+.salad-card:hover {
+  transform: translateY(-4px);
+  border-color: var(--c-accent);
+  box-shadow: 0 14px 28px rgba(0,0,0,0.5);
+}
+.salad-card.salad {
+  background: linear-gradient(160deg, #1a1d2e 0%, #131628 100%);
+  color: var(--c-muted);
+  border-color: var(--c-border);
+  opacity: 0.5;
+}
+.salad-card.salad::after { display: none; }
+.salad-card.salad::before {
+  content: "🥗";
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  font-size: 24px;
+  background: var(--c-bg-3);
+  width: 38px; height: 38px;
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.4);
+}
+.salad-card.fixed {
+  background: linear-gradient(160deg, #2d4a3a 0%, #1a8a6b 100%);
+  border-color: rgba(255, 216, 77, 0.4);
+  cursor: default;
+}
+.salad-card.fixed::after {
+  background: linear-gradient(90deg, var(--c-accent), #ffe680);
+  opacity: 1;
+}
+.salad-card.fixed:hover { transform: none; }
+.salad-card .card-icon {
+  font-size: 42px;
+  margin-top: 6px;
+  opacity: 0.4;
+}
+.salad-card.fixed .card-icon { opacity: 1; }
+.salad-card .name {
+  display: block;
+  font-size: 28px;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  margin: 10px 0;
+  text-align: center;
+  width: 100%;
+}
+.salad-card .label {
+  display: block;
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--c-accent);
+  margin-bottom: 2px;
+  letter-spacing: 0.15em;
+  background: rgba(255, 216, 77, 0.12);
+  padding: 4px 10px;
+  border-radius: 20px;
+}
+.salad-card .role {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  letter-spacing: 0.08em;
+  margin-bottom: 2px;
+  white-space: nowrap;
+}
+.salad-summary {
+  text-align: center;
+  margin: 20px 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--c-accent);
+  letter-spacing: -0.01em;
+}
+.salad-actions {
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+/* ============ GAME PICK ============ */
+#screen-spin {
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 36px;
+}
+.pick-sub {
+  text-align: center;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--c-text-dim);
+  margin-bottom: 32px;
+}
+.pick-grid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 18px;
+  max-width: 1100px;
+  width: 100%;
+  margin: 0 auto;
+}
+.pick-card {
+  aspect-ratio: 3 / 4;
+  background: linear-gradient(160deg, #2a3050 0%, #1c2038 100%);
+  border: 2px solid var(--c-border);
+  border-radius: 18px;
+  padding: 24px 12px;
+  text-align: center;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.2, 0.8, 0.2, 1);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  position: relative;
+  overflow: hidden;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.pick-card::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--c-accent), var(--c-accent-2));
+}
+.pick-card:hover {
+  transform: translateY(-8px);
+  border-color: var(--c-accent);
+  box-shadow: 0 18px 36px rgba(255, 138, 61, 0.25);
+}
+.pick-card .icon {
+  font-size: 72px;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,0.4));
+}
+.pick-card .name {
+  font-size: 18px;
+  font-weight: 800;
+  color: var(--c-text);
+  letter-spacing: -0.01em;
+}
+.pick-card .play-cta {
+  font-size: 11px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: 0.2em;
+  background: rgba(255, 216, 77, 0.12);
+  padding: 6px 14px;
+  border-radius: 20px;
+}
+
+/* ============ COMMON GAME LAYOUT ============ */
+.game-screen {
+  display: none;
+  flex-direction: column;
+  height: 100vh;
+  padding: 20px;
+}
+.game-screen.active { display: flex; }
+.game-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  flex-shrink: 0;
+  gap: 16px;
+}
+.game-header h2 {
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-text);
+  letter-spacing: -0.02em;
+}
+.game-status {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  padding: 10px 18px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.game-status .current-name {
+  color: var(--c-accent);
+  font-size: 20px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+}
+.game-body {
+  flex: 1;
+  display: grid;
+  grid-template-columns: 220px 1fr 280px;
+  gap: 16px;
+  min-height: 0;
+}
+
+/* Left panel: name list */
+.name-panel {
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  padding: 14px;
+  overflow-y: auto;
+  border-radius: 16px;
+}
+.name-panel h3 {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  margin-bottom: 12px;
+  text-align: center;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.name-item {
+  padding: 12px;
+  margin-bottom: 6px;
+  background: var(--c-bg-1);
+  border: 1px solid transparent;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: pointer;
+  text-align: center;
+  border-radius: 10px;
+  transition: all 0.15s ease;
+  color: var(--c-text);
+  letter-spacing: -0.01em;
+}
+.name-item:hover {
+  background: var(--c-bg-3);
+  border-color: var(--c-accent);
+  transform: translateX(2px);
+}
+.name-item.selected {
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 100%);
+  color: #1a1a2e;
+  font-weight: 800;
+  border-color: transparent;
+  box-shadow: 0 6px 16px rgba(255, 138, 61, 0.4);
+}
+.name-item.done {
+  background: var(--c-bg-1);
+  color: var(--c-muted);
+  text-decoration: line-through;
+  cursor: default;
+  opacity: 0.45;
+}
+.name-item.done:hover { transform: none; }
+
+/* Right panel: team rosters */
+.teams-panel {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow-y: auto;
+}
+.team-box {
+  border: 1px solid var(--c-border);
+  border-left: 4px solid;
+  padding: 12px;
+  background: var(--c-bg-2);
+  border-radius: 12px;
+}
+.team-box.team-a { border-left-color: var(--team-a); }
+.team-box.team-b { border-left-color: var(--team-b); }
+.team-box.team-c { border-left-color: var(--team-c); }
+.team-box.team-d { border-left-color: var(--team-d); }
+.team-box h4 {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  letter-spacing: -0.01em;
+}
+.team-box.team-a h4 { color: var(--team-a); }
+.team-box.team-b h4 { color: var(--team-b); }
+.team-box.team-c h4 { color: var(--team-c); }
+.team-box.team-d h4 { color: var(--team-d); }
+.team-member {
+  padding: 6px 10px;
+  background: var(--c-bg-1);
+  margin-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 8px;
+}
+.team-member .leader-tag {
+  color: var(--c-accent);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.1em;
+  background: rgba(255, 216, 77, 0.12);
+  padding: 2px 8px;
+  border-radius: 6px;
+}
+.team-member.new {
+  animation: drop-in 0.4s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+@keyframes drop-in {
+  0% { transform: translateY(-12px); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+/* Center: game stage */
+.game-stage {
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-2);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 16px;
+  box-shadow: inset 0 0 80px rgba(0,0,0,0.25);
+}
+
+/* ============ LADDER GAME ============ */
+.ladder-svg {
+  width: 100%;
+  height: 100%;
+  max-height: 500px;
+}
+.ladder-start {
+  cursor: pointer;
+}
+.ladder-start.disabled { cursor: default; opacity: 0.4; }
+
+/* (Luckybox styles removed) */
+@keyframes pop-out {
+  0% { transform: scale(0); opacity: 0; }
+  60% { transform: scale(1.25); opacity: 1; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+/* ============ BASKETBALL GAME ============ */
+.basket-stage {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  background: linear-gradient(180deg, #1a1d2e 0%, #2a3050 60%, #3a3f5e 100%);
+  overflow: hidden;
+}
+.basket-hoops {
+  position: absolute;
+  top: 8%;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: space-around;
+  padding: 0 6%;
+}
+.basket-hoop {
+  width: 110px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  transition: transform 0.25s ease;
+}
+.basket-hoop .ring {
+  width: 90px;
+  height: 14px;
+  background: var(--c-bg-3);
+  border: 5px solid;
+  border-radius: 50%;
+  position: relative;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+.basket-hoop .ring::before {
+  content: "";
+  position: absolute;
+  top: -16px; left: 50%;
+  transform: translateX(-50%);
+  width: 24px; height: 14px;
+  background: #ffa300;
+  border-radius: 4px;
+  border: 2px solid #5b3a18;
+}
+.basket-hoop.team-a .ring { border-color: var(--team-a); }
+.basket-hoop.team-b .ring { border-color: var(--team-b); }
+.basket-hoop.team-c .ring { border-color: var(--team-c); }
+.basket-hoop.team-d .ring { border-color: var(--team-d); }
+.basket-hoop .net {
+  width: 64px;
+  height: 36px;
+  background:
+    repeating-linear-gradient(45deg, rgba(255,255,255,0.5) 0 2px, transparent 2px 6px),
+    repeating-linear-gradient(-45deg, rgba(255,255,255,0.5) 0 2px, transparent 2px 6px);
+  clip-path: polygon(8% 0, 92% 0, 70% 100%, 30% 100%);
+  margin-top: -2px;
+}
+.basket-hoop .label {
+  font-size: 26px;
+  font-weight: 900;
+  margin-top: 6px;
+  letter-spacing: -0.02em;
+}
+.basket-hoop.team-a .label { color: var(--team-a); }
+.basket-hoop.team-b .label { color: var(--team-b); }
+.basket-hoop.team-c .label { color: var(--team-c); }
+.basket-hoop.team-d .label { color: var(--team-d); }
+.basket-hoop.scored { transform: translateY(4px) scale(1.12); }
+.basket-hoop.scored .ring { box-shadow: 0 0 24px currentColor; }
+.basket-hoop {
+  position: relative;
+}
+.basket-hoop.full { opacity: 0.35; }
+.basket-hoop.full .ring { border-color: var(--c-muted) !important; }
+.basket-hoop.full .label { color: var(--c-muted) !important; }
+.basket-hoop .full-badge {
+  position: absolute;
+  top: -22px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-bg-3);
+  color: var(--c-text-dim);
+  font-size: 10px;
+  font-weight: 800;
+  padding: 3px 8px;
+  border-radius: 8px;
+  letter-spacing: 0.1em;
+  display: none;
+}
+.basket-hoop.full .full-badge { display: block; }
+
+.basket-aim-track {
+  position: absolute;
+  top: 38%;
+  left: 6%;
+  right: 6%;
+  height: 6px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 3px;
+}
+.basket-aim {
+  position: absolute;
+  top: -32px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 32px;
+  color: var(--c-accent);
+  filter: drop-shadow(0 0 8px var(--c-accent));
+  pointer-events: none;
+}
+
+.basket-court {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 36%;
+  background:
+    linear-gradient(180deg, transparent 0%, rgba(255,138,61,0.1) 100%),
+    linear-gradient(180deg, #5a3a1a 0%, #3a2410 100%);
+  box-shadow: inset 0 4px 16px rgba(0,0,0,0.4);
+}
+.basket-court::before {
+  content: "";
+  position: absolute;
+  top: 12%; left: 30%; right: 30%;
+  height: 2px;
+  background: rgba(255,255,255,0.3);
+  border-radius: 50%;
+  box-shadow: 0 8px 0 -1px rgba(255,255,255,0.1);
+}
+.basket-ball {
+  position: absolute;
+  bottom: 8%;
+  left: 50%;
+  transform: translate(-50%, 0);
+  font-size: 56px;
+  z-index: 5;
+  filter: drop-shadow(0 6px 8px rgba(0,0,0,0.5));
+}
+.basket-result {
+  position: absolute;
+  bottom: 18%;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--c-accent);
+  z-index: 4;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+}
+.basket-controls {
+  position: absolute;
+  bottom: 4%;
+  left: 0; right: 0;
+  display: flex;
+  justify-content: center;
+  gap: 12px;
+  z-index: 6;
+}
+
+/* ============ CARD DEALING GAME (saju/tarot style) ============ */
+.card-stage {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 32px;
+  padding: 20px;
+  background:
+    radial-gradient(ellipse at 50% 25%, rgba(212,175,55,0.12) 0%, transparent 55%),
+    radial-gradient(ellipse at 25% 85%, rgba(120, 50, 200, 0.10) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 75%, rgba(76, 201, 240, 0.08) 0%, transparent 55%),
+    linear-gradient(180deg, #14102a 0%, #1a1346 50%, #0d0a23 100%);
+}
+.card-msg {
+  font-size: 20px;
+  font-weight: 800;
+  color: #ffd84d;
+  letter-spacing: 0.02em;
+  text-align: center;
+  min-height: 28px;
+  text-shadow: 0 0 16px rgba(255, 216, 77, 0.5);
+}
+.card-spread {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  padding: 40px 12px;
+  flex-wrap: nowrap;
+}
+/* ── 직선 모드 (4장 이하) ── */
+.spread-card {
+  width: 110px;
+  height: 170px;
+  margin-left: -68px;
+  position: relative;
+  cursor: pointer;
+  perspective: 1200px;
+  transition: transform 0.25s cubic-bezier(0.2, 0.8, 0.2, 1);
+  flex-shrink: 0;
+}
+.spread-card:first-child { margin-left: 0; }
+.spread-card:hover { z-index: 100; transform: translateY(-24px); }
+.spread-card.picked { z-index: 50; cursor: default; }
+.spread-card.picked:hover { transform: translateY(-12px); }
+.spread-card.disabled { cursor: default; }
+.spread-card.disabled:hover { transform: none; }
+
+/* ── 호(arc) 모드: 포물선 위에 카드 배치 (타로 스프레드) ── */
+.card-spread.arc-mode {
+  position: relative;
+  height: 270px;
+  padding: 0;
+  overflow: visible;
+}
+/* 각 카드는 포물선 좌표 (--arc-x, --arc-y)에 배치되고 --arc-angle 만큼 기울어짐 */
+.card-spread.arc-mode .spread-card {
+  position: absolute;
+  left: calc(var(--arc-x, 50%) - 55px);
+  bottom: var(--arc-y, 10px);
+  margin-left: 0;
+  transform-origin: 50% 50%;
+  transform: rotate(var(--arc-angle, 0deg));
+  transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+.card-spread.arc-mode .spread-card:hover {
+  transform: rotate(var(--arc-angle, 0deg)) translateY(-24px);
+  z-index: 100 !important;
+}
+.card-spread.arc-mode .spread-card.picked {
+  transform: rotate(var(--arc-angle, 0deg)) translateY(-14px);
+  cursor: default;
+}
+.card-spread.arc-mode .spread-card.picked:hover {
+  transform: rotate(var(--arc-angle, 0deg)) translateY(-14px);
+}
+.card-spread.arc-mode .spread-card.disabled:hover {
+  transform: rotate(var(--arc-angle, 0deg));
+}
+
+.spread-card-inner {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  transform-style: preserve-3d;
+  transition: transform 0.8s cubic-bezier(0.2, 0.8, 0.2, 1.2);
+}
+.spread-card.picked .spread-card-inner { transform: rotateY(180deg); }
+
+.spread-card .card-back,
+.spread-card .card-face {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  border-radius: 10px;
+  box-shadow:
+    0 10px 24px rgba(0,0,0,0.6),
+    0 0 0 1px rgba(212,175,55,0.45),
+    0 0 22px rgba(212,175,55,0.18);
+  overflow: hidden;
+}
+
+/* === SAJU CARD BACK === */
+.spread-card .card-back {
+  background:
+    radial-gradient(circle at 50% 38%, rgba(255, 216, 77, 0.28) 0%, transparent 55%),
+    repeating-linear-gradient(45deg, rgba(212,175,55,0.07) 0 5px, transparent 5px 12px),
+    linear-gradient(135deg, #2d1b69 0%, #1a1346 50%, #0d0a23 100%);
+  border: 3px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.spread-card .card-back::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(212, 175, 55, 0.6);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.spread-card .card-back::after {
+  content: "";
+  position: absolute;
+  inset: 10px;
+  border: 1px dashed rgba(212, 175, 55, 0.3);
+  border-radius: 4px;
+  pointer-events: none;
+}
+.spread-card .card-symbol {
+  font-size: 42px;
+  line-height: 1;
+  background: linear-gradient(135deg, #ffe680 0%, #d4af37 50%, #ffd84d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 0 8px rgba(212, 175, 55, 0.7));
+  z-index: 2;
+}
+.spread-card .card-corner {
+  position: absolute;
+  font-size: 13px;
+  color: rgba(255, 216, 77, 0.9);
+  z-index: 2;
+  filter: drop-shadow(0 0 4px rgba(212, 175, 55, 0.5));
+}
+.spread-card .card-corner.tl { top: 12px; left: 12px; }
+.spread-card .card-corner.br { bottom: 12px; right: 12px; transform: rotate(180deg); }
+.spread-card .card-stars {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+}
+.spread-card .card-stars span {
+  position: absolute;
+  color: rgba(255, 216, 77, 0.6);
+  font-size: 10px;
+  filter: drop-shadow(0 0 4px rgba(255, 216, 77, 0.5));
+}
+
+/* === CARD FACE (revealed) === */
+.spread-card .card-face {
+  transform: rotateY(180deg);
+  background:
+    radial-gradient(circle at 50% 50%, #fff8e0 0%, #f0e0a8 100%);
+  border: 3px solid #d4af37;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  font-size: 80px;
+  font-weight: 900;
+  color: #1a1a2e;
+  letter-spacing: -0.02em;
+}
+.spread-card .card-face::before {
+  content: "";
+  position: absolute;
+  inset: 6px;
+  border: 1px solid rgba(212, 175, 55, 0.65);
+  border-radius: 6px;
+  pointer-events: none;
+}
+.spread-card .card-face.team-a { color: var(--team-a); text-shadow: 0 0 16px rgba(255, 77, 109, 0.45); }
+.spread-card .card-face.team-b { color: var(--team-b); text-shadow: 0 0 16px rgba(76, 201, 240, 0.45); }
+.spread-card .card-face.team-c { color: #c98c00; text-shadow: 0 0 16px rgba(255, 209, 102, 0.55); }
+.spread-card .card-face.team-d { color: var(--team-d); text-shadow: 0 0 16px rgba(6, 214, 160, 0.45); }
+
+/* ============ BASKET ORDER SPIN OVERLAY (시작 시 순서 뽑기) ============ */
+.basket-order-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(11, 13, 26, 0.96);
+  z-index: 100;
+  display: none;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  padding: 24px;
+}
+.basket-order-overlay.show { display: flex; }
+.order-spin-stage {
+  text-align: center;
+  width: 100%;
+  max-width: 560px;
+}
+.order-title {
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  font-size: 36px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 50%, #ff4d6d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 8px;
+  letter-spacing: -0.02em;
+}
+.order-sub {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--c-text-dim);
+  margin-bottom: 20px;
+}
+.order-spinner {
+  width: 320px;
+  height: 110px;
+  margin: 0 auto 20px;
+  background: var(--c-bg-2);
+  border: 3px solid var(--c-accent);
+  border-radius: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 0 32px rgba(255,216,77,0.35), inset 0 2px 8px rgba(0,0,0,0.4);
+}
+.order-spin-text {
+  font-size: 44px;
+  font-weight: 900;
+  color: var(--c-accent);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 16px rgba(255,216,77,0.4);
+}
+.order-result-list {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 8px;
+  max-width: 480px;
+  margin: 0 auto 20px;
+  max-height: 50vh;
+  overflow-y: auto;
+}
+.order-result-item {
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  border-left: 4px solid var(--c-accent);
+  border-radius: 10px;
+  padding: 10px 14px;
+  font-weight: 700;
+  font-size: 15px;
+  color: var(--c-text);
+  text-align: left;
+  opacity: 0;
+  animation: order-slide-in 0.35s cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+}
+.order-result-item .order-num {
+  display: inline-block;
+  width: 22px;
+  color: var(--c-accent);
+  font-weight: 900;
+  letter-spacing: 0;
+}
+@keyframes order-slide-in {
+  from { opacity: 0; transform: translateX(-16px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+.order-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* 농구슛 이름 패널 - 순서 강제 */
+.name-item.locked {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+.name-item.locked:hover {
+  background: var(--c-bg-1);
+  border-color: transparent;
+  transform: none;
+}
+.name-item .order-badge {
+  display: inline-block;
+  background: var(--c-bg-3);
+  color: var(--c-accent);
+  font-size: 11px;
+  font-weight: 900;
+  padding: 1px 6px;
+  border-radius: 6px;
+  margin-right: 6px;
+  letter-spacing: 0;
+}
+.name-item.selected .order-badge {
+  background: rgba(255,216,77,0.25);
+}
+
+/* (Cookie game removed - replaced by card dealing) */
+
+/* ============ SLOT MACHINE GAME (시안비교 #2 스타일) ============ */
+.slot-stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  height: 100%;
+  gap: 18px;
+  padding: 16px;
+  background: linear-gradient(180deg, #2a0e0e 0%, #4a0c1a 50%, #2a0e0e 100%);
+}
+.slot-machine {
+  width: 280px;
+  height: 190px;
+  background: linear-gradient(180deg, #ff4d4d 0%, #c9184a 100%);
+  border: 6px solid #ffd84d;
+  border-radius: 16px;
+  padding: 30px 24px;
+  position: relative;
+  box-shadow:
+    0 0 30px rgba(255, 216, 77, 0.4),
+    inset 0 4px 12px rgba(0,0,0,0.4);
+}
+.slot-bulbs {
+  position: absolute;
+  top: 6px; bottom: 6px;
+  left: 6px; right: 6px;
+  pointer-events: none;
+}
+.slot-bulbs span {
+  position: absolute;
+  width: 10px;
+  height: 10px;
+  background: #ffd84d;
+  border-radius: 50%;
+  box-shadow: 0 0 8px #ffd84d;
+  animation: bulb-blink 1.2s infinite;
+}
+.slot-bulbs span:nth-child(1) { top: 0; left: 0; animation-delay: 0s; }
+.slot-bulbs span:nth-child(2) { top: 0; right: 0; animation-delay: 0.3s; }
+.slot-bulbs span:nth-child(3) { bottom: 0; left: 0; animation-delay: 0.6s; }
+.slot-bulbs span:nth-child(4) { bottom: 0; right: 0; animation-delay: 0.9s; }
+.slot-bulbs span:nth-child(5) { top: 0; left: 50%; transform: translateX(-50%); animation-delay: 0.15s; }
+.slot-bulbs span:nth-child(6) { bottom: 0; left: 50%; transform: translateX(-50%); animation-delay: 0.75s; }
+
+@keyframes bulb-blink {
+  0%, 100% {
+    opacity: 1;
+    box-shadow: 0 0 8px #ffd84d;
+  }
+  50% {
+    opacity: 0.35;
+    box-shadow: 0 0 4px #ffd84d;
+  }
+}
+
+.slot-screen {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background: #000;
+  border: 3px inset #d4af37;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.slot-reel {
+  display: flex;
+  flex-direction: column;
+  will-change: transform;
+}
+.slot-reel.spinning {
+  /* set programmatically in JS */
+}
+.slot-item {
+  flex-shrink: 0;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  font-size: 100px;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffd84d;
+  text-shadow: 0 0 20px rgba(255, 216, 77, 0.8);
+}
+.slot-item.slot-a { color: #ff4d6d; text-shadow: 0 0 20px rgba(255, 77, 109, 0.85); }
+.slot-item.slot-b { color: #4cc9f0; text-shadow: 0 0 20px rgba(76, 201, 240, 0.85); }
+.slot-item.slot-c { color: #ffd84d; text-shadow: 0 0 20px rgba(255, 216, 77, 0.85); }
+.slot-item.slot-d { color: #06d6a0; text-shadow: 0 0 20px rgba(6, 214, 160, 0.85); }
+
+.slot-line {
+  position: absolute;
+  left: 0; right: 0;
+  top: 50%;
+  height: 2px;
+  background: rgba(255, 77, 109, 0.6);
+  box-shadow: 0 0 8px rgba(255, 77, 109, 0.6);
+  pointer-events: none;
+  z-index: 3;
+  transform: translateY(-1px);
+}
+
+.roulette-spin-btn {
+  margin-top: 8px;
+  font-size: 18px !important;
+  padding: 14px 36px !important;
+}
+.roulette-result {
+  height: 40px;
+  font-size: 26px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: -0.01em;
+  text-shadow: 0 0 12px rgba(255, 216, 77, 0.4);
+}
+
+/* ============ RESULT SCREEN ============ */
+#screen-result {
+  align-items: center;
+  justify-content: flex-start;
+}
+.result-banner {
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  font-size: 56px;
+  font-weight: 900;
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 50%, #ff4d6d 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  margin-bottom: 4px;
+  letter-spacing: -0.03em;
+  filter: drop-shadow(0 4px 16px rgba(255, 138, 61, 0.3));
+  animation: pop-in 0.5s cubic-bezier(0.2, 0.8, 0.2, 1.4);
+}
+@keyframes pop-in {
+  0% { transform: scale(0.7); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+.result-month {
+  font-size: 22px;
+  font-weight: 800;
+  color: var(--c-text-dim);
+  margin-bottom: 24px;
+  letter-spacing: -0.02em;
+}
+.result-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 18px;
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+}
+.result-grid.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+.result-team {
+  border: 1px solid var(--c-border);
+  border-top: 4px solid;
+  background: var(--c-bg-2);
+  padding: 16px 14px;
+  text-align: center;
+  border-radius: 16px;
+  box-shadow: var(--shadow-soft);
+}
+.result-team.team-a { border-top-color: var(--team-a); }
+.result-team.team-b { border-top-color: var(--team-b); }
+.result-team.team-c { border-top-color: var(--team-c); }
+.result-team.team-d { border-top-color: var(--team-d); }
+.result-team h3 {
+  font-size: 30px;
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+.result-team.team-a h3 { color: var(--team-a); }
+.result-team.team-b h3 { color: var(--team-b); }
+.result-team.team-c h3 { color: var(--team-c); }
+.result-team.team-d h3 { color: var(--team-d); }
+.result-team .member {
+  padding: 10px;
+  background: var(--c-bg-1);
+  margin-bottom: 6px;
+  font-size: 16px;
+  font-weight: 700;
+  border-radius: 10px;
+  letter-spacing: -0.01em;
+}
+.result-team .member.leader {
+  background: linear-gradient(135deg, #ffd84d 0%, #ff8a3d 100%);
+  color: #1a1a2e;
+  font-weight: 800;
+}
+.result-actions {
+  margin-top: 24px;
+  display: flex;
+  gap: 12px;
+}
+.result-saved {
+  margin-top: 14px;
+  color: var(--team-d);
+  font-size: 15px;
+  font-weight: 700;
+  height: 24px;
+}
+
+/* ============ HISTORY SCREEN ============ */
+#screen-history {
+  padding: 24px;
+}
+.history-list {
+  flex: 1;
+  overflow-y: auto;
+  max-width: 1100px;
+  margin: 0 auto;
+  width: 100%;
+}
+.history-empty {
+  text-align: center;
+  color: var(--c-muted);
+  padding: 60px 40px;
+  font-size: 18px;
+  font-weight: 600;
+}
+.history-entry {
+  border: 1px solid var(--c-border);
+  background: var(--c-bg-2);
+  padding: 18px;
+  margin-bottom: 14px;
+  border-radius: 14px;
+  box-shadow: var(--shadow-soft);
+}
+.history-entry-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px;
+}
+.history-entry-head h3 {
+  color: var(--c-text);
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.history-entry-head .game-tag {
+  background: rgba(255, 216, 77, 0.12);
+  color: var(--c-accent);
+  padding: 6px 14px;
+  font-size: 12px;
+  font-weight: 800;
+  border-radius: 20px;
+  letter-spacing: 0.04em;
+}
+.history-teams {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+.history-teams.three-cols {
+  grid-template-columns: repeat(3, 1fr);
+}
+.history-team {
+  background: var(--c-bg-1);
+  padding: 12px;
+  border: 1px solid var(--c-border);
+  border-left: 3px solid;
+  font-size: 14px;
+  font-weight: 600;
+  border-radius: 10px;
+}
+.history-team.team-a { border-left-color: var(--team-a); }
+.history-team.team-b { border-left-color: var(--team-b); }
+.history-team.team-c { border-left-color: var(--team-c); }
+.history-team.team-d { border-left-color: var(--team-d); }
+.history-team .label {
+  font-size: 16px;
+  font-weight: 800;
+  margin-bottom: 8px;
+  display: block;
+  letter-spacing: -0.01em;
+}
+.history-team.team-a .label { color: var(--team-a); }
+.history-team.team-b .label { color: var(--team-b); }
+.history-team.team-c .label { color: var(--team-c); }
+.history-team.team-d .label { color: var(--team-d); }
+.history-team div { margin-bottom: 2px; }
+.history-actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 12px;
+  justify-content: flex-end;
+}
+.history-actions .btn {
+  font-size: 13px;
+  padding: 8px 14px;
+}
+
+/* ============ TOAST ============ */
+.toast {
+  position: fixed;
+  bottom: 28px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--c-bg-3);
+  color: var(--c-text);
+  padding: 14px 22px;
+  font-size: 14px;
+  font-weight: 700;
+  border: 1px solid var(--c-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-soft);
+  z-index: 10000;
+  display: none;
+  animation: toast-in 0.3s ease;
+}
+.toast.show { display: block; }
+@keyframes toast-in {
+  from { transform: translate(-50%, 16px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+/* ============ NAME PANEL SHUFFLE BUTTON (농구슛 #1) ============ */
+.name-panel-actions {
+  margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.shuffle-btn {
+  font-family: inherit;
+  width: 100%;
+  font-size: 14px;
+  font-weight: 800;
+  background: linear-gradient(135deg, #4cc9f0 0%, #3b82f6 100%);
+  color: #fff;
+  border: none;
+  padding: 10px 14px;
+  cursor: pointer;
+  border-radius: 10px;
+  box-shadow: 0 4px 12px rgba(76, 201, 240, 0.35);
+  transition: transform 0.12s ease, box-shadow 0.12s ease;
+  letter-spacing: 0;
+}
+.shuffle-btn:hover { transform: translateY(-2px); box-shadow: 0 6px 18px rgba(76,201,240,0.5); }
+.shuffle-btn:active { transform: translateY(0); }
+.shuffle-btn:disabled { opacity: 0.45; cursor: not-allowed; transform: none; }
+
+@keyframes shake-bounce {
+  0%   { transform: translate(0, 0); }
+  20%  { transform: translate(-8px, -4px); }
+  40%  { transform: translate(7px, 3px); }
+  60%  { transform: translate(-5px, -2px); }
+  80%  { transform: translate(4px, 1px); }
+  100% { transform: translate(0, 0); }
+}
+.name-item.shuffling {
+  animation: shake-bounce 0.45s cubic-bezier(0.36, 0.07, 0.19, 0.97);
+}
+
+/* ============ GAME PICK MODE (#2) ============ */
+.mode-selector {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  max-width: 760px;
+  width: 100%;
+  margin: 0 auto 20px;
+}
+.mode-btn {
+  flex: 1;
+  font-family: inherit;
+  font-size: 18px;
+  font-weight: 900;
+  letter-spacing: -0.01em;
+  padding: 22px 18px;
+  border: 2px solid var(--c-border);
+  border-radius: 18px;
+  background: linear-gradient(160deg, #2a3050 0%, #1c2038 100%);
+  color: var(--c-text);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  transition: all 0.18s ease;
+  box-shadow: 0 6px 16px rgba(0,0,0,0.35);
+}
+.mode-btn .mode-icon { font-size: 38px; line-height: 1; }
+.mode-btn .mode-label { font-size: 18px; font-weight: 900; }
+.mode-btn .mode-desc {
+  font-size: 12px; font-weight: 600;
+  color: var(--c-text-dim); letter-spacing: 0;
+}
+.mode-btn.active {
+  border-color: var(--c-accent);
+  background: linear-gradient(160deg, #3a3f5e 0%, #2a3050 100%);
+  box-shadow: 0 10px 24px rgba(255, 216, 77, 0.25);
+}
+.mode-btn:hover { transform: translateY(-3px); border-color: var(--c-accent); }
+
+.cycle-progress {
+  text-align: center;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--c-text-dim);
+  margin-bottom: 18px;
+  letter-spacing: 0.04em;
+}
+.cycle-progress strong { color: var(--c-accent); }
+
+.random-pick-stage {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 18px;
+  max-width: 720px;
+  width: 100%;
+  margin: 24px auto;
+  padding: 36px 28px;
+  background: var(--c-bg-2);
+  border: 2px solid var(--c-accent);
+  border-radius: 24px;
+  box-shadow: 0 0 40px rgba(255,216,77,0.25);
+}
+.random-pick-stage.show { display: flex; }
+.random-pick-spinner {
+  width: 100%;
+  max-width: 460px;
+  height: 130px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--c-bg-1);
+  border-radius: 16px;
+  border: 2px solid var(--c-border);
+  font-size: 32px;
+  font-weight: 900;
+  font-family: 'Black Han Sans', 'Pretendard Variable', sans-serif;
+  color: var(--c-accent);
+  letter-spacing: -0.02em;
+  text-shadow: 0 0 20px rgba(255,216,77,0.4);
+  text-align: center;
+  padding: 0 14px;
+}
+.random-pick-actions { display: flex; gap: 12px; }
+
+/* ============ CLAW MACHINE 🕹️ (ARCADE STYLE) ============ */
+.claw-stage {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  background:
+    radial-gradient(ellipse at 50% 100%, rgba(255,77,109,0.15) 0%, transparent 60%),
+    linear-gradient(180deg, #1a0d2a 0%, #2d1b4e 50%, #1a0d2a 100%);
+}
+.claw-stage::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, transparent 0, transparent 30px, rgba(255,255,255,0.02) 30px, rgba(255,255,255,0.02) 31px);
+  pointer-events: none;
+}
+.claw-cabinet {
+  position: absolute;
+  top: 4%;
+  bottom: 6%;
+  left: 8%;
+  right: 8%;
+  background:
+    linear-gradient(180deg, #ff8a3d 0%, #ff4d6d 50%, #c9184a 100%);
+  border: 6px solid #1a0a0a;
+  border-radius: 22px 22px 14px 14px;
+  box-shadow:
+    0 16px 32px rgba(0,0,0,0.6),
+    inset 0 -8px 16px rgba(0,0,0,0.4),
+    inset 0 4px 12px rgba(255,255,255,0.2);
+}
+.claw-marquee {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 10%;
+  background: linear-gradient(180deg, #ffd84d 0%, #ff8a3d 100%);
+  border-bottom: 4px solid #1a0a0a;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #c9184a;
+  letter-spacing: 0.08em;
+  text-shadow: 0 2px 0 #fff, 0 -1px 0 rgba(0,0,0,0.3);
+  border-radius: 16px 16px 0 0;
+  z-index: 7;
+}
+.claw-marquee::before, .claw-marquee::after {
+  content: "★";
+  position: absolute;
+  font-size: 16px;
+  color: #fff;
+  animation: marquee-blink 1s ease-in-out infinite;
+}
+.claw-marquee::before { left: 12px; }
+.claw-marquee::after  { right: 12px; animation-delay: 0.5s; }
+@keyframes marquee-blink {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.8); }
+}
+.claw-leds {
+  position: absolute;
+  top: 10%;
+  left: 0; right: 0;
+  height: 6px;
+  display: flex;
+  justify-content: space-around;
+  pointer-events: none;
+  z-index: 7;
+  padding: 0 4%;
+}
+.claw-leds span {
+  width: 8px;
+  height: 8px;
+  background: #ffd84d;
+  border-radius: 50%;
+  box-shadow: 0 0 10px #ffd84d;
+  animation: marquee-blink 0.8s ease-in-out infinite;
+}
+.claw-leds span:nth-child(2n) { animation-delay: 0.3s; background: #4cc9f0; box-shadow: 0 0 10px #4cc9f0; }
+.claw-leds span:nth-child(3n) { animation-delay: 0.6s; background: #ff7a9c; box-shadow: 0 0 10px #ff7a9c; }
+.claw-glass {
+  position: absolute;
+  top: 13%;
+  bottom: 22%;
+  left: 4%;
+  right: 4%;
+  background:
+    linear-gradient(140deg,
+      rgba(255,255,255,0.18) 0%,
+      rgba(255,255,255,0.06) 30%,
+      transparent 50%,
+      rgba(255,255,255,0.06) 70%,
+      rgba(255,255,255,0.18) 100%);
+  border: 3px solid #1a0a0a;
+  border-radius: 12px;
+  box-shadow:
+    inset 0 0 36px rgba(0,0,0,0.5),
+    inset 0 0 0 2px rgba(255,255,255,0.15);
+  z-index: 1;
+  overflow: hidden;
+}
+.claw-rail {
+  position: absolute;
+  top: 14%;
+  left: 8%;
+  right: 8%;
+  height: 6px;
+  background: linear-gradient(180deg, #d0d0d0 0%, #444 60%, #222 100%);
+  border-radius: 3px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.5);
+  z-index: 4;
+}
+.claw-arm {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  width: 8px;
+  background: linear-gradient(90deg, #888 0%, #ccc 50%, #888 100%);
+  height: 36px;
+  z-index: 5;
+  transform: translateX(-50%);
+  transition: top 0.6s ease-in, height 0.6s ease-in, left 0.3s linear;
+  box-shadow: 0 0 4px rgba(0,0,0,0.4);
+}
+.claw-head {
+  position: absolute;
+  bottom: -8px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 56px;
+  height: 36px;
+  pointer-events: none;
+}
+.claw-head::before, .claw-head::after {
+  content: "";
+  position: absolute;
+  bottom: 0;
+  width: 8px;
+  height: 36px;
+  background: linear-gradient(180deg, #888, #444);
+  border-radius: 4px 4px 0 0;
+}
+.claw-head::before {
+  left: 10%;
+  transform-origin: top center;
+  transform: rotate(-30deg);
+  transition: transform 0.3s ease;
+}
+.claw-head::after {
+  right: 10%;
+  transform-origin: top center;
+  transform: rotate(30deg);
+  transition: transform 0.3s ease;
+}
+.claw-head .claw-base {
+  position: absolute;
+  top: -6px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 36px;
+  height: 18px;
+  background: linear-gradient(180deg, #ccc, #666);
+  border-radius: 8px;
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.4);
+}
+.claw-head.closed::before { transform: rotate(-12deg); }
+.claw-head.closed::after  { transform: rotate(12deg); }
+.claw-prizes {
+  position: absolute;
+  top: 14%;
+  bottom: 22%;
+  left: 5%;
+  right: 5%;
+  z-index: 2;
+  overflow: visible;
+}
+.claw-prize {
+  position: absolute;
+  width: 50px;
+  height: 60px;
+  border-radius: 18px 18px 12px 12px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Black Han Sans', sans-serif;
+  font-weight: 900;
+  color: #fff;
+  box-shadow: 0 4px 10px rgba(0,0,0,0.55), inset 0 -3px 6px rgba(0,0,0,0.25), inset 0 3px 6px rgba(255,255,255,0.3);
+  transition: transform 0.4s ease, opacity 0.4s ease;
+}
+.claw-prize.team-a { background: linear-gradient(160deg, #ff9ab5, #ff4d6d); }
+.claw-prize.team-b { background: linear-gradient(160deg, #9ae4ff, #4cc9f0); }
+.claw-prize.team-c { background: linear-gradient(160deg, #fff0a0, #ffd166); color:#5a4400; }
+.claw-prize.team-d { background: linear-gradient(160deg, #6ffad8, #06d6a0); }
+.claw-prize .pz-face {
+  font-size: 24px;
+  line-height: 1;
+  margin-bottom: 1px;
+  filter: drop-shadow(0 1px 3px rgba(0,0,0,0.35));
+}
+.claw-prize .pz-letter {
+  position: absolute;
+  bottom: 8%;
+  font-size: 11px;
+  letter-spacing: -0.02em;
+  opacity: 0.85;
+}
+@keyframes prize-float {
+  0%   { transform: rotate(var(--r, 0deg)) translate(0px,   0px); }
+  25%  { transform: rotate(var(--r, 0deg)) translate(5px,  -6px); }
+  50%  { transform: rotate(var(--r, 0deg)) translate(0px, -10px); }
+  75%  { transform: rotate(var(--r, 0deg)) translate(-5px, -6px); }
+  100% { transform: rotate(var(--r, 0deg)) translate(0px,   0px); }
+}
+.claw-prize {
+  animation: prize-float 2.2s ease-in-out infinite;
+}
+.claw-prize.full {
+  opacity: 0.22;
+  filter: grayscale(0.75);
+  animation: none;
+}
+.claw-prize.taken {
+  z-index: 6;
+  animation: none;
+  transition: top 0.4s ease, transform 0.4s ease, opacity 0.4s ease 0.4s;
+}
+.claw-floor {
+  position: absolute;
+  bottom: 22%;
+  left: 6%;
+  right: 6%;
+  height: 12%;
+  background:
+    radial-gradient(ellipse at 30% 50%, #ff7a9c 0%, transparent 14%),
+    radial-gradient(ellipse at 70% 50%, #4cc9f0 0%, transparent 14%),
+    radial-gradient(ellipse at 50% 70%, #06d6a0 0%, transparent 14%),
+    linear-gradient(180deg, #2a1a3e 0%, #1a0d2a 100%);
+  opacity: 0.55;
+  border-radius: 50% 50% 8px 8px / 30% 30% 8px 8px;
+  z-index: 0;
+}
+
+.claw-result {
+  position: absolute;
+  bottom: 1.5%;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--c-accent);
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  z-index: 8;
+  transition: font-size 0.2s ease;
+}
+.claw-result.big-reveal {
+  font-size: 48px;
+  font-family: 'Pretendard Variable', Pretendard, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  animation: reveal-slide 0.45s cubic-bezier(0.16,1,0.3,1) both;
+}
+.claw-tension {
+  bottom: 21%;
+}
+.claw-timer {
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  color: #ffd84d;
+  text-shadow: 0 0 20px rgba(255,216,77,0.8), 0 4px 8px rgba(0,0,0,0.6);
+  z-index: 7;
+  line-height: 1;
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+.claw-timer.danger {
+  color: #ff4d6d;
+  text-shadow: 0 0 24px rgba(255,77,109,0.9), 0 4px 8px rgba(0,0,0,0.6);
+  animation: timer-danger 0.25s linear infinite;
+}
+.basket-timer {
+  position: absolute;
+  top: 6%;
+  left: 6%;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 52px;
+  font-weight: 900;
+  color: #ffd84d;
+  text-shadow: 0 0 20px rgba(255,216,77,0.8), 0 4px 8px rgba(0,0,0,0.6);
+  z-index: 7;
+  line-height: 1;
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+.basket-timer.danger {
+  color: #ff4d6d;
+  text-shadow: 0 0 24px rgba(255,77,109,0.9), 0 4px 8px rgba(0,0,0,0.6);
+  animation: timer-danger 0.25s linear infinite;
+}
+.claw-controls {
+  position: absolute;
+  top: 4%;
+  right: 4%;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  z-index: 8;
+}
+.claw-controls .btn {
+  font-size: 13px;
+  padding: 10px 16px;
+}
+
+/* ============ MOLE GAME 🔨 (CARNIVAL STYLE) ============ */
+.mole-stage {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  cursor: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='100' height='100' viewBox='0 0 100 100'><text y='82' font-size='82'>🔨</text></svg>") 10 80, crosshair;
+  background: linear-gradient(180deg,
+    #7ec8e3 0%,
+    #a8ddf0 18%,
+    #5ab84a 18%,
+    #3d8030 28%,
+    #7a4d1c 28%,
+    #5a3410 100%);
+}
+.mole-stage::before {
+  /* 잔디 블레이드 */
+  content: "";
+  position: absolute;
+  top: 15%;
+  left: 0; right: 0;
+  height: 7%;
+  background: linear-gradient(180deg, #6dcf55, #3d8030);
+  clip-path: polygon(
+    0% 100%, 1.5% 10%, 3% 100%, 4.5% 5%, 6% 100%, 7.5% 20%, 9% 100%,
+    10.5% 8%, 12% 100%, 13.5% 15%, 15% 100%, 16.5% 5%, 18% 100%,
+    19.5% 18%, 21% 100%, 22.5% 10%, 24% 100%, 25.5% 25%, 27% 100%,
+    28.5% 8%, 30% 100%, 31.5% 15%, 33% 100%, 34.5% 5%, 36% 100%,
+    37.5% 20%, 39% 100%, 40.5% 10%, 42% 100%, 43.5% 18%, 45% 100%,
+    46.5% 5%, 48% 100%, 49.5% 12%, 51% 100%, 52.5% 22%, 54% 100%,
+    55.5% 8%, 57% 100%, 58.5% 15%, 60% 100%, 61.5% 5%, 63% 100%,
+    64.5% 20%, 66% 100%, 67.5% 10%, 69% 100%, 70.5% 18%, 72% 100%,
+    73.5% 5%, 75% 100%, 76.5% 12%, 78% 100%, 79.5% 25%, 81% 100%,
+    82.5% 8%, 84% 100%, 85.5% 15%, 87% 100%, 88.5% 5%, 90% 100%,
+    91.5% 18%, 93% 100%, 94.5% 10%, 96% 100%, 97.5% 22%, 99% 100%,
+    100% 100%
+  );
+  z-index: 1;
+  pointer-events: none;
+}
+.mole-stage::after {
+  /* 구름 + 햇빛 */
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 18%;
+  background:
+    radial-gradient(ellipse 40% 60% at 20% 50%, rgba(255,255,255,0.7) 0%, transparent 60%),
+    radial-gradient(ellipse 30% 55% at 55% 40%, rgba(255,255,255,0.65) 0%, transparent 55%),
+    radial-gradient(ellipse at 80% 30%, rgba(255,240,150,0.25) 0%, transparent 50%);
+  pointer-events: none;
+  z-index: 2;
+}
+.mole-banner {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.32);
+  color: #ffd84d;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  padding: 9px 32px;
+  border: 1px solid rgba(255,216,77,0.28);
+  border-radius: 10px;
+  letter-spacing: 0.12em;
+  text-shadow: 0 0 20px rgba(255,216,77,0.45);
+  backdrop-filter: blur(6px);
+  z-index: 5;
+  white-space: nowrap;
+}
+.mole-banner::before, .mole-banner::after { content: none; }
+.mole-grid {
+  position: absolute;
+  top: 22%;
+  left: 6%;
+  right: 6%;
+  bottom: 8%;
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  grid-template-rows: repeat(3, 1fr);
+  gap: 14px;
+  padding: 8px;
+}
+.mole-hole {
+  position: relative;
+  background:
+    radial-gradient(ellipse at 50% 60%, #1a0a05 0%, #2a1810 35%, #4a2a18 60%, transparent 75%);
+  border-radius: 50%;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  overflow: hidden;
+  box-shadow: 0 8px 16px rgba(0,0,0,0.4);
+}
+.mole-hole::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  background: radial-gradient(ellipse at 50% 90%, transparent 0%, transparent 30%, #4a8a2e 50%, transparent 60%);
+  pointer-events: none;
+}
+.mole-hole::after {
+  content: "";
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 30%;
+  background: radial-gradient(ellipse at top, #000 0%, transparent 80%);
+  pointer-events: none;
+}
+.mole {
+  width: 74%;
+  height: 86%;
+  border-radius: 50% 50% 36% 36%;
+  background: linear-gradient(160deg, #d4a070 0%, #8a5230 100%);
+  position: relative;
+  transform: translateY(110%);
+  transition: transform 0.08s ease-out;
+  cursor: inherit;
+  box-shadow: inset 0 -10px 14px rgba(0,0,0,0.4), 0 4px 8px rgba(0,0,0,0.3);
+  z-index: 2;
+  overflow: visible;
+}
+/* 발(paws) */
+.mole::before {
+  content: "";
+  position: absolute;
+  bottom: 14%;
+  left: -10%;
+  width: 22%;
+  height: 18%;
+  background: inherit;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+}
+.mole::after {
+  content: "";
+  position: absolute;
+  bottom: 14%;
+  right: -10%;
+  width: 22%;
+  height: 18%;
+  background: inherit;
+  border-radius: 50%;
+  box-shadow: inset 0 -2px 4px rgba(0,0,0,0.3);
+}
+/* 귀 */
+.mole-ears {
+  position: absolute;
+  top: -18%;
+  left: 0; right: 0;
+  height: 28%;
+  pointer-events: none;
+  z-index: 3;
+}
+.mole-ears::before, .mole-ears::after {
+  content: "";
+  position: absolute;
+  top: 0;
+  width: 26%;
+  height: 100%;
+  border-radius: 50% 50% 0 0;
+  background: #d4a070;
+}
+.mole-ears::before { left: 14%; }
+.mole-ears::after  { right: 14%; }
+/* 귀 안쪽 (분홍) */
+.mole-ears .ear-inner {
+  position: absolute;
+  top: 15%;
+  width: 14%;
+  height: 65%;
+  background: rgba(255,160,160,0.6);
+  border-radius: 50% 50% 0 0;
+}
+.mole-ears .ear-inner.left  { left: 19%; }
+.mole-ears .ear-inner.right { right: 19%; }
+
+/* 팀별 귀 색상 */
+.mole.team-a .mole-ears::before,
+.mole.team-a .mole-ears::after { background: #ff9ab5; }
+.mole.team-b .mole-ears::before,
+.mole.team-b .mole-ears::after { background: #9ae4ff; }
+.mole.team-c .mole-ears::before,
+.mole.team-c .mole-ears::after { background: #fff0a0; }
+.mole.team-d .mole-ears::before,
+.mole.team-d .mole-ears::after { background: #6ffad8; }
+
+.mole-face {
+  position: absolute;
+  top: 14%;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 80%;
+  height: 70%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  pointer-events: none;
+}
+.mole-eyes {
+  display: flex;
+  gap: 12px;
+  margin-bottom: 3px;
+  position: relative;
+}
+.mole-eyes::before, .mole-eyes::after {
+  content: "";
+  width: 10px;
+  height: 10px;
+  background: #1a1a2e;
+  border-radius: 50%;
+  box-shadow: 0 0 0 2px #fff, 2px -2px 0 0 rgba(255,255,255,0.5);
+}
+/* 볼터치 */
+.mole-face::before {
+  content: "";
+  position: absolute;
+  bottom: 42%;
+  left: -4px;
+  width: 14px; height: 7px;
+  background: rgba(255,140,160,0.5);
+  border-radius: 50%;
+}
+.mole-face::after {
+  content: "";
+  position: absolute;
+  bottom: 42%;
+  right: -4px;
+  width: 14px; height: 7px;
+  background: rgba(255,140,160,0.5);
+  border-radius: 50%;
+}
+/* 코 */
+.mole-nose {
+  width: 18px;
+  height: 11px;
+  background: radial-gradient(ellipse, #ff8fab 30%, #e05070 100%);
+  border-radius: 50%;
+  margin: 0 auto 2px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.25), inset 0 1px 2px rgba(255,255,255,0.3);
+}
+.mole-team-letter {
+  font-family: 'Black Han Sans', sans-serif;
+  font-weight: 900;
+  font-size: 18px;
+  color: #fff;
+  text-shadow: 0 2px 0 rgba(0,0,0,0.4);
+  margin-top: 1px;
+}
+.mole.up { transform: translateY(8%); }
+.mole.hit {
+  transform: translateY(110%) scale(0.7) rotate(20deg);
+  transition: transform 0.2s ease-in;
+}
+.mole.team-a { background: linear-gradient(160deg, #ff9ab5, var(--team-a)); }
+.mole.team-b { background: linear-gradient(160deg, #9ae4ff, var(--team-b)); }
+.mole.team-c { background: linear-gradient(160deg, #fff0a0, var(--team-c)); color:#5a4400; }
+.mole.team-d { background: linear-gradient(160deg, #6ffad8, var(--team-d)); }
+.mole-burst {
+  position: absolute;
+  pointer-events: none;
+  font-size: 36px;
+  z-index: 6;
+  animation: burst-pop 0.5s ease-out forwards;
+  filter: drop-shadow(0 0 12px #fff);
+}
+@keyframes burst-pop {
+  0%   { transform: translate(-50%,-50%) scale(0.4) rotate(0deg); opacity: 1; }
+  60%  { transform: translate(-50%,-50%) scale(1.3) rotate(15deg); opacity: 1; }
+  100% { transform: translate(-50%,-50%) scale(1.6) rotate(20deg); opacity: 0; }
+}
+.mole-msg {
+  position: absolute;
+  top: 14%;
+  left: 0; right: 0;
+  text-align: center;
+  font-size: 16px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.6);
+  z-index: 4;
+  transition: font-size 0.2s ease;
+}
+.mole-msg.big-reveal {
+  font-size: 48px;
+  font-family: 'Pretendard Variable', Pretendard, sans-serif;
+  font-weight: 900;
+  letter-spacing: -0.02em;
+  text-shadow: 0 2px 20px rgba(0,0,0,0.5);
+  animation: reveal-slide 0.45s cubic-bezier(0.16,1,0.3,1) both;
+}
+.mole-stage * { cursor: inherit !important; }
+.mole-tension { top: 15%; }
+.mole-timer {
+  position: absolute;
+  top: 6%;
+  right: 5%;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 60px;
+  font-weight: 900;
+  color: #ffd84d;
+  text-shadow: 0 0 20px rgba(255,216,77,0.8), 0 4px 8px rgba(0,0,0,0.6);
+  z-index: 7;
+  line-height: 1;
+  animation: timer-pulse 1s ease-in-out infinite;
+}
+.mole-timer.danger {
+  color: #ff4d6d;
+  text-shadow: 0 0 24px rgba(255,77,109,0.9), 0 4px 8px rgba(0,0,0,0.6);
+  animation: timer-danger 0.25s linear infinite;
+}
+@keyframes timer-pulse {
+  0%, 100% { transform: scale(1); }
+  50%       { transform: scale(1.15); }
+}
+@keyframes reveal-slide {
+  0%   { opacity: 0; transform: translateY(12px) scale(0.95); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes timer-danger {
+  0%, 100% { transform: scale(1.2) translate(0,0); }
+  33%       { transform: scale(1.2) translate(-3px,1px); }
+  66%       { transform: scale(1.2) translate(3px,-1px); }
+}
+
+
+
+
+/* ============ CONFETTI ============ */
+.confetti-wrap {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 9999;
+  overflow: hidden;
+}
+.confetti-piece {
+  position: absolute;
+  top: -20px;
+  width: 10px;
+  height: 14px;
+  border-radius: 2px;
+  opacity: 0;
+  animation: confetti-fall linear forwards;
+}
+@keyframes confetti-fall {
+  0%   { transform: translateY(0) rotate(0deg) scaleX(1);   opacity: 1; }
+  80%  { opacity: 1; }
+  100% { transform: translateY(110vh) rotate(720deg) scaleX(-1); opacity: 0; }
+}
+
+/* ============ EDIT MEMBERS ============ */
+.edit-info {
+  text-align: center;
+  color: var(--c-text-dim);
+  font-size: 14px;
+  margin-bottom: 20px;
+}
+.edit-member-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  max-width: 900px;
+  margin: 0 auto 24px;
+}
+.edit-section-title {
+  text-align: center;
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--c-accent);
+  letter-spacing: 0.08em;
+  margin: 16px 0 10px;
+}
+.edit-fixed-row {
+  display: flex;
+  gap: 16px;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+.edit-fixed-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.edit-fixed-item label {
+  font-size: 14px;
+  font-weight: 800;
+  color: var(--c-text-dim);
+  white-space: nowrap;
+}
+.edit-fixed-item .edit-input { width: 100px; }
+.edit-member-chip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--c-bg-3);
+  border: 1px solid var(--c-border);
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 16px;
+  font-weight: 700;
+}
+.edit-member-chip .del-btn {
+  background: none;
+  border: none;
+  color: var(--c-muted);
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  transition: color 0.15s;
+}
+.edit-member-chip .del-btn:hover { color: var(--team-a); }
+.edit-add-row {
+  display: flex;
+  gap: 10px;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+.edit-input {
+  font-family: inherit;
+  font-size: 16px;
+  font-weight: 700;
+  background: var(--c-bg-2);
+  border: 1px solid var(--c-border);
+  border-radius: 10px;
+  color: var(--c-text);
+  padding: 12px 18px;
+  outline: none;
+  width: 180px;
+  transition: border-color 0.15s;
+}
+.edit-input:focus { border-color: var(--c-accent); }
+.edit-actions {
+  display: flex;
+  gap: 12px;
+  justify-content: center;
+}
+
+/* ── 캡슐 선택 오버레이 ── */
+.capsule-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(8,6,22,0.93);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  animation: fadeIn 0.25s ease;
+  backdrop-filter: blur(6px);
+  padding: 20px;
+}
+.capsule-title {
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 20px;
+  color: #ffd84d;
+  margin-bottom: 20px;
+  text-shadow: 0 0 16px rgba(255,216,77,0.6);
+  letter-spacing: 0.06em;
+}
+.capsule-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+  justify-content: center;
+  max-width: 88%;
+}
+.capsule-item {
+  width: 62px;
+  height: 62px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 35% 32%, #eaeaf8 0%, #aaaacc 45%, #666688 100%);
+  border: 2px solid rgba(255,255,255,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: 'Black Han Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 900;
+  color: #fff;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.55), inset 0 2px 5px rgba(255,255,255,0.35);
+  transition: transform 0.15s, box-shadow 0.15s, opacity 0.3s;
+  animation: capsule-in 0.4s cubic-bezier(0.2,0.8,0.2,1.3) var(--cap-delay,0s) both;
+  user-select: none;
+  text-shadow: 0 2px 4px rgba(0,0,0,0.5);
+}
+.capsule-item:hover:not(.opened):not(.dimmed) {
+  transform: scale(1.14) translateY(-4px);
+  box-shadow: 0 8px 22px rgba(255,216,77,0.45), inset 0 2px 5px rgba(255,255,255,0.35);
+}
+@keyframes capsule-in {
+  from { transform: scale(0) rotate(-90deg); opacity: 0; }
+  to   { transform: scale(1) rotate(0deg);   opacity: 1; }
+}
+.capsule-item.opened {
+  cursor: default;
+  animation: capsule-open 0.5s cubic-bezier(0.2,0.8,0.2,1.4) forwards;
+  border-color: rgba(255,255,255,0.8);
+}
+@keyframes capsule-open {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.55) rotate(12deg); filter: brightness(1.4); }
+  70%  { transform: scale(1.2) rotate(-5deg); }
+  100% { transform: scale(1.18); }
+}
+.capsule-item.dimmed {
+  opacity: 0.22;
+  cursor: default;
+  pointer-events: none;
+}
+/* responsive scaling for small screens */
+@media (max-width: 1100px) {
+  .salad-grid { grid-template-columns: repeat(4, 1fr); }
+  .game-body { grid-template-columns: 180px 1fr 220px; }
+}
+
+/* ============================================================
+   BONUS LADDER GAME (번외 사다리타기)
+   ============================================================ */
+#screen-bonus-ladder { overflow-y: auto; align-items: center; }
+
+.bonus-phase {
+  width: 100%; max-width: 680px;
+  display: flex; flex-direction: column; align-items: center; gap: 14px;
+  margin: 0 auto;
+}
+
+/* 번호 배정 레이아웃: 좌(이름) + 우(숫자판) */
+.bonus-pick-layout {
+  display: flex; gap: 16px; width: 100%; max-width: 660px; align-items: flex-start;
+}
+.bonus-name-col {
+  display: flex; flex-direction: column; gap: 6px;
+  min-width: 120px; max-height: 380px; overflow-y: auto;
+}
+.bonus-name-item {
+  padding: 10px 16px; border-radius: 10px;
+  background: #15123a; border: 2px solid #2d2960;
+  color: #a5b4fc; cursor: pointer; font-size: 14px; font-weight: 700;
+  text-align: center; white-space: nowrap; transition: all .15s;
+}
+.bonus-name-item.active { background: #4338ca; border-color: #818cf8; color: #fff; }
+.bonus-name-item.done { background: #1a1640; border-color: #312e60; color: #4a4878; cursor: default; }
+.bonus-name-item:hover:not(.active):not(.done) { border-color: #6366f1; }
+
+/* 숫자판: 4열 그리드 */
+.bonus-number-grid-centered {
+  display: grid; grid-template-columns: repeat(4, 1fr);
+  gap: 8px; flex: 1;
+}
+.bonus-num-btn {
+  aspect-ratio: 1; border-radius: 14px;
+  background: #15123a; border: 2px solid #2d2960;
+  cursor: pointer; text-align: center; transition: all .15s;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px;
+  padding: 6px;
+}
+.bonus-num-btn:hover:not(.taken) { border-color: #818cf8; background: #221e5a; }
+.bonus-num-btn.taken { background: #2a2566; border-color: #4338ca; cursor: default; }
+.bonus-num-digit { font-size: 22px; font-weight: 900; color: #818cf8; line-height: 1; }
+.bonus-num-btn.taken .bonus-num-digit { color: #6366f1; font-size: 14px; }
+.bonus-num-name { font-size: 10px; color: #c4b5fd; line-height: 1.2; max-width: 58px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+.bonus-phase { width: 100%; max-width: 680px; display: flex; flex-direction: column; align-items: center; gap: 14px; }
+
+.bonus-section-label {
+  font-size: 13px; font-weight: 700; letter-spacing: .08em;
+  color: #7c8aff; text-transform: uppercase; margin-bottom: 2px;
+}
+
+/* ── 참여자 선택 ── */
+.bonus-participant-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+  max-width: 600px;
+  width: 100%;
+}
+.bonus-chip {
+  padding: 14px 10px; border-radius: 14px;
+  background: #15123a; border: 2px solid #2d2960;
+  color: #8b92d4; cursor: pointer; font-size: 16px; font-weight: 700;
+  text-align: center; transition: all .15s;
+}
+.bonus-chip:hover { border-color: #6366f1; }
+.bonus-chip.on { background: #4338ca; border-color: #818cf8; color: #fff; }
+
+/* ── 경품 수 ── */
+.bonus-prize-row {
+  display: flex; align-items: center; gap: 14px;
+  font-size: 15px; font-weight: 700; color: #fbbf24;
+}
+.bonus-adj {
+  width: 34px; height: 34px; border-radius: 50%;
+  background: #15123a; border: 2px solid #3730a3;
+  color: #a5b4fc; font-size: 20px; font-weight: 800;
+  cursor: pointer; display: flex; align-items: center; justify-content: center;
+  transition: all .12s;
+}
+.bonus-adj:hover:not(:disabled) { background: #3730a3; color: #fff; }
+.bonus-adj:disabled { opacity: .35; cursor: default; }
+#bonus-prize-count { font-size: 26px; font-weight: 900; color: #fbbf24; min-width: 32px; text-align: center; }
+
+/* ── 번호 배정 ── */
+.bonus-pick-wrap {
+  display: flex; gap: 18px; width: 100%; justify-content: center; align-items: flex-start;
+}
+.bonus-name-list {
+  display: flex; flex-direction: column; gap: 6px; min-width: 110px;
+}
+.bonus-name-item {
+  padding: 9px 14px; border-radius: 10px;
+  background: #15123a; border: 2px solid #2d2960;
+  color: #a5b4fc; cursor: pointer; font-size: 13px; font-weight: 700;
+  text-align: center; transition: all .15s;
+}
+.bonus-name-item.active { background: #4338ca; border-color: #818cf8; color: #fff; transform: scale(1.04); }
+.bonus-name-item:hover:not(.active) { border-color: #6366f1; }
+
+.bonus-number-grid {
+  display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; flex: 1; max-width: 380px;
+}
+.bonus-num-btn {
+  padding: 8px 6px; border-radius: 10px;
+  background: #15123a; border: 2px solid #2d2960;
+  cursor: pointer; text-align: center; transition: all .15s;
+  min-height: 58px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 3px;
+}
+.bonus-num-btn:hover:not(.taken) { border-color: #818cf8; background: #221e5a; }
+.bonus-num-btn.taken { background: #2a2566; border-color: #4338ca; cursor: default; }
+.bonus-num-digit { font-size: 22px; font-weight: 900; color: #818cf8; line-height: 1; }
+.bonus-num-btn.taken .bonus-num-digit { color: #6366f1; font-size: 16px; }
+.bonus-num-name { font-size: 11px; color: #c4b5fd; line-height: 1.2; }
+
+.bonus-status {
+  font-size: 13px; color: #94a3b8; text-align: center; min-height: 18px;
+}
+
+/* ── 사다리 ── */
+#bonus-ladder-svg { max-width: 100%; display: block; margin: 0 auto; }
+
+.bonus-result-area { text-align: center; min-height: 60px; }
+.bonus-result-title { font-size: 22px; font-weight: 900; color: #fbbf24; margin-bottom: 10px; }
+.bonus-winner-row {
+  display: inline-flex; align-items: center; gap: 8px;
+  font-size: 26px; font-weight: 900; color: #fff;
+  background: linear-gradient(135deg, #78350f 0%, #b45309 100%);
+  border: 2px solid #fbbf24; border-radius: 14px;
+  padding: 10px 24px; margin: 6px;
+  animation: reveal-slide 0.4s cubic-bezier(0.16,1,0.3,1) both;
+}
+.bonus-winner-star { color: #fbbf24; }
+.bonus-winner-name { color: #fef3c7; }
+
+.bonus-btn-row { display: flex; gap: 10px; flex-wrap: wrap; justify-content: center; }
+</style>
+</head>
+<body>
+
+<div id="app">
+
+  <!-- ============ MAIN SCREEN ============ -->
+  <div id="screen-main" class="screen active">
+    <div class="main-logo">LUNCH SQUAD</div>
+    <div class="main-sub">매월 점심조 뽑기</div>
+    <div class="pixel-mascot">🍱</div>
+    <div class="main-month" id="main-month">2026년 4월</div>
+    <div class="main-press">PRESS START</div>
+    <div class="main-buttons">
+      <button class="btn" onclick="goToSalad()">시작하기</button>
+      <button class="btn secondary" onclick="goToHistory()">지난 기록</button>
+      <button class="btn secondary" onclick="goToEditMembers()">👥 멤버 편집</button>
+      <button class="btn secondary" onclick="launchBonusLadder()">🪜 번외</button>
+    </div>
+    <div class="main-credits">LUNCH SQUAD · 매월 1일 추첨</div>
+  </div>
+
+  <!-- ============ SALAD SELECT ============ -->
+  <div id="screen-salad" class="screen">
+    <div class="title-bar">
+      <h2>샐러드 멤버 선택</h2>
+      <div class="controls">
+        <button class="btn secondary" onclick="goToMain()">← 뒤로</button>
+      </div>
+    </div>
+    <div class="salad-info">
+      오늘 샐러드 먹는 사람의 카드를 클릭하면 빠집니다 · 다시 누르면 복구돼요
+    </div>
+    <div class="salad-grid" id="salad-grid"></div>
+    <div class="salad-summary" id="salad-summary"></div>
+    <div class="salad-actions">
+      <button class="btn" onclick="confirmSalad()">뽑기 시작 →</button>
+    </div>
+  </div>
+
+  <!-- ============ GAME PICK ============ -->
+  <div id="screen-spin" class="screen">
+    <div class="title-bar" style="max-width:1100px;width:100%;margin:0 auto 8px;">
+      <h2>어떤 게임으로 할까요?</h2>
+      <div class="controls">
+        <button class="btn secondary" onclick="goToSalad()">← 뒤로</button>
+      </div>
+    </div>
+    <div class="mode-selector">
+      <button class="mode-btn" id="mode-random-btn" onclick="selectMode('random')">
+        <span class="mode-icon">🎲</span>
+        <span class="mode-label">랜덤으로 뽑기</span>
+        <span class="mode-desc">아직 안 한 게임 중에서 자동 선택</span>
+      </button>
+      <button class="mode-btn" id="mode-manual-btn" onclick="selectMode('manual')">
+        <span class="mode-icon">✋</span>
+        <span class="mode-label">직접 고르기</span>
+        <span class="mode-desc">원하는 게임 카드를 클릭</span>
+      </button>
+    </div>
+    <div class="cycle-progress" id="cycle-progress"></div>
+    <div class="random-pick-stage" id="random-pick-stage">
+      <div class="random-pick-spinner" id="random-pick-spinner">
+        <span id="random-pick-text">?</span>
+      </div>
+      <div class="random-pick-actions">
+        <button class="btn" id="random-pick-start" onclick="startRandomGameSpin()">🎲 랜덤 뽑기 시작!</button>
+        <button class="btn" id="random-pick-launch" style="display:none" onclick="launchPickedRandomGame()">바로 시작 →</button>
+      </div>
+    </div>
+    <div class="pick-sub" id="pick-sub-text" style="display:none">원하는 게임 카드를 클릭하면 바로 시작돼요</div>
+    <div class="pick-grid" id="pick-grid" style="display:none"></div>
+  </div>
+
+  <!-- ============ LADDER GAME ============ -->
+  <div id="game-ladder" class="game-screen">
+    <div class="game-header">
+      <h2>🪜 사다리 타기</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="ladder-current">-</span>
+      </div>
+      <button class="btn secondary" onclick="goToMain()">메인으로</button>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="ladder-names"></div>
+      <div class="game-stage">
+        <svg class="ladder-svg" id="ladder-svg" viewBox="0 0 800 500" preserveAspectRatio="xMidYMid meet"></svg>
+      </div>
+      <div class="teams-panel" id="ladder-teams"></div>
+    </div>
+  </div>
+
+  <!-- (Luckybox game removed) -->
+
+  <!-- ============ BASKETBALL GAME ============ -->
+  <div id="game-basket" class="game-screen">
+    <div class="game-header">
+      <h2>🏀 농구 슛</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="basket-current">-</span>
+      </div>
+      <button class="btn secondary" onclick="goToMain()">메인으로</button>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="basket-names"></div>
+      <div class="game-stage">
+        <div class="basket-stage">
+          <div class="basket-order-overlay" id="basket-order-overlay">
+            <div class="order-spin-stage">
+              <div class="order-title">🎲 순서 뽑기</div>
+              <div class="order-sub">농구슛 진행 순서를 무작위로 정합니다</div>
+              <div class="order-spinner" id="order-spinner">
+                <div class="order-spin-text" id="order-spin-text">?</div>
+              </div>
+              <div class="order-result-list" id="order-result-list" style="display:none"></div>
+              <div class="order-actions">
+                <button class="btn" id="order-start-btn" onclick="startBasketOrderSpin()">🎲 순서 뽑기 시작!</button>
+                <button class="btn" id="order-confirm-btn" onclick="confirmBasketOrder()" style="display:none">게임 시작 →</button>
+              </div>
+            </div>
+          </div>
+          <div class="basket-hoops">
+            <div class="basket-hoop team-a" data-team="A"><span class="full-badge">FULL</span><div class="ring"></div><div class="net"></div><div class="label">A</div></div>
+            <div class="basket-hoop team-b" data-team="B"><span class="full-badge">FULL</span><div class="ring"></div><div class="net"></div><div class="label">B</div></div>
+            <div class="basket-hoop team-c" data-team="C"><span class="full-badge">FULL</span><div class="ring"></div><div class="net"></div><div class="label">C</div></div>
+            <div class="basket-hoop team-d" data-team="D"><span class="full-badge">FULL</span><div class="ring"></div><div class="net"></div><div class="label">D</div></div>
+          </div>
+          <div class="basket-aim-track">
+            <div class="basket-aim" id="basket-aim">▼</div>
+          </div>
+          <div class="basket-court"></div>
+          <div class="basket-ball" id="basket-ball">🏀</div>
+          <div class="basket-timer" id="basket-timer" style="display:none">3</div>
+          <div class="basket-result" id="basket-result">왼쪽에서 자기 이름을 클릭하세요</div>
+          <div class="basket-controls">
+            <button class="btn" id="basket-shoot" onclick="startBasketAim()" style="display:none">SHOOT!</button>
+            <button class="btn danger" id="basket-stop" onclick="stopBasketAim()" style="display:none">STOP!</button>
+          </div>
+        </div>
+      </div>
+      <div class="teams-panel" id="basket-teams"></div>
+    </div>
+  </div>
+
+  <!-- ============ CARD DEALING GAME ============ -->
+  <div id="game-card" class="game-screen">
+    <div class="game-header">
+      <h2>🔮 운명의 타로</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="card-current">-</span>
+      </div>
+      <button class="btn secondary" onclick="goToMain()">메인으로</button>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="card-names"></div>
+      <div class="game-stage">
+        <div class="card-stage">
+          <div class="card-msg" id="card-msg">왼쪽에서 자기 이름을 클릭하세요</div>
+          <div class="card-spread" id="card-spread"></div>
+        </div>
+      </div>
+      <div class="teams-panel" id="card-teams"></div>
+    </div>
+  </div>
+
+  <!-- ============ SLOT MACHINE GAME (시안비교 #2 스타일) ============ -->
+  <div id="game-roulette" class="game-screen">
+    <div class="game-header">
+      <h2>🎰 운명의 슬롯</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="roulette-current">-</span>
+      </div>
+      <button class="btn secondary" onclick="goToMain()">메인으로</button>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="roulette-names"></div>
+      <div class="game-stage">
+        <div class="slot-stage">
+          <div class="slot-machine">
+            <div class="slot-bulbs">
+              <span></span><span></span>
+              <span></span><span></span>
+              <span></span><span></span>
+            </div>
+            <div class="slot-screen">
+              <div class="slot-reel" id="slot-reel"></div>
+              <div class="slot-line"></div>
+            </div>
+          </div>
+          <div class="roulette-result" id="roulette-result">차례인 사람이 SPIN을 눌러주세요</div>
+          <button class="btn roulette-spin-btn" id="roulette-spin" onclick="spinRoulette()">🎰 SPIN!</button>
+        </div>
+      </div>
+      <div class="teams-panel" id="roulette-teams"></div>
+    </div>
+  </div>
+
+
+  <!-- ============ CLAW MACHINE 🕹️ ============ -->
+  <div id="game-claw" class="game-screen">
+    <div class="game-header">
+      <h2>🕹️ 인형뽑기</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="claw-current">-</span>
+      </div>
+      <button class="btn secondary" onclick="goToMain()">메인으로</button>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="claw-names"></div>
+      <div class="game-stage">
+        <div class="claw-stage">
+          <div class="claw-cabinet"></div>
+          <div class="claw-marquee">CLAW MACHINE</div>
+          <div class="claw-leds">
+            <span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+          </div>
+          <div class="claw-glass">
+            <div class="claw-floor"></div>
+          </div>
+          <div class="claw-rail"></div>
+          <div class="claw-arm" id="claw-arm">
+            <div class="claw-head" id="claw-head"><div class="claw-base"></div></div>
+          </div>
+          <div class="claw-prizes" id="claw-prizes"></div>
+          <div class="claw-timer"   id="claw-timer"   style="display:none">3</div>
+          <div class="claw-tension" id="claw-tension" style="display:none">두구두구...</div>
+          <div class="claw-result" id="claw-result">왼쪽에서 자기 이름을 클릭하세요</div>
+          <div class="claw-controls">
+            <button class="btn" id="claw-go" onclick="startClawMove()" style="display:none">🕹️ MOVE!</button>
+            <button class="btn danger" id="claw-stop" onclick="stopClawMove()" style="display:none">STOP!</button>
+          </div>
+        </div>
+      </div>
+      <div class="teams-panel" id="claw-teams"></div>
+    </div>
+  </div>
+
+  <!-- ============ MOLE GAME 🔨 ============ -->
+  <div id="game-mole" class="game-screen">
+    <div class="game-header">
+      <h2>🔨 두더지 잡기</h2>
+      <div class="game-status">
+        <span>다음 차례:</span>
+        <span class="current-name" id="mole-current">-</span>
+      </div>
+      <div style="display:flex;gap:10px;align-items:center;">
+        <button class="btn" id="mole-start" onclick="startMoleGame()" style="display:none">🔨 시작!</button>
+        <button class="btn secondary" onclick="goToMain()">메인으로</button>
+      </div>
+    </div>
+    <div class="game-body">
+      <div class="name-panel" id="mole-names"></div>
+      <div class="game-stage">
+        <div class="mole-stage" id="mole-stage">
+          <div class="mole-banner">두더지를 잡아라!</div>
+          <div class="mole-msg" id="mole-msg">왼쪽에서 자기 이름을 클릭하세요</div>
+          <div class="mole-tension" id="mole-tension" style="display:none">빠르게! 빠르게!</div>
+          <div class="mole-timer" id="mole-timer" style="display:none">3</div>
+          <div class="mole-grid" id="mole-grid">
+            <div class="mole-hole"><div class="mole" data-hole="0"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="1"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="2"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="3"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="4"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="5"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="6"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="7"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+            <div class="mole-hole"><div class="mole" data-hole="8"><div class="mole-ears"><div class="ear-inner left"></div><div class="ear-inner right"></div></div><div class="mole-face"><div class="mole-eyes"></div><div class="mole-nose"></div><span class="mole-team-letter">?</span></div></div></div>
+          </div>
+        </div>
+      </div>
+      <div class="teams-panel" id="mole-teams"></div>
+    </div>
+  </div>
+
+  <!-- ============ RESULT SCREEN ============ -->
+  <div class="confetti-wrap" id="confetti-wrap"></div>
+  <div id="screen-result" class="screen">
+    <div class="result-banner">뽑기 완료!</div>
+    <div class="result-month" id="result-month"></div>
+    <div class="result-grid" id="result-grid"></div>
+    <div class="result-saved" id="result-saved"></div>
+    <div class="result-actions">
+      <button class="btn" id="save-btn" onclick="saveResult()">💾 이번 달 결과 저장</button>
+      <button class="btn secondary" onclick="goToMain()">🏠 메인으로</button>
+      <button class="btn danger" onclick="restartFresh()">🔄 다시 뽑기</button>
+    </div>
+  </div>
+
+  <!-- ============ EDIT MEMBERS ============ -->
+  <div id="screen-edit" class="screen">
+    <div class="title-bar">
+      <h2>👥 멤버 편집</h2>
+      <div class="controls">
+        <button class="btn secondary" onclick="goToMain()">← 뒤로</button>
+      </div>
+    </div>
+    <div class="edit-info">고정 멤버와 랜덤 풀 멤버를 모두 편집할 수 있어요.</div>
+    <div class="edit-section-title">👑 고정 멤버 (조 리더 · 최소 1명, 최대 4명)</div>
+    <div class="edit-member-grid" id="edit-fixed-grid"></div>
+    <div class="edit-add-row">
+      <input class="edit-input" id="edit-new-fixed" type="text" placeholder="리더 이름 입력" maxlength="6" />
+      <button class="btn" onclick="addFixedMember()">+ 추가</button>
+    </div>
+    <div class="edit-section-title">🎲 랜덤 풀 멤버</div>
+    <div class="edit-member-grid" id="edit-member-grid"></div>
+    <div class="edit-add-row">
+      <input class="edit-input" id="edit-new-name" type="text" placeholder="이름 입력" maxlength="6" />
+      <button class="btn" onclick="addEditMember()">+ 추가</button>
+    </div>
+    <div class="edit-actions">
+      <button class="btn" onclick="saveEditMembers()">💾 저장</button>
+      <button class="btn secondary" onclick="resetEditMembers()">기본값 초기화</button>
+    </div>
+  </div>
+
+  <!-- ============ HISTORY SCREEN ============ -->
+  <div id="screen-history" class="screen">
+    <div class="title-bar">
+      <h2>📚 지난 점심조 기록</h2>
+      <div class="controls">
+        <button class="btn secondary" onclick="goToMain()">⬅ BACK</button>
+      </div>
+    </div>
+    <div class="history-list" id="history-list"></div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+</div>
+
+<script>
+/* ============================================================
+   POINT 1: CONSTANTS
+   ============================================================ */
+const DEFAULT_POOL = [
+  '경희','미선','다은','가빈','소리','선영','지은','희정',
+  '소희','아라','다나','서현','주현','지영','민경','소연'
+];
+function loadMemberPool() {
+  try {
+    const s = localStorage.getItem('lunchSquadMembersV1');
+    if (s) { const p = JSON.parse(s); if (Array.isArray(p) && p.length) return p; }
+  } catch(e) {}
+  return [...DEFAULT_POOL];
+}
+let RANDOM_POOL = loadMemberPool();
+const TEAM_LETTERS = ['A','B','C','D'];
+const DEFAULT_FIXED = ['석제', '진석', '성진'];
+function loadFixed() {
+  try {
+    const s = localStorage.getItem('lunchSquadFixedV1');
+    if (s) {
+      const f = JSON.parse(s);
+      if (Array.isArray(f) && f.length >= 1 && f.length <= 4) return f;
+    }
+  } catch(e) {}
+  return [...DEFAULT_FIXED];
+}
+let FIXED = loadFixed();
+
+const GAMES = [
+  { id: 'ladder',   name: '사다리 타기',      icon: '🪜' },
+  { id: 'basket',   name: '농구 슛',           icon: '🏀' },
+  { id: 'card',     name: '운명의 타로',         icon: '🔮' },
+  { id: 'roulette', name: '운명의 슬롯',       icon: '🎰' },
+  { id: 'claw',     name: '인형뽑기',          icon: '🕹️' },
+  { id: 'mole',     name: '두더지 잡기',       icon: '🔨' },
+];
+
+const STORAGE_KEY = 'lunchSquadHistoryV1';
+const PLAYED_GAMES_KEY = 'lunchSquadPlayedGamesV1';
+
+/* ============================================================
+   POINT 2: STATE
+   ============================================================ */
+const state = {
+  saladSet: new Set(),
+  attendingPool: [],          // shuffled random pool minus salad
+  itemTeams: [],              // teams aligned to items (shuffled)
+  pickQueue: [],              // remaining names to pick (in order)
+  currentPicker: null,        // currently selected name
+  picks: {},                  // name -> team letter
+  teamRoster: { A: [], B: [], C: [], D: [] },
+  teamCounts: null,           // { aRandom, bRandom, cRandom, dRandom, dExists }
+  currentGame: null,
+  saved: false,
+};
+
+/* ============================================================
+   POINT 3: UTILS
+   ============================================================ */
+function shuffle(arr) {
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j], a[i]];
+  }
+  return a;
+}
+
+function $(id) { return document.getElementById(id); }
+function $$(sel) { return document.querySelectorAll(sel); }
+
+function showToast(msg, ms = 2200) {
+  const t = $('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  clearTimeout(showToast._tid);
+  showToast._tid = setTimeout(() => t.classList.remove('show'), ms);
+}
+
+function showScreen(id) {
+  $$('.screen').forEach(s => s.classList.remove('active'));
+  $$('.game-screen').forEach(s => s.classList.remove('active'));
+  const el = $(id);
+  if (el) el.classList.add('active');
+}
+
+function getCurrentMonthLabel() {
+  const d = new Date();
+  return `${d.getFullYear()}년 ${d.getMonth() + 1}월`;
+}
+
+/* ============================================================
+   POINT 4: TEAM ALGORITHM
+   ============================================================ */
+function calculateTeamCounts(saladList) {
+  const attendingRandom = RANDOM_POOL.length - saladList.length;
+  let aRandom = 0, bRandom = 0, cRandom = 0, dRandom = 0;
+  let dExists = true;
+
+  // Rule: D team is abolished when 4 or more people are on salad,
+  //       OR when there aren't even 4 random members left to fill D.
+  if (saladList.length >= 4 || attendingRandom < 4) {
+    dExists = false;
+    const base = Math.floor(attendingRandom / 3);
+    const extra = attendingRandom % 3;
+    aRandom = base + (extra >= 1 ? 1 : 0);
+    bRandom = base + (extra >= 2 ? 1 : 0);
+    cRandom = base;
+  } else {
+    dRandom = 4;
+    const remaining = attendingRandom - 4;
+    const base = Math.floor(remaining / 3);
+    const extra = remaining % 3;
+    aRandom = base + (extra >= 1 ? 1 : 0);
+    bRandom = base + (extra >= 2 ? 1 : 0);
+    cRandom = base;
+  }
+
+  return { aRandom, bRandom, cRandom, dRandom, dExists };
+}
+
+/* Build the array of team letters that items will represent (one per attending random pool member). */
+function buildItemTeams(counts) {
+  const tags = [];
+  for (let i = 0; i < counts.aRandom; i++) tags.push('A');
+  for (let i = 0; i < counts.bRandom; i++) tags.push('B');
+  for (let i = 0; i < counts.cRandom; i++) tags.push('C');
+  for (let i = 0; i < counts.dRandom; i++) tags.push('D');
+  return shuffleAvoidAdjacent(tags);
+}
+
+/* 같은 조가 연속으로 나오는 인상을 줄이기 위한 셔플:
+   1) Fisher-Yates 로 완전 무작위 섞기
+   2) 인접 중복(a[i]==a[i+1])이 있으면, 무작위 다른 위치와 swap 해서 해소.
+      - 새 swap 으로 또 다른 인접 중복이 생기지 않도록 후보를 필터링.
+      - 5 패스 안에 끝내며, 더 줄일 곳이 없으면 중단.
+   결과는 통계적으로 균등에 가까운 무작위지만, 같은 조가 줄줄이 붙는 빈도는 낮아짐. */
+function shuffleAvoidAdjacent(arr) {
+  let a = shuffle(arr);
+  for (let pass = 0; pass < 5; pass++) {
+    let fixed = 0;
+    for (let i = 0; i < a.length - 1; i++) {
+      if (a[i] !== a[i+1]) continue;
+      const v = a[i+1];
+      const candidates = [];
+      for (let j = 0; j < a.length; j++) {
+        if (j === i || j === i+1) continue;
+        // swap 후 j 위치 이웃과 충돌하면 제외
+        if (a[j] === a[i]) continue; // 새로 a[i+1] 자리에 같은 v 가 다시 옴 방지
+        if (j > 0 && j - 1 !== i+1 && a[j-1] === v) continue;
+        if (j < a.length - 1 && j + 1 !== i+1 && a[j+1] === v) continue;
+        candidates.push(j);
+      }
+      if (candidates.length === 0) continue;
+      const k = candidates[Math.floor(Math.random() * candidates.length)];
+      const t = a[i+1]; a[i+1] = a[k]; a[k] = t;
+      fixed++;
+    }
+    if (fixed === 0) break;
+  }
+  return a;
+}
+
+function setupRound() {
+  const salad = [...state.saladSet];
+  state.attendingPool = RANDOM_POOL.filter(n => !state.saladSet.has(n));
+  state.teamCounts = calculateTeamCounts(salad);
+  state.itemTeams = buildItemTeams(state.teamCounts);
+  state.pickQueue = shuffle(state.attendingPool);
+  state.picks = {};
+  state.teamRoster = { A: [], B: [], C: [], D: [] };
+  FIXED.forEach((name, i) => {
+    const t = TEAM_LETTERS[i];
+    if (state.teamRoster[t] !== undefined) {
+      state.teamRoster[t] = [{ name, leader: true }];
+    }
+  });
+  state.currentPicker = null;
+  state.saved = false;
+}
+
+/* ============================================================
+   POINT 5: NAVIGATION
+   ============================================================ */
+
+/* ============ EDIT MEMBERS ============ */
+let editPool = [];
+
+let editFixed = [];
+
+function goToEditMembers() {
+  editPool  = [...RANDOM_POOL];
+  editFixed = [...FIXED];
+  renderEditGrid();
+  renderEditFixedGrid();
+  showScreen('screen-edit');
+}
+
+function renderEditFixedGrid() {
+  const grid = $('edit-fixed-grid');
+  grid.innerHTML = '';
+  editFixed.forEach((name, i) => {
+    const team = TEAM_LETTERS[i];
+    const chip = document.createElement('div');
+    chip.className = 'edit-member-chip';
+    const canDel = editFixed.length > 1;
+    chip.innerHTML = `<span style="color:var(--c-accent);margin-right:2px">${team}조</span><span>${name}</span>`
+      + (canDel ? `<button class="del-btn" onclick="removeFixedMember(${i})">✕</button>` : '');
+    grid.appendChild(chip);
+  });
+}
+
+function removeFixedMember(i) {
+  if (editFixed.length <= 1) return;
+  editFixed.splice(i, 1);
+  renderEditFixedGrid();
+}
+
+function addFixedMember() {
+  if (editFixed.length >= 4) { alert('리더는 최대 4명까지 가능해요!'); return; }
+  const input = $('edit-new-fixed');
+  const name = input.value.trim();
+  if (!name) return;
+  editFixed.push(name);
+  input.value = '';
+  renderEditFixedGrid();
+}
+
+function renderEditGrid() {
+  const grid = $('edit-member-grid');
+  grid.innerHTML = '';
+  editPool.forEach((name, i) => {
+    const chip = document.createElement('div');
+    chip.className = 'edit-member-chip';
+    chip.innerHTML = `<span>${name}</span><button class="del-btn" onclick="removeEditMember(${i})">✕</button>`;
+    grid.appendChild(chip);
+  });
+}
+
+function removeEditMember(i) {
+  editPool.splice(i, 1);
+  renderEditGrid();
+}
+
+function addEditMember() {
+  const input = $('edit-new-name');
+  const name = input.value.trim();
+  if (!name) return;
+  if (editPool.includes(name)) { input.value = ''; return; }
+  editPool.push(name);
+  input.value = '';
+  renderEditGrid();
+}
+
+function saveEditMembers() {
+  if (editPool.length < 4) { alert('멤버는 최소 4명 이상이어야 해요!'); return; }
+  if (editFixed.length < 1) { alert('고정 멤버(리더)는 최소 1명 이상이어야 해요!'); return; }
+  FIXED = [...editFixed];
+  RANDOM_POOL = [...editPool];
+  try {
+    localStorage.setItem('lunchSquadMembersV1', JSON.stringify(RANDOM_POOL));
+    localStorage.setItem('lunchSquadFixedV1',   JSON.stringify(FIXED));
+  } catch(e) {}
+  showScreen('screen-main');
+  $('main-month').textContent = getCurrentMonthLabel();
+}
+
+function resetEditMembers() {
+  if (!confirm('기본 멤버 목록으로 초기화할까요?')) return;
+  editPool  = [...DEFAULT_POOL];
+  editFixed = [...DEFAULT_FIXED];
+  renderEditGrid();
+  renderEditFixedGrid();
+}
+
+function goToMain() {
+  showScreen('screen-main');
+  $('main-month').textContent = getCurrentMonthLabel();
+}
+
+function goToSalad() {
+  state.saladSet.clear();
+  renderSaladGrid();
+  updateSaladSummary();
+  showScreen('screen-salad');
+}
+
+function goToHistory() {
+  renderHistoryScreen();
+  showScreen('screen-history');
+}
+
+/* ============================================================
+   POINT 6: SALAD SELECT
+   ============================================================ */
+function renderSaladGrid() {
+  const grid = $('salad-grid');
+  grid.innerHTML = '';
+  // Fixed members as locked cards (same size as random ones)
+  FIXED.forEach((name, i) => {
+    const team = TEAM_LETTERS[i];
+    const card = document.createElement('div');
+    card.className = 'salad-card fixed';
+    card.innerHTML = `
+      <span class="role">${team}조 리더</span>
+      <span class="name">${name}</span>
+      <span class="card-icon">👑</span>
+    `;
+    card.title = '고정 멤버는 샐러드 선택 대상이 아닙니다';
+    grid.appendChild(card);
+  });
+  RANDOM_POOL.forEach(name => {
+    const card = document.createElement('div');
+    card.className = 'salad-card';
+    if (state.saladSet.has(name)) card.classList.add('salad');
+    card.innerHTML = `
+      <span class="role">랜덤 풀</span>
+      <span class="name">${name}</span>
+      <span class="card-icon">🍱</span>
+    `;
+    card.onclick = () => {
+      if (state.saladSet.has(name)) state.saladSet.delete(name);
+      else state.saladSet.add(name);
+      renderSaladGrid();
+      updateSaladSummary();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function updateSaladSummary() {
+  const k = state.saladSet.size;
+  const counts = calculateTeamCounts([...state.saladSet]);
+  const a = counts.aRandom + (FIXED.length >= 1 ? 1 : 0);
+  const b = counts.bRandom + (FIXED.length >= 2 ? 1 : 0);
+  const cv = counts.cRandom + (FIXED.length >= 3 ? 1 : 0);
+  const dLeader = FIXED.length >= 4 ? 1 : 0;
+  let text = `샐러드: ${k}명 / 참여 랜덤 풀: ${RANDOM_POOL.length - k}명 → `;
+  if (counts.dExists) {
+    text += `A조 ${a} · B조 ${b} · C조 ${cv} · D조 ${counts.dRandom + dLeader} (총 ${a + b + cv + counts.dRandom + dLeader}명)`;
+  } else {
+    text += `A조 ${a} · B조 ${b} · C조 ${cv} (D조 폐지, 총 ${a + b + cv}명)`;
+  }
+  $('salad-summary').textContent = text;
+}
+
+function confirmSalad() {
+  setupRound();
+  showScreen('screen-spin');
+  initGamePickScreen();
+}
+
+/* ============================================================
+   POINT 7: GAME PICK (랜덤 모드 / 직접 고르기 모드)
+   ============================================================ */
+function loadPlayedGames() {
+  try { return JSON.parse(localStorage.getItem(PLAYED_GAMES_KEY) || '[]'); }
+  catch (e) { return []; }
+}
+function savePlayedGames(arr) {
+  try { localStorage.setItem(PLAYED_GAMES_KEY, JSON.stringify(arr)); } catch (e) {}
+}
+function markGamePlayed(id) {
+  let played = loadPlayedGames();
+  if (!played.includes(id)) played.push(id);
+  // 모든 게임을 다 했으면 자동 리셋 (다음 사이클 시작 표시 위해 빈 배열로)
+  if (played.length >= GAMES.length) played = [];
+  savePlayedGames(played);
+}
+function getRemainingGames() {
+  const played = loadPlayedGames();
+  const remaining = GAMES.filter(g => !played.includes(g.id));
+  return remaining.length > 0 ? remaining : GAMES.slice();
+}
+
+function initGamePickScreen() {
+  state.pickMode = null;
+  state.pickedRandomGameId = null;
+  $('mode-random-btn').classList.remove('active');
+  $('mode-manual-btn').classList.remove('active');
+  $('random-pick-stage').classList.remove('show');
+  $('pick-sub-text').style.display = 'none';
+  $('pick-grid').style.display = 'none';
+  $('pick-grid').innerHTML = '';
+  $('random-pick-text').textContent = '?';
+  $('random-pick-start').style.display = '';
+  $('random-pick-start').disabled = false;
+  $('random-pick-launch').style.display = 'none';
+  updateCycleProgress();
+}
+
+function updateCycleProgress() {
+  const played = loadPlayedGames();
+  const total = GAMES.length;
+  const done = played.length;
+  $('cycle-progress').innerHTML = `이번 사이클 진행도: <strong>${done}/${total}</strong> · 8개 모두 1번씩 하면 자동 리셋`;
+}
+
+function selectMode(mode) {
+  state.pickMode = mode;
+  $('mode-random-btn').classList.toggle('active', mode === 'random');
+  $('mode-manual-btn').classList.toggle('active', mode === 'manual');
+  if (mode === 'random') {
+    $('random-pick-stage').classList.add('show');
+    $('pick-sub-text').style.display = 'none';
+    $('pick-grid').style.display = 'none';
+    $('random-pick-text').textContent = '?';
+    $('random-pick-start').style.display = '';
+    $('random-pick-start').disabled = false;
+    $('random-pick-launch').style.display = 'none';
+    state.pickedRandomGameId = null;
+  } else {
+    $('random-pick-stage').classList.remove('show');
+    $('pick-sub-text').style.display = '';
+    $('pick-grid').style.display = '';
+    renderPickGrid();
+  }
+}
+
+function startRandomGameSpin() {
+  $('random-pick-start').disabled = true;
+  $('random-pick-start').style.display = 'none';
+  const remaining = getRemainingGames();
+  const finalGame = remaining[Math.floor(Math.random() * remaining.length)];
+  const text = $('random-pick-text');
+  let count = 0;
+  const total = 24 + Math.floor(Math.random() * 6);
+  let interval = 60;
+  const tick = () => {
+    const g = GAMES[Math.floor(Math.random() * GAMES.length)];
+    text.textContent = g.icon + ' ' + g.name;
+    count++;
+    if (count < total) {
+      if (count > total * 0.55) interval = Math.min(interval + 14, 280);
+      setTimeout(tick, interval);
+    } else {
+      text.textContent = finalGame.icon + ' ' + finalGame.name;
+      state.pickedRandomGameId = finalGame.id;
+      $('random-pick-launch').style.display = '';
+    }
+  };
+  tick();
+}
+
+function launchPickedRandomGame() {
+  if (!state.pickedRandomGameId) return;
+  state.currentGame = state.pickedRandomGameId;
+  markGamePlayed(state.pickedRandomGameId);
+  launchGame();
+}
+
+function renderPickGrid() {
+  const grid = $('pick-grid');
+  grid.innerHTML = '';
+  const played = loadPlayedGames();
+  GAMES.forEach(g => {
+    const card = document.createElement('div');
+    card.className = 'pick-card';
+    const playedTag = played.includes(g.id) ? '<div class="play-cta" style="background:rgba(255,255,255,0.06);color:var(--c-muted)">이번 사이클 완료</div>' : '<div class="play-cta">시작 →</div>';
+    card.innerHTML = `
+      <div class="icon">${g.icon}</div>
+      <div class="name">${g.name}</div>
+      ${playedTag}
+    `;
+    card.onclick = () => {
+      state.currentGame = g.id;
+      markGamePlayed(g.id);
+      launchGame();
+    };
+    grid.appendChild(card);
+  });
+}
+
+function launchGame() {
+  const id = state.currentGame;
+  if (id === 'ladder')   return launchLadder();
+  if (id === 'basket')   return launchBasket();
+  if (id === 'card')     return launchCard();
+  if (id === 'roulette') return launchRoulette();
+  if (id === 'claw')     return launchClaw();
+  if (id === 'mole')     return launchMole();
+}
+
+/* ============================================================
+   POINT 8: SHARED GAME UI (name list + team rosters)
+   ============================================================ */
+function renderNamePanel(panelId, onClickName) {
+  const panel = $(panelId);
+  panel.innerHTML = '<h3>뽑을 사람</h3>';
+  state.attendingPool.forEach(name => {
+    const item = document.createElement('div');
+    item.className = 'name-item';
+    if (state.picks[name]) item.classList.add('done');
+    if (state.currentPicker === name) item.classList.add('selected');
+    item.textContent = state.picks[name] ? `${name} → ${state.picks[name]}조` : name;
+    item.onclick = () => {
+      if (state.picks[name]) return;
+      onClickName(name);
+    };
+    panel.appendChild(item);
+  });
+}
+
+/* ============ GENERIC ORDER ENFORCEMENT (다트/인형뽑기/두더지/양궁) ============
+   - 농구슛과 동일한 방식으로 시작 시 무작위 순서를 정하고,
+     본인 차례에만 클릭 가능하게 하며, 시작 전 "랜덤 섞기"로 다시 섞을 수 있음.
+   - state[gameKey + 'Order'] / state[gameKey + 'OrderIdx'] 사용
+*/
+const ORDER_GAME_NAME_HANDLERS = {
+  claw:    (n) => onClawName(n),
+  mole:    (n) => onMoleName(n),
+};
+
+function isOrderedGameRunning(gameKey) {
+  if (gameKey === 'claw')    return !!state.clawMoveRunning;
+  if (gameKey === 'mole')    return !!state.moleRunning;
+  return false;
+}
+
+function renderOrderedNamePanel(panelId, gameKey) {
+  const panel = $(panelId);
+  panel.innerHTML = '<h3>뽑을 사람</h3>';
+  const order = state[gameKey + 'Order'];
+  const idx = state[gameKey + 'OrderIdx'] || 0;
+  if (!order) {
+    state.attendingPool.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'name-item locked';
+      item.textContent = name;
+      panel.appendChild(item);
+    });
+    return;
+  }
+  order.forEach((name, i) => {
+    const item = document.createElement('div');
+    item.className = 'name-item';
+    if (state.picks[name]) item.classList.add('done');
+    if (state.currentPicker === name) item.classList.add('selected');
+    if (i !== idx && !state.picks[name]) item.classList.add('locked');
+    const badge = `<span class="order-badge">${i + 1}</span>`;
+    const txt = state.picks[name] ? `${name} → ${state.picks[name]}조` : name;
+    item.innerHTML = badge + txt;
+    item.onclick = () => {
+      if (state.picks[name]) return;
+      if (i !== idx) {
+        showToast('지금은 ' + order[idx] + '님 차례예요');
+        return;
+      }
+      const handler = ORDER_GAME_NAME_HANDLERS[gameKey];
+      if (handler) handler(name);
+    };
+    panel.appendChild(item);
+  });
+  // 랜덤 섞기 버튼: 게임이 아직 시작되기 전(인덱스 0 + picks 비어있음 + 진행중 아님)에만 활성
+  const actions = document.createElement('div');
+  actions.className = 'name-panel-actions';
+  const canShuffle = idx === 0 && Object.keys(state.picks).length === 0 && !isOrderedGameRunning(gameKey);
+  actions.innerHTML = `<button class="shuffle-btn" ${canShuffle ? '' : 'disabled'} onclick="shuffleOrderedGame('${gameKey}','${panelId}')">🎲 랜덤 섞기</button>`;
+  panel.appendChild(actions);
+}
+
+function shuffleOrderedGame(gameKey, panelId) {
+  if ((state[gameKey + 'OrderIdx'] || 0) > 0 || Object.keys(state.picks).length > 0) {
+    showToast('이미 게임이 시작됐어요');
+    return;
+  }
+  if (isOrderedGameRunning(gameKey)) return;
+  state[gameKey + 'Order'] = shuffle(state.attendingPool);
+  state[gameKey + 'OrderIdx'] = 0;
+  renderOrderedNamePanel(panelId, gameKey);
+  // 셔플 애니메이션
+  const items = document.querySelectorAll('#' + panelId + ' .name-item');
+  items.forEach((el, i) => {
+    el.style.animationDelay = (i * 0.03) + 's';
+    el.classList.add('shuffling');
+    setTimeout(() => el.classList.remove('shuffling'), 600 + i * 30);
+  });
+  // 첫 번째 차례 자동 활성화
+  setTimeout(() => activateNextOrderedTurn(gameKey), 520);
+}
+
+function activateNextOrderedTurn(gameKey) {
+  const order = state[gameKey + 'Order'];
+  const idx = state[gameKey + 'OrderIdx'] || 0;
+  if (!order || idx >= order.length) return;
+  const handler = ORDER_GAME_NAME_HANDLERS[gameKey];
+  if (handler) handler(order[idx]);
+}
+
+function renderTeamsPanel(panelId) {
+  const panel = $(panelId);
+  panel.innerHTML = '';
+  const order = state.teamCounts.dExists ? ['A','B','C','D'] : ['A','B','C'];
+  order.forEach(letter => {
+    const box = document.createElement('div');
+    box.className = `team-box team-${letter.toLowerCase()}`;
+    const target = letter === 'A' ? state.teamCounts.aRandom + 1
+                 : letter === 'B' ? state.teamCounts.bRandom + 1
+                 : letter === 'C' ? state.teamCounts.cRandom + 1
+                 : state.teamCounts.dRandom;
+    box.innerHTML = `<h4>${letter}조 (${state.teamRoster[letter].length}/${target})</h4>`;
+    state.teamRoster[letter].forEach((m, idx) => {
+      const row = document.createElement('div');
+      row.className = 'team-member';
+      if (m._new) { row.classList.add('new'); m._new = false; }
+      row.innerHTML = `<span>${m.name}</span>${m.leader ? '<span class="leader-tag">LEADER</span>' : ''}`;
+      box.appendChild(row);
+    });
+    panel.appendChild(box);
+  });
+}
+
+function pickName(name, currentSpanId, namesPanelId, teamsPanelId, onPicked) {
+  state.currentPicker = name;
+  $(currentSpanId).textContent = name;
+  renderNamePanel(namesPanelId, n => pickName(n, currentSpanId, namesPanelId, teamsPanelId, onPicked));
+}
+
+/* When item is clicked (after a name is selected). Caller is responsible for re-rendering name panel + item grid afterwards. */
+function commitItemPick(team, currentSpanId, teamsPanelId) {
+  const name = state.currentPicker;
+  if (!name) return false;
+  state.picks[name] = team;
+  state.teamRoster[team].push({ name, leader: false, _new: true });
+  state.currentPicker = null;
+  $(currentSpanId).textContent = '-';
+  renderTeamsPanel(teamsPanelId);
+  return true;
+}
+
+function isAllPicked() {
+  return Object.keys(state.picks).length >= state.attendingPool.length;
+}
+
+function finishGame() {
+  setTimeout(() => {
+    showResultScreen();
+  }, 1200);
+}
+
+/* ============================================================
+   POINT 9: LADDER GAME
+   ============================================================ */
+function launchLadder() {
+  showScreen('game-ladder');
+  state.ladderConnections = generateLadder(state.attendingPool.length);
+  state.ladderPaths = [];
+  state.ladderRevealed = {};
+  drawLadder();
+  renderNamePanel('ladder-names', name => onLadderName(name));
+  renderTeamsPanel('ladder-teams');
+  $('ladder-current').textContent = '-';
+}
+
+function onLadderName(name) {
+  state.currentPicker = name;
+  $('ladder-current').textContent = name;
+  renderNamePanel('ladder-names', n => onLadderName(n));
+  drawLadder(); // refresh interactivity
+}
+
+function generateLadder(n) {
+  // n columns. Fewer rows for faster, simpler ladder.
+  const ROWS = Math.max(5, Math.ceil(n * 0.55));
+  const rungs = [];
+  for (let r = 0; r < ROWS; r++) {
+    const row = [];
+    let i = 0;
+    while (i < n - 1) {
+      if (Math.random() < 0.5) { row.push(i); i += 2; }
+      else i += 1;
+    }
+    rungs.push(row);
+  }
+  return rungs;
+}
+
+function ladderTrace(startIdx, rungs, n) {
+  // returns the path: array of {x: colIdx, y: rowIdx} from top to bottom
+  let col = startIdx;
+  const path = [{ x: col, y: -1 }];
+  for (let r = 0; r < rungs.length; r++) {
+    const row = rungs[r];
+    if (row.includes(col)) {
+      // move right
+      path.push({ x: col, y: r });
+      col = col + 1;
+      path.push({ x: col, y: r });
+    } else if (row.includes(col - 1)) {
+      // move left
+      path.push({ x: col, y: r });
+      col = col - 1;
+      path.push({ x: col, y: r });
+    }
+  }
+  path.push({ x: col, y: rungs.length });
+  return { path, finalCol: col };
+}
+
+function drawLadder() {
+  const svg = $('ladder-svg');
+  const n = state.attendingPool.length;
+  const rungs = state.ladderConnections;
+  const ROWS = rungs.length;
+  const W = 800, H = 500;
+  const margin = 40;
+  const colSpace = (W - margin * 2) / Math.max(1, n - 1);
+  const rowSpace = (H - margin * 2 - 60) / (ROWS + 1);
+  const topY = margin + 30;
+  const bottomY = topY + rowSpace * (ROWS + 1);
+
+  let svgContent = '';
+
+  // labels at top - circles only (no name on rungs to keep blind)
+  for (let i = 0; i < n; i++) {
+    const x = margin + i * colSpace;
+    // top circle - clickable start
+    const taken = !!state.picks[state.attendingPool[i]] || isLadderColTaken(i);
+    const fill = taken ? '#5f574f' : '#ffec27';
+    svgContent += `<circle class="ladder-start ${taken ? 'disabled' : ''}" data-col="${i}" cx="${x}" cy="${topY - 16}" r="14" fill="${fill}" stroke="#000" stroke-width="3"/>`;
+    svgContent += `<text x="${x}" y="${topY - 12}" text-anchor="middle" font-family="Pretendard Variable, Pretendard, sans-serif" font-size="14" fill="#000">${i + 1}</text>`;
+  }
+
+  // vertical lines
+  for (let i = 0; i < n; i++) {
+    const x = margin + i * colSpace;
+    svgContent += `<line x1="${x}" y1="${topY}" x2="${x}" y2="${bottomY}" stroke="#fff1e8" stroke-width="3"/>`;
+  }
+
+  // rungs
+  rungs.forEach((row, r) => {
+    const y = topY + (r + 1) * rowSpace;
+    row.forEach(left => {
+      const x1 = margin + left * colSpace;
+      const x2 = margin + (left + 1) * colSpace;
+      svgContent += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#fff1e8" stroke-width="3"/>`;
+    });
+  });
+
+  // bottom team labels - hidden as "?" until that column is traced
+  for (let i = 0; i < n; i++) {
+    const x = margin + i * colSpace;
+    const isRevealed = state.ladderRevealed && state.ladderRevealed[i];
+    const team = isRevealed ? state.itemTeams[i] : '?';
+    const colors = { A: '#ff4d6d', B: '#4cc9f0', C: '#ffd166', D: '#06d6a0' };
+    const fill = isRevealed ? colors[team] : '#262b48';
+    const textColor = isRevealed ? '#1a1a2e' : '#7e83a3';
+    svgContent += `<rect x="${x - 22}" y="${bottomY + 6}" width="44" height="40" rx="8" fill="${fill}" stroke="${isRevealed ? 'transparent' : '#3a3f5e'}" stroke-width="2"/>`;
+    svgContent += `<text x="${x}" y="${bottomY + 33}" text-anchor="middle" font-family="Pretendard Variable, Pretendard, sans-serif" font-size="22" fill="${textColor}" font-weight="900">${team}</text>`;
+  }
+
+  // path lines for already-picked starts
+  if (state.ladderPaths) {
+    state.ladderPaths.forEach(({ path, color }) => {
+      let d = '';
+      path.forEach((pt, idx) => {
+        const px = margin + pt.x * colSpace;
+        const py = pt.y < 0 ? topY : (pt.y >= ROWS ? bottomY : topY + (pt.y + 1) * rowSpace);
+        d += (idx === 0 ? 'M' : 'L') + ' ' + px + ' ' + py + ' ';
+      });
+      svgContent += `<path d="${d}" stroke="${color}" stroke-width="5" fill="none" opacity="0.85" stroke-linejoin="round" stroke-linecap="round"/>`;
+    });
+  }
+
+  svg.innerHTML = svgContent;
+
+  // wire up clicks on starts
+  svg.querySelectorAll('.ladder-start').forEach(el => {
+    el.style.cursor = el.classList.contains('disabled') ? 'default' : 'pointer';
+    el.addEventListener('click', () => onLadderStart(parseInt(el.dataset.col)));
+  });
+}
+
+function isLadderColTaken(col) {
+  if (!state.ladderPaths) return false;
+  return state.ladderPaths.some(p => p.startCol === col);
+}
+
+function onLadderStart(col) {
+  if (!state.currentPicker) {
+    showToast('먼저 왼쪽에서 자기 이름을 클릭해주세요!');
+    return;
+  }
+  if (isLadderColTaken(col)) return;
+
+  // The team is determined by where the ladder ENDS (finalCol), not where it starts.
+  const { path, finalCol } = ladderTrace(col, state.ladderConnections, state.attendingPool.length);
+  // 직전 달과 같은 조 회피: 아직 공개되지 않은 다른 끝열과 swap
+  const prevTeamL = getPreviousTeamForName(state.currentPicker);
+  const unrevealed = [];
+  for (let j = 0; j < state.itemTeams.length; j++) {
+    if (j === finalCol) continue;
+    if (state.ladderRevealed && state.ladderRevealed[j]) continue;
+    unrevealed.push(j);
+  }
+  const team = avoidPrevTeamSwap(finalCol, unrevealed, prevTeamL);
+  // Use neutral yellow accent so the team is NOT spoiled mid-trace
+  const TRACE_COLOR = '#ffd84d';
+  state.ladderPaths = state.ladderPaths || [];
+  state.ladderRevealed = state.ladderRevealed || {};
+  // animate trace in neutral color; reveal team color only AFTER reaching the bottom
+  animateLadderPath(col, path, TRACE_COLOR, () => {
+    state.ladderRevealed[finalCol] = true;
+    drawLadder();
+    setTimeout(() => {
+      commitItemPick(team, 'ladder-current', 'ladder-teams');
+      renderNamePanel('ladder-names', n => onLadderName(n));
+      drawLadder();
+      if (isAllPicked()) finishGame();
+    }, 400);
+  });
+}
+
+function animateLadderPath(col, fullPath, color, onDone) {
+  state.ladderPaths.push({ startCol: col, path: [], color });
+  const idx = state.ladderPaths.length - 1;
+  let step = 0;
+  const total = fullPath.length;
+  const interval = setInterval(() => {
+    step++;
+    state.ladderPaths[idx].path = fullPath.slice(0, step + 1);
+    drawLadder();
+    if (step >= total - 1) {
+      clearInterval(interval);
+      onDone();
+    }
+  }, 45);
+}
+
+/* (Luckybox game removed) */
+
+/* ============================================================
+   POINT 11: BASKETBALL GAME (timing-stop)
+   ============================================================ */
+function launchBasket() {
+  showScreen('game-basket');
+  state.basketAimRunning = false;
+  state.basketAimRaf = null;
+  // Track remaining slots per team (random members only; the leader is always included separately)
+  state.basketCapacity = {
+    A: state.teamCounts.aRandom,
+    B: state.teamCounts.bRandom,
+    C: state.teamCounts.cRandom,
+    D: state.teamCounts.dRandom
+  };
+  // 시작과 동시에 무작위 순서를 정함 (오버레이 사용 안 함, 게임 로직은 동일)
+  state.basketOrder = shuffle(state.attendingPool);
+  state.basketOrderIdx = 0;
+  renderBasketNamePanel('basket-names');
+  renderTeamsPanel('basket-teams');
+  $('basket-current').textContent = '-';
+  $('basket-result').textContent = '왼쪽 "랜덤 섞기"로 순서 다시 섞을 수 있어요';
+  $('basket-shoot').style.display = 'none';
+  $('basket-stop').style.display = 'none';
+  updateBasketHoopFullness();
+  resetBasketScene({ resetAim: true });
+  // 첫 사람부터 자동 활성화
+  activateNextBasketTurn();
+}
+
+/* 농구슛 전용 이름 패널: 순서 번호 + 잠금 상태 + 랜덤 섞기 버튼 */
+function renderBasketNamePanel(panelId) {
+  const panel = $(panelId);
+  panel.innerHTML = '<h3>뽑을 사람</h3>';
+  if (!state.basketOrder) {
+    state.attendingPool.forEach(name => {
+      const item = document.createElement('div');
+      item.className = 'name-item locked';
+      item.textContent = name;
+      panel.appendChild(item);
+    });
+    return;
+  }
+  state.basketOrder.forEach((name, idx) => {
+    const item = document.createElement('div');
+    item.className = 'name-item';
+    if (state.picks[name]) item.classList.add('done');
+    if (state.currentPicker === name) item.classList.add('selected');
+    if (idx !== state.basketOrderIdx && !state.picks[name]) item.classList.add('locked');
+    const badge = `<span class="order-badge">${idx + 1}</span>`;
+    const txt = state.picks[name] ? `${name} → ${state.picks[name]}조` : name;
+    item.innerHTML = badge + txt;
+    item.onclick = () => {
+      if (state.picks[name]) return;
+      if (idx !== state.basketOrderIdx) {
+        showToast('지금은 ' + state.basketOrder[state.basketOrderIdx] + '님 차례예요');
+      }
+    };
+    panel.appendChild(item);
+  });
+  // 랜덤 섞기 버튼: 아직 첫 사람이 슛하기 전(인덱스 0이고 picks 비어있을 때)에만 사용 가능
+  const actions = document.createElement('div');
+  actions.className = 'name-panel-actions';
+  const canShuffle = state.basketOrderIdx === 0 && Object.keys(state.picks).length === 0 && !state.basketAimRunning;
+  actions.innerHTML = `<button class="shuffle-btn" id="basket-shuffle-btn" ${canShuffle ? '' : 'disabled'} onclick="shuffleBasketOrder()">🎲 랜덤 섞기</button>`;
+  panel.appendChild(actions);
+}
+
+/* 순서를 다시 무작위로 섞고 흔들리는 애니메이션을 보여줌 (게임 로직 변동 없음) */
+function shuffleBasketOrder() {
+  if (state.basketOrderIdx > 0 || Object.keys(state.picks).length > 0) {
+    showToast('이미 게임이 시작됐어요');
+    return;
+  }
+  if (state.basketAimRunning) return;
+  state.basketOrder = shuffle(state.attendingPool);
+  state.basketOrderIdx = 0;
+  renderBasketNamePanel('basket-names');
+  // 셔플 애니메이션 (이름 카드들이 살짝 위아래로 흔들림)
+  const items = document.querySelectorAll('#basket-names .name-item');
+  items.forEach((el, i) => {
+    el.style.animationDelay = (i * 0.03) + 's';
+    el.classList.add('shuffling');
+    setTimeout(() => el.classList.remove('shuffling'), 600 + i * 30);
+  });
+  // 첫 번째 차례 다시 활성화
+  setTimeout(() => activateNextBasketTurn(), 520);
+}
+
+/* 순서 뽑기 슬롯형 애니메이션 (이름이 휙휙 돌다가 멈춤) */
+function startBasketOrderSpin() {
+  $('order-start-btn').style.display = 'none';
+  // 이번 농구슛 진행 순서 확정 (단순 무작위)
+  state.basketOrder = shuffle(state.attendingPool);
+  state.basketOrderIdx = 0;
+
+  const text = $('order-spin-text');
+  let count = 0;
+  const totalSpins = 28 + Math.floor(Math.random() * 8); // 28~35회
+  let interval = 55;
+  const tick = () => {
+    const r = state.attendingPool[Math.floor(Math.random() * state.attendingPool.length)];
+    text.textContent = r;
+    count++;
+    if (count < totalSpins) {
+      // 후반부로 갈수록 점점 느려지게
+      if (count > totalSpins * 0.55) interval = Math.min(interval + 14, 320);
+      setTimeout(tick, interval);
+    } else {
+      // 마지막엔 최종 1번 사람 표시 후 결과 리스트 펼치기
+      text.textContent = state.basketOrder[0];
+      setTimeout(revealBasketOrderList, 600);
+    }
+  };
+  tick();
+}
+
+function revealBasketOrderList() {
+  const list = $('order-result-list');
+  list.innerHTML = '';
+  state.basketOrder.forEach((name, idx) => {
+    const div = document.createElement('div');
+    div.className = 'order-result-item';
+    div.style.animationDelay = (idx * 0.07) + 's';
+    div.innerHTML = `<span class="order-num">${idx + 1}.</span> ${name}`;
+    list.appendChild(div);
+  });
+  list.style.display = '';
+  $('order-confirm-btn').style.display = '';
+}
+
+function confirmBasketOrder() {
+  $('basket-order-overlay').classList.remove('show');
+  // 첫 번째 사람부터 자동 진행
+  activateNextBasketTurn();
+}
+
+function activateNextBasketTurn() {
+  if (!state.basketOrder) return;
+  if (state.basketOrderIdx >= state.basketOrder.length) {
+    $('basket-shoot').style.display = 'none';
+    $('basket-stop').style.display = 'none';
+    return;
+  }
+  const name = state.basketOrder[state.basketOrderIdx];
+  state.currentPicker = name;
+  $('basket-current').textContent = name;
+  renderBasketNamePanel('basket-names');
+  $('basket-shoot').style.display = '';
+  $('basket-shoot').disabled = false;
+  $('basket-stop').style.display = 'none';
+  $('basket-result').textContent = `${name}님, SHOOT 누르면 조준 시작!`;
+  resetBasketScene();
+}
+
+function updateBasketHoopFullness() {
+  document.querySelectorAll('.basket-hoop').forEach(h => {
+    const t = h.dataset.team;
+    if (!t) return;
+    if (state.basketCapacity[t] <= 0) {
+      // 정원이 다 차면 골대 자체를 화면에서 제거 (남은 골대들이 자연스럽게 재배치됨)
+      h.classList.add('full');
+      h.style.display = 'none';
+    } else {
+      h.classList.remove('full');
+      h.style.display = '';
+    }
+  });
+}
+
+/* 현재 살아있는 골대의 실제 화면상 X 위치(%)를 측정해서 반환.
+   골대가 display:none 으로 빠지면 flex 가 재배치하므로 매번 동적으로 측정. */
+function getActiveHoopsLayout() {
+  const stage = document.querySelector('.basket-stage');
+  if (!stage) return [];
+  const stageRect = stage.getBoundingClientRect();
+  const hoops = document.querySelectorAll('.basket-hoop');
+  const out = [];
+  hoops.forEach((h, idx) => {
+    const t = h.dataset.team;
+    if (!t) return;
+    if (state.basketCapacity[t] <= 0) return;
+    const r = h.getBoundingClientRect();
+    if (r.width === 0 || r.height === 0) return;
+    const xPct = ((r.left + r.width / 2) - stageRect.left) / stageRect.width * 100;
+    out.push({ team: t, idx: idx, xPct: xPct });
+  });
+  return out;
+}
+
+function onBasketName(name) {
+  state.currentPicker = name;
+  $('basket-current').textContent = name;
+  renderNamePanel('basket-names', n => onBasketName(n));
+  $('basket-shoot').style.display = '';
+  $('basket-stop').style.display = 'none';
+  $('basket-shoot').disabled = false;
+  $('basket-result').textContent = `${name}님, SHOOT 누르면 조준 시작!`;
+  resetBasketScene();
+}
+
+function resetBasketScene(opts) {
+  const ball = $('basket-ball');
+  ball.style.transition = 'none';
+  ball.style.left = '50%';
+  ball.style.bottom = '8%';
+  ball.style.transform = 'translate(-50%, 0) rotate(0deg)';
+  ball.style.opacity = '1';
+  document.querySelectorAll('.basket-hoop').forEach(h => h.classList.remove('scored'));
+  const aim = $('basket-aim');
+  aim.style.transition = 'none';
+  aim.style.animation = 'none';
+  // Only reset arrow to center on initial launch — between turns it stays where stopped.
+  if (opts && opts.resetAim) aim.style.left = '50%';
+}
+
+function startBasketAim() {
+  if (!state.currentPicker) return;
+  $('basket-shoot').style.display = 'none';
+  $('basket-stop').style.display = '';
+  $('basket-stop').disabled = false;
+  $('basket-result').textContent = '두구두구... STOP!';
+  state.basketAimRunning = true;
+  state.basketAimStart = performance.now();
+
+  // 3초 카운트다운
+  state.basketTimeLeft = 3;
+  const basketTimerEl = $('basket-timer');
+  basketTimerEl.textContent = state.basketTimeLeft;
+  basketTimerEl.className = 'basket-timer';
+  basketTimerEl.style.display = '';
+  if (state.basketCountdown) clearInterval(state.basketCountdown);
+  state.basketCountdown = setInterval(() => {
+    state.basketTimeLeft--;
+    basketTimerEl.textContent = state.basketTimeLeft;
+    if (state.basketTimeLeft <= 1) basketTimerEl.className = 'basket-timer danger';
+    if (state.basketTimeLeft <= 0) {
+      clearInterval(state.basketCountdown);
+      state.basketCountdown = null;
+      if (state.basketAimRunning) stopBasketAim();
+    }
+  }, 1000);
+
+  const aim = $('basket-aim');
+  aim.style.transition = 'none';
+  // Period for one full oscillation (faster = harder to time)
+  const period = 600;
+  function tick(now) {
+    if (!state.basketAimRunning) return;
+    const t = ((now - state.basketAimStart) % period) / period;
+    // Smooth sine oscillation between 8% and 92% of track width
+    const wave = (Math.sin(t * 2 * Math.PI - Math.PI / 2) + 1) / 2;
+    const leftPct = 8 + wave * 84;
+    aim.style.left = leftPct + '%';
+    state.basketAimRaf = requestAnimationFrame(tick);
+  }
+  state.basketAimRaf = requestAnimationFrame(tick);
+}
+
+function stopBasketAim() {
+  if (!state.basketAimRunning) return;
+  state.basketAimRunning = false;
+  if (state.basketAimRaf) cancelAnimationFrame(state.basketAimRaf);
+  if (state.basketCountdown) { clearInterval(state.basketCountdown); state.basketCountdown = null; }
+  if ($('basket-timer')) $('basket-timer').style.display = 'none';
+  $('basket-stop').disabled = true;
+
+  // Read where the arrow currently is (its computed left as %)
+  const aim = $('basket-aim');
+  const track = aim.parentElement;
+  const aimRect = aim.getBoundingClientRect();
+  const trackRect = track.getBoundingClientRect();
+  const centerPx = aimRect.left + aimRect.width / 2 - trackRect.left;
+  const arrowPct = Math.max(0, Math.min(100, (centerPx / trackRect.width) * 100));
+
+  // 살아있는 골대만 후보. 만석 골대는 화면에 없음.
+  const active = getActiveHoopsLayout();
+  if (active.length === 0) return;
+  // 화살표 위치에서 가장 가까운 살아있는 골대 선택
+  let chosen = active[0];
+  let minDist = Math.abs(arrowPct - chosen.xPct);
+  for (let i = 1; i < active.length; i++) {
+    const d = Math.abs(arrowPct - active[i].xPct);
+    if (d < minDist) { minDist = d; chosen = active[i]; }
+  }
+  state.basketCapacity[chosen.team]--;
+
+  // Arrow stays exactly where the user stopped (no drift)
+  aim.style.transition = 'none';
+
+  setTimeout(() => {
+    launchBasketBall(arrowPct, chosen);
+  }, 200);
+}
+
+function launchBasketBall(fromPct, chosen) {
+  const ball = $('basket-ball');
+  const team = chosen.team;
+  const hoopIdx = chosen.idx;
+  const xPct = chosen.xPct;
+
+  // 만석 골대는 사라졌으므로 항상 정상 슛 (튕김 없음)
+  ball.style.transition = 'left 0.85s cubic-bezier(0.4, 0.05, 0.6, 0.4), bottom 0.85s cubic-bezier(0.2, 0.6, 0.5, 0.4), transform 0.85s linear';
+  void ball.offsetWidth;
+  ball.style.left = xPct + '%';
+  ball.style.bottom = '70%';
+  ball.style.transform = 'translate(-50%, 0) rotate(720deg)';
+
+  setTimeout(() => {
+    const hoop = document.querySelectorAll('.basket-hoop')[hoopIdx];
+    if (hoop) hoop.classList.add('scored');
+    ball.style.transition = 'bottom 0.4s ease-in, opacity 0.4s';
+    ball.style.bottom = '55%';
+    ball.style.opacity = '0';
+    $('basket-result').innerHTML = `<span style="color:${teamColor(team)}">${team}조!</span>`;
+    finishBasketTurn(hoopIdx, team);
+  }, 880);
+}
+
+function finishBasketTurn(hoopIdx, team) {
+  setTimeout(() => {
+    commitItemPick(team, 'basket-current', 'basket-teams');
+    state.basketOrderIdx++;
+    renderBasketNamePanel('basket-names');
+    $('basket-stop').style.display = 'none';
+    $('basket-shoot').style.display = 'none';
+    updateBasketHoopFullness();
+    resetBasketScene();
+    if (isAllPicked()) {
+      finishGame();
+    } else {
+      // 정해진 순서대로 다음 사람 자동 활성화
+      activateNextBasketTurn();
+    }
+  }, 1200);
+}
+
+/* ============================================================
+   POINT 12: CARD DEALING GAME (pick from spread)
+   ============================================================ */
+function launchCard() {
+  showScreen('game-card');
+  state.cardPicked = {};
+  renderNamePanel('card-names', n => onCardName(n));
+  renderTeamsPanel('card-teams');
+  $('card-current').textContent = '-';
+  $('card-msg').textContent = '왼쪽에서 자기 이름을 클릭하세요';
+  renderCardSpread();
+}
+
+function onCardName(name) {
+  state.currentPicker = name;
+  $('card-current').textContent = name;
+  renderNamePanel('card-names', n => onCardName(n));
+  $('card-msg').textContent = `${name}님, 카드 한 장을 골라주세요!`;
+  renderCardSpread();
+}
+
+function renderCardSpread() {
+  const wrap = $('card-spread');
+  wrap.innerHTML = '';
+  const n = state.attendingPool.length;
+  const symbols = ['☾', '✦', '☉', '✧', '⚝', '❋', '✺', '☽'];
+
+  // 남은 카드 목록
+  const remaining = [];
+  for (let i = 0; i < n; i++) {
+    if (!state.cardPicked || !state.cardPicked[i]) remaining.push(i);
+  }
+  const count = remaining.length;
+  const useArc = count > 4;
+
+  wrap.className = 'card-spread' + (useArc ? ' arc-mode' : '');
+
+  // 포물선 좌표 계산 (가운데 낮고 양끝 높음)
+  const halfSpan  = Math.min(42, count * 2.8); // % 단위 반폭
+  const curveH    = 65;  // 양끝이 중앙보다 올라오는 높이(px)
+  const maxTilt   = 38;  // 양끝 카드 최대 기울기(도)
+
+  remaining.forEach((idx, pos) => {
+    const el = document.createElement('div');
+    el.className = 'spread-card';
+    el.dataset.idx = idx;
+    if (!state.currentPicker) el.classList.add('disabled');
+
+    if (useArc) {
+      const t = count > 1 ? (2 * pos / (count - 1) - 1) : 0; // -1 ~ +1
+      const xPct    = (50 + t * halfSpan).toFixed(1) + '%';
+      const bottomY = (10 + curveH * (1 - t * t)).toFixed(1) + 'px'; // 역포물선(가운데↑ 끝↓)
+      const angle   = (t * maxTilt).toFixed(1);                     // 좌→-틸트, 우→+틸트
+
+      el.style.setProperty('--arc-x', xPct);
+      el.style.setProperty('--arc-y', bottomY);
+      el.style.setProperty('--arc-angle', angle + 'deg');
+      // 가운데 카드가 위에 (z-index)
+      const distFromCenter = Math.abs(pos - (count - 1) / 2);
+      el.style.zIndex = Math.round(count - distFromCenter);
+    }
+
+    const sym = symbols[idx % symbols.length];
+    el.innerHTML = `
+      <div class="spread-card-inner">
+        <div class="card-back">
+          <div class="card-corner tl">✦</div>
+          <div class="card-corner br">✦</div>
+          <div class="card-stars">
+            <span style="top:18%;left:20%">·</span>
+            <span style="top:26%;right:18%">✦</span>
+            <span style="bottom:30%;left:22%">✦</span>
+            <span style="bottom:20%;right:22%">·</span>
+          </div>
+          <div class="card-symbol">${sym}</div>
+        </div>
+        <div class="card-face"></div>
+      </div>
+    `;
+    el.onclick = () => onCardClick(idx, el);
+    wrap.appendChild(el);
+  });
+}
+
+function onCardClick(i, el) {
+  if (!state.currentPicker) {
+    showToast('먼저 왼쪽에서 자기 이름을 클릭해주세요!');
+    return;
+  }
+  if (state.cardPicked && state.cardPicked[i]) return;
+  state.cardPicked = state.cardPicked || {};
+  // 직전 달과 같은 조 회피: 아직 안 뽑은 다른 카드와 swap (mark BEFORE swap)
+  const prevTeamC = getPreviousTeamForName(state.currentPicker);
+  const unpickedCards = [];
+  for (let j = 0; j < state.itemTeams.length; j++) {
+    if (j === i) continue;
+    if (state.cardPicked && state.cardPicked[j]) continue;
+    unpickedCards.push(j);
+  }
+  const team = avoidPrevTeamSwap(i, unpickedCards, prevTeamC);
+  state.cardPicked[i] = true;
+
+  // Flip the picked card in place
+  el.classList.add('picked');
+  const inner = el.querySelector('.spread-card-inner');
+  const face = el.querySelector('.card-face');
+  if (face) {
+    face.classList.remove('team-a', 'team-b', 'team-c', 'team-d');
+    face.classList.add('team-' + team.toLowerCase());
+    face.textContent = team;
+  }
+
+  $('card-msg').innerHTML = `<span style="color:${teamColor(team)}">${team}조!</span>`;
+
+  setTimeout(() => {
+    commitItemPick(team, 'card-current', 'card-teams');
+    renderNamePanel('card-names', n => onCardName(n));
+    $('card-msg').textContent = '다음 사람이 자기 이름을 클릭해주세요';
+    renderCardSpread();
+    if (isAllPicked()) finishGame();
+  }, 1100);
+}
+
+/* ============================================================
+   POINT 13: SLOT MACHINE GAME (replaces roulette)
+   ============================================================ */
+const SLOT_ITEM_HEIGHT = 130;       // must match CSS .slot-item height
+const SLOT_LETTERS = ['A', 'B', 'C', 'D'];
+const SLOT_CYCLES = 14;              // total cycles of A B C D rendered into the reel
+
+function launchRoulette() {
+  showScreen('game-roulette');
+  renderNamePanel('roulette-names', n => onRouletteName(n));
+  renderTeamsPanel('roulette-teams');
+  $('roulette-current').textContent = '-';
+  state.rouletteIdx = 0;
+  $('roulette-result').textContent = '차례인 사람이 SPIN을 눌러주세요';
+  $('roulette-spin').disabled = true;
+  renderSlotReel();
+}
+
+function renderSlotReel() {
+  const reel = $('slot-reel');
+  reel.innerHTML = '';
+  for (let c = 0; c < SLOT_CYCLES; c++) {
+    SLOT_LETTERS.forEach(letter => {
+      const span = document.createElement('span');
+      span.className = `slot-item slot-${letter.toLowerCase()}`;
+      span.textContent = letter;
+      reel.appendChild(span);
+    });
+  }
+  // Reset reel to position 0 (showing 'A' at line)
+  reel.style.transition = 'none';
+  reel.style.transform = 'translateY(0)';
+}
+
+function onRouletteName(name) {
+  state.currentPicker = name;
+  $('roulette-current').textContent = name;
+  renderNamePanel('roulette-names', n => onRouletteName(n));
+  $('roulette-spin').disabled = false;
+  $('roulette-result').textContent = `${name}님, SPIN!`;
+}
+
+function spinRoulette() {
+  if (!state.currentPicker) {
+    showToast('먼저 왼쪽에서 자기 이름을 클릭해주세요!');
+    return;
+  }
+  $('roulette-spin').disabled = true;
+
+  // Determine target team from the precomputed item order
+  const idx = state.rouletteIdx;
+  // 직전 달과 같은 조 회피: 미래(아직 안 뽑은) 자리와 swap
+  const prevTeam = getPreviousTeamForName(state.currentPicker);
+  const futureCandidates = [];
+  for (let j = idx + 1; j < state.itemTeams.length; j++) futureCandidates.push(j);
+  const team = avoidPrevTeamSwap(idx, futureCandidates, prevTeam);
+  state.rouletteIdx++;
+
+  const letterIdx = SLOT_LETTERS.indexOf(team);
+  // Land somewhere in the middle-late portion of the reel (cycles 8-11) for a nice long spin
+  const targetCycle = 5 + Math.floor(Math.random() * 3);
+  const targetItem = targetCycle * SLOT_LETTERS.length + letterIdx;
+  const targetY = -(targetItem * SLOT_ITEM_HEIGHT);
+
+  const reel = $('slot-reel');
+  // Always reset to top first so the spin feels long and fresh every time
+  reel.style.transition = 'none';
+  reel.style.transform = 'translateY(0)';
+  void reel.offsetWidth; // force reflow
+  reel.style.transition = 'transform 1.6s cubic-bezier(0.15, 0.55, 0.25, 1)';
+  reel.style.transform = `translateY(${targetY}px)`;
+
+  setTimeout(() => {
+    $('roulette-result').innerHTML = `<span style="color:${teamColor(team)}">${team}조!</span>`;
+    setTimeout(() => {
+      commitItemPick(team, 'roulette-current', 'roulette-teams');
+      renderNamePanel('roulette-names', n => onRouletteName(n));
+      $('roulette-spin').disabled = true;
+      $('roulette-result').textContent = '다음 사람이 자기 이름을 클릭해주세요';
+      if (isAllPicked()) finishGame();
+    }, 900);
+  }, 1700);
+}
+
+/* ============================================================
+   POINT 14: HELPER - team color
+   ============================================================ */
+function teamColor(t) {
+  return ({ A: '#ff004d', B: '#29adff', C: '#ffec27', D: '#00e436' })[t] || '#fff';
+}
+
+
+function launchConfetti() {
+  const wrap = $('confetti-wrap');
+  wrap.innerHTML = '';
+  const colors = ['#ff4d6d','#ffd84d','#4cc9f0','#06d6a0','#ff8a3d','#c77dff','#fff'];
+  const count = 90;
+  for (let i = 0; i < count; i++) {
+    const el = document.createElement('div');
+    el.className = 'confetti-piece';
+    el.style.left = Math.random() * 100 + '%';
+    el.style.background = colors[Math.floor(Math.random() * colors.length)];
+    const dur = 2.2 + Math.random() * 1.8;
+    el.style.animationDuration = dur + 's';
+    el.style.animationDelay   = Math.random() * 0.8 + 's';
+    el.style.width  = (8 + Math.random() * 8) + 'px';
+    el.style.height = (12 + Math.random() * 8) + 'px';
+    el.style.borderRadius = Math.random() > 0.5 ? '50%' : '2px';
+    wrap.appendChild(el);
+  }
+  setTimeout(() => { wrap.innerHTML = ''; }, 4500);
+}
+
+/* ============================================================
+   POINT 15: RESULT SCREEN
+   ============================================================ */
+function showResultScreen() {
+  showScreen('screen-result');
+  launchConfetti();
+  $('result-month').textContent = getCurrentMonthLabel();
+  const grid = $('result-grid');
+  grid.className = 'result-grid' + (state.teamCounts.dExists ? '' : ' three-cols');
+  grid.innerHTML = '';
+  const order = state.teamCounts.dExists ? ['A','B','C','D'] : ['A','B','C'];
+  order.forEach(letter => {
+    const box = document.createElement('div');
+    box.className = `result-team team-${letter.toLowerCase()}`;
+    let html = `<h3>${letter}조</h3>`;
+    state.teamRoster[letter].forEach(m => {
+      html += `<div class="member ${m.leader ? 'leader' : ''}">${m.name}${m.leader ? ' 👑' : ''}</div>`;
+    });
+    box.innerHTML = html;
+    grid.appendChild(box);
+  });
+  $('result-saved').textContent = '';
+  $('save-btn').disabled = false;
+  $('save-btn').textContent = '💾 이번 달 결과 저장';
+}
+
+function saveResult() {
+  if (state.saved) return;
+  const history = loadHistory();
+  const entry = {
+    id: Date.now(),
+    monthLabel: getCurrentMonthLabel(),
+    date: new Date().toISOString(),
+    game: state.currentGame,
+    gameLabel: GAMES.find(g => g.id === state.currentGame)?.name || '',
+    dExists: state.teamCounts.dExists,
+    teams: {
+      A: state.teamRoster.A.map(m => ({ name: m.name, leader: !!m.leader })),
+      B: state.teamRoster.B.map(m => ({ name: m.name, leader: !!m.leader })),
+      C: state.teamRoster.C.map(m => ({ name: m.name, leader: !!m.leader })),
+      D: state.teamRoster.D.map(m => ({ name: m.name, leader: !!m.leader }))
+    },
+    salad: [...state.saladSet]
+  };
+  history.unshift(entry);
+  saveHistory(history);
+  state.saved = true;
+  $('save-btn').disabled = true;
+  $('save-btn').textContent = '✓ 저장됨';
+  $('result-saved').textContent = '저장 완료! 지난 기록 메뉴에서 확인할 수 있어요.';
+}
+
+function restartFresh() {
+  goToSalad();
+}
+
+/* ============================================================
+   POINT 16: HISTORY (localStorage)
+   ============================================================ */
+function loadHistory() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : [];
+  } catch (e) {
+    return [];
+  }
+}
+
+/* 직전 달에 해당 이름이 속했던 조 letter 반환 (없으면 null) */
+function getPreviousTeamForName(name) {
+  const history = loadHistory();
+  if (!history || history.length === 0) return null;
+  const last = history[0];
+  if (!last || !last.teams) return null;
+  for (const letter of ['A', 'B', 'C', 'D']) {
+    const arr = last.teams[letter] || [];
+    if (arr.some(m => m && m.name === name)) return letter;
+  }
+  return null;
+}
+
+/* itemTeams 배열에서 (curIdx, 후보 인덱스 풀 candidates) 중에서
+   curIdx의 팀이 prev와 같으면 prev가 아닌 자리와 swap.
+   candidates: 아직 노출/사용되지 않은 itemTeams 인덱스들의 배열. */
+function avoidPrevTeamSwap(curIdx, candidates, prev) {
+  if (!prev) return state.itemTeams[curIdx];
+  if (state.itemTeams[curIdx] !== prev) return state.itemTeams[curIdx];
+  // 후보 중에서 prev가 아닌 첫 자리를 찾아 swap
+  for (const j of candidates) {
+    if (j === curIdx) continue;
+    if (state.itemTeams[j] !== prev) {
+      const t = state.itemTeams[curIdx];
+      state.itemTeams[curIdx] = state.itemTeams[j];
+      state.itemTeams[j] = t;
+      return state.itemTeams[curIdx];
+    }
+  }
+  // 회피 불가 (남은 자리가 전부 prev)
+  return state.itemTeams[curIdx];
+}
+
+function saveHistory(arr) {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(arr));
+  } catch (e) {
+    showToast('저장 실패: 브라우저 저장소 오류');
+  }
+}
+
+function renderHistoryScreen() {
+  const list = $('history-list');
+  list.innerHTML = '';
+  const items = loadHistory();
+  if (items.length === 0) {
+    list.innerHTML = '<div class="history-empty">아직 저장된 기록이 없어요.<br>뽑기를 진행하고 결과를 저장해보세요.</div>';
+    return;
+  }
+  items.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'history-entry';
+    const order = entry.dExists !== false && entry.teams.D && entry.teams.D.length > 0 ? ['A','B','C','D'] : ['A','B','C'];
+    let teamsHtml = '';
+    order.forEach(letter => {
+      const members = (entry.teams[letter] || []).map(m =>
+        `<div>${m.name}${m.leader ? ' 👑' : ''}</div>`
+      ).join('');
+      teamsHtml += `<div class="history-team team-${letter.toLowerCase()}"><span class="label">${letter}조</span>${members}</div>`;
+    });
+    div.innerHTML = `
+      <div class="history-entry-head">
+        <h3>${entry.monthLabel}</h3>
+        <div>
+          <span class="game-tag">${entry.gameLabel || ''}</span>
+        </div>
+      </div>
+      <div class="history-teams ${order.length === 3 ? 'three-cols' : ''}">${teamsHtml}</div>
+      <div class="history-actions">
+        <button class="btn danger" onclick="deleteHistoryEntry(${entry.id})">삭제</button>
+      </div>
+    `;
+    list.appendChild(div);
+  });
+}
+
+function deleteHistoryEntry(id) {
+  if (!confirm('이 기록을 삭제할까요?')) return;
+  const arr = loadHistory().filter(x => x.id !== id);
+  saveHistory(arr);
+  renderHistoryScreen();
+}
+
+
+function initClawPrizes() {
+  const container = $('claw-prizes');
+  container.innerHTML = '';
+
+  const ANIMALS = { A: '🐱', B: '🐧', C: '🐰', D: '🐸' };
+  const teams = ['A','B','C','D'];
+
+  // 팀별 최대 4개, 최소 1개 인형 생성
+  const pool = [];
+  teams.forEach(t => {
+    const cap = state.clawCapacity[t];
+    if (cap <= 0) return;
+    const n = Math.max(1, Math.min(cap, 4));
+    for (let i = 0; i < n; i++) pool.push(t);
+  });
+
+  // 랜덤 셔플
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  // X·Y 슬롯 각각 균등 분할 후 독립 셔플 → X축·Y축 모두 겹치지 않음
+  const n = pool.length;
+  const xSlotW = 78 / n;
+  const ySlotH = 60 / n;
+
+  const xSlots = pool.map((_, i) => 4 + i * xSlotW + Math.random() * xSlotW * 0.7);
+  const ySlots = pool.map((_, i) => 4 + i * ySlotH + Math.random() * ySlotH * 0.7);
+
+  // 각각 독립 셔플
+  const shuffleArr = arr => {
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [arr[i], arr[j]] = [arr[j], arr[i]];
+    }
+  };
+  shuffleArr(xSlots);
+  shuffleArr(ySlots);
+
+  pool.forEach((team, idx) => {
+    const l = xSlots[idx];  // X 슬롯 (겹침 없음)
+    const b = ySlots[idx];  // Y 슬롯 (겹침 없음)
+
+    const r = (Math.random() * 40) - 20; // -20 ~ +20deg
+    const div = document.createElement('div');
+    div.className = 'claw-prize team-' + team.toLowerCase();
+    div.dataset.team = team;
+    div.style.left      = l.toFixed(1) + '%';
+    div.style.bottom    = b.toFixed(1) + '%';
+    div.style.setProperty('--r', r.toFixed(1) + 'deg');
+    div.style.animationDelay = -(Math.random() * 1.8).toFixed(2) + 's';
+    div.dataset.initLeft   = l.toFixed(1) + '%';
+    div.dataset.initBottom = b.toFixed(1) + '%';
+    div.dataset.initRotate = r.toFixed(1) + 'deg';
+    div.innerHTML = `<span class="pz-face">${ANIMALS[team]}</span><span class="pz-letter">${team}</span>`;
+    container.appendChild(div);
+  });
+}
+
+
+/* ── 캡슐 선택 (인형 못 잡을 때 폴백) ── */
+function showClawCapsules() {
+  // 이미 오버레이 있으면 중복 방지
+  if (document.getElementById('capsule-overlay')) return;
+
+  // 남은 팀 슬롯 pool 구성
+  const pool = [];
+  ['A','B','C','D'].forEach(t => {
+    for (let i = 0; i < (state.clawCapacity[t] || 0); i++) pool.push(t);
+  });
+  if (pool.length === 0) return;
+
+  // 셔플 (어느 캡슐이 어느 팀인지 숨김)
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+
+  const overlay = document.createElement('div');
+  overlay.className = 'capsule-overlay';
+  overlay.id = 'capsule-overlay';
+  overlay.innerHTML = '<div class="capsule-title">🎰 캡슐을 하나 선택하세요!</div>'
+                    + '<div class="capsule-grid" id="capsule-grid"></div>';
+
+  const grid = overlay.querySelector('#capsule-grid');
+  pool.forEach((team, i) => {
+    const cap = document.createElement('div');
+    cap.className = 'capsule-item';
+    cap.style.setProperty('--cap-delay', (i * 0.045) + 's');
+    cap.dataset.team = team;
+    cap.textContent = '?';
+    cap.onclick = () => onCapsuleClick(cap);
+    grid.appendChild(cap);
+  });
+
+  document.body.appendChild(overlay);
+  $('claw-result').textContent = `${state.currentPicker}님, 캡슐을 하나 고르세요!`;
+}
+
+function onCapsuleClick(el) {
+  if (el.classList.contains('opened') || el.classList.contains('dimmed')) return;
+
+  const team = el.dataset.team;
+  state.clawCapacity[team]--;
+
+  // 나머지 캡슐 흐리게
+  document.querySelectorAll('.capsule-item').forEach(c => {
+    if (c !== el) c.classList.add('dimmed');
+  });
+
+  // 선택한 캡슐 열기
+  el.classList.add('opened');
+  el.style.background = `radial-gradient(circle at 35% 32%, ${teamColorLight(team)} 0%, ${teamColor(team)} 100%)`;
+  el.textContent = team;
+
+  $('claw-result').className = 'claw-result big-reveal';
+  $('claw-result').innerHTML = `<span style="color:${teamColor(team)}">${team}조!</span>`;
+
+  setTimeout(() => {
+    const ov = document.getElementById('capsule-overlay');
+    if (ov) ov.remove();
+    commitItemPick(team, 'claw-current', 'claw-teams');
+    state.clawOrderIdx++;
+    renderOrderedNamePanel('claw-names', 'claw');
+    $('claw-stop').style.display = 'none';
+    $('claw-go').style.display = 'none';
+    updateClawPrizesFullness();
+    resetClawScene();
+    $('claw-result').className = 'claw-result';
+    if (isAllPicked()) finishGame();
+    else activateNextOrderedTurn('claw');
+  }, 1600);
+}
+
+function teamColorLight(t) {
+  return ({ A:'#ff9ab5', B:'#9ae4ff', C:'#fff0a0', D:'#6ffad8' })[t] || '#fff';
+}
+
+/* ============================================================
+   POINT 19: CLAW MACHINE 🕹️ (ARCADE STYLE)
+   ============================================================ */
+function launchClaw() {
+  showScreen('game-claw');
+  state.clawCapacity = {
+    A: state.teamCounts.aRandom,
+    B: state.teamCounts.bRandom,
+    C: state.teamCounts.cRandom,
+    D: state.teamCounts.dRandom
+  };
+  state.clawMoveRunning = false;
+  state.clawMoveRaf = null;
+  // 시작과 동시에 무작위 순서 결정 (농구슛과 동일)
+  state.clawOrder = shuffle(state.attendingPool);
+  state.clawOrderIdx = 0;
+  renderOrderedNamePanel('claw-names', 'claw');
+  renderTeamsPanel('claw-teams');
+  $('claw-current').textContent = '-';
+  $('claw-result').className = 'claw-result';
+  $('claw-result').textContent = '왼쪽 "랜덤 섞기"로 순서 다시 섞을 수 있어요';
+  $('claw-go').style.display = 'none';
+  $('claw-stop').style.display = 'none';
+  $('claw-tension').style.display = 'none';
+  if ($('claw-timer')) $('claw-timer').style.display = 'none';
+  if (state.clawCountdown) { clearInterval(state.clawCountdown); state.clawCountdown = null; }
+  initClawPrizes();
+  resetClawScene();
+  updateClawPrizesFullness();
+  // 첫 사람 자동 활성화
+  activateNextOrderedTurn('claw');
+}
+
+function onClawName(name) {
+  state.currentPicker = name;
+  $('claw-current').textContent = name;
+  renderOrderedNamePanel('claw-names', 'claw');
+  $('claw-go').style.display = '';
+  $('claw-go').disabled = false;
+  $('claw-stop').style.display = 'none';
+  $('claw-tension').style.display = 'none';
+  $('claw-result').className = 'claw-result';
+  $('claw-result').textContent = `${name}님, MOVE로 크레인 조작 시작!`;
+  resetClawScene();
+}
+
+function resetClawScene() {
+  const arm = $('claw-arm');
+  const head = $('claw-head');
+  if (!arm) return;
+  arm.style.transition = 'none';
+  arm.style.left = '50%';
+  arm.style.height = '36px';
+  arm.style.top = '14%';
+  if (head) head.classList.remove('closed');
+  document.querySelectorAll('.claw-prize').forEach(p => {
+    p.classList.remove('taken');
+    p.style.transition = '';
+    if (p.dataset.initLeft) {
+      p.style.left   = p.dataset.initLeft;
+      p.style.bottom = p.dataset.initBottom;
+      p.style.setProperty('--r', p.dataset.initRotate || '0deg');
+      p.style.transform = '';
+    }
+    // opacity는 건드리지 않음 (이미 집힌 인형은 opacity:0 유지)
+  });
+}
+
+function updateClawPrizesFullness() {
+  document.querySelectorAll('.claw-prize').forEach(p => {
+    const t = p.dataset.team;
+    if (state.clawCapacity[t] <= 0) p.classList.add('full');
+    else p.classList.remove('full');
+  });
+}
+
+function startClawMove() {
+  if (!state.currentPicker) return;
+  $('claw-go').style.display = 'none';
+  $('claw-stop').style.display = '';
+  $('claw-stop').disabled = false;
+  $('claw-tension').style.display = '';
+  $('claw-tension').classList.add('shake');
+  $('claw-tension').textContent = '두구두구...';
+  $('claw-result').className = 'claw-result';
+  $('claw-result').textContent = '';
+  state.clawMoveRunning = true;
+  state.clawMoveStart = performance.now();
+
+  // 3초 카운트다운
+  state.clawTimeLeft = 3;
+  const clawTimerEl = $('claw-timer');
+  clawTimerEl.textContent = state.clawTimeLeft;
+  clawTimerEl.className = 'claw-timer';
+  clawTimerEl.style.display = '';
+  if (state.clawCountdown) clearInterval(state.clawCountdown);
+  state.clawCountdown = setInterval(() => {
+    state.clawTimeLeft--;
+    clawTimerEl.textContent = state.clawTimeLeft;
+    if (state.clawTimeLeft <= 1) clawTimerEl.className = 'claw-timer danger';
+    if (state.clawTimeLeft <= 0) {
+      clearInterval(state.clawCountdown);
+      state.clawCountdown = null;
+      // 타이머 만료 → 자동 집기 대신 캡슐 등장
+      if (state.clawMoveRunning) {
+        state.clawMoveRunning = false;
+        if (state.clawMoveRaf) cancelAnimationFrame(state.clawMoveRaf);
+      }
+      $('claw-stop').disabled = true;
+      $('claw-tension').style.display = 'none';
+      if ($('claw-timer')) $('claw-timer').style.display = 'none';
+      showClawCapsules();
+    }
+  }, 1000);
+
+  const arm = $('claw-arm');
+  arm.style.transition = 'none';
+  const period = 1800;
+  const tick = (now) => {
+    if (!state.clawMoveRunning) return;
+    const t = ((now - state.clawMoveStart) % period) / period;
+    const wave = (Math.sin(t * 2 * Math.PI - Math.PI / 2) + 1) / 2;
+    const leftPct = 14 + wave * 72;
+    arm.style.left = leftPct + '%';
+    state.clawMoveRaf = requestAnimationFrame(tick);
+  };
+  state.clawMoveRaf = requestAnimationFrame(tick);
+}
+
+function stopClawMove() {
+  if (!state.clawMoveRunning) return;
+  state.clawMoveRunning = false;
+  if (state.clawMoveRaf) cancelAnimationFrame(state.clawMoveRaf);
+  if (state.clawCountdown) { clearInterval(state.clawCountdown); state.clawCountdown = null; }
+  if ($('claw-timer')) $('claw-timer').style.display = 'none';
+  $('claw-stop').disabled = true;
+  $('claw-tension').classList.remove('shake');
+
+  const arm = $('claw-arm');
+  const stage = document.querySelector('.claw-stage');
+  const armRect = arm.getBoundingClientRect();
+  const stageRect = stage.getBoundingClientRect();
+  const armCenterX = ((armRect.left + armRect.width/2) - stageRect.left) / stageRect.width * 100;
+
+  const prizes = document.querySelectorAll('.claw-prize');
+  const active = [];
+  prizes.forEach(p => {
+    const t = p.dataset.team;
+    if (state.clawCapacity[t] <= 0) return;
+    const r = p.getBoundingClientRect();
+    if (r.width === 0) return;
+    const xPct = ((r.left + r.width/2) - stageRect.left) / stageRect.width * 100;
+    active.push({ team: t, el: p, xPct });
+  });
+  if (active.length === 0) { showClawCapsules(); return; }
+  let chosen = active[0];
+  let minDist = Math.abs(armCenterX - chosen.xPct);
+  for (let i = 1; i < active.length; i++) {
+    const d = Math.abs(armCenterX - active[i].xPct);
+    if (d < minDist) { minDist = d; chosen = active[i]; }
+  }
+  // 가장 가까운 인형까지 거리가 5% 초과 → 미스, 캡슐 등장
+  if (minDist > 5) { showClawCapsules(); return; }
+  state.clawCapacity[chosen.team]--;
+
+  // 1) Move arm to prize X
+  arm.style.transition = 'left 0.5s ease';
+  arm.style.left = chosen.xPct + '%';
+  setTimeout(() => {
+    // 2) 인형 위치 계산 후 정확히 그 위치까지만 내려감
+    const prizeRect = chosen.el.getBoundingClientRect();
+    const armTopAbs = stageRect.top + stageRect.height * 0.14;
+    const targetHPx  = Math.max(40, (prizeRect.top + prizeRect.height * 0.55) - armTopAbs);
+    const targetHPct = Math.min((targetHPx / stageRect.height * 100), 63).toFixed(1) + '%';
+    const dropMs     = Math.round(280 + (targetHPx / stageRect.height) * 480);
+    const liftPx     = Math.round(targetHPx + 90);
+
+    arm.style.transition = `height ${dropMs}ms ease-in`;
+    arm.style.height = targetHPct;
+    setTimeout(() => {
+      // 3) Close claw
+      const head = $('claw-head');
+      if (head) head.classList.add('closed');
+      $('claw-tension').style.display = 'none';
+      // 4) Lift up with prize
+      setTimeout(() => {
+        arm.style.transition = 'height 0.52s ease-out';
+        arm.style.height = '36px';
+        // Move prize visually with the claw
+        const prizeEl = chosen.el;
+        prizeEl.classList.add('taken');
+        prizeEl.style.transition = 'transform 0.52s ease-out';
+        prizeEl.style.transform = `translateY(-${liftPx}px) scale(0.92)`;
+        setTimeout(() => {
+          // 5) Slide arm to chute
+          arm.style.transition = 'left 0.45s ease';
+          arm.style.left = '88%';
+          prizeEl.style.transition = 'transform 0.45s ease, opacity 0.4s ease';
+          prizeEl.style.transform = 'translate(' + (Math.round(stageRect.width * 0.86) - prizeEl.getBoundingClientRect().left + stageRect.left) + `px, -${liftPx}px) scale(0.92)`;
+          // 6) Drop into chute
+          setTimeout(() => {
+            if (head) head.classList.remove('closed');
+            prizeEl.style.opacity = '0';
+            $('claw-result').className = 'claw-result big-reveal';
+            $('claw-result').innerHTML = `<span style="color:${teamColor(chosen.team)}">${chosen.team}조!</span>`;
+            setTimeout(() => {
+              commitItemPick(chosen.team, 'claw-current', 'claw-teams');
+              state.clawOrderIdx++;
+              renderOrderedNamePanel('claw-names', 'claw');
+              $('claw-stop').style.display = 'none';
+              $('claw-go').style.display = 'none';
+              updateClawPrizesFullness();
+              resetClawScene();
+              $('claw-result').className = 'claw-result';
+              if (isAllPicked()) finishGame();
+              else activateNextOrderedTurn('claw');
+            }, 1500);
+          }, 500);
+        }, 600);
+      }, 350);
+    }, dropMs + 60);
+  }, 540);
+}
+
+/* ============================================================
+   POINT 20: MOLE GAME 🔨 (CARNIVAL STYLE, 빠른 속도)
+   ============================================================ */
+function launchMole() {
+  showScreen('game-mole');
+  state.moleCapacity = {
+    A: state.teamCounts.aRandom,
+    B: state.teamCounts.bRandom,
+    C: state.teamCounts.cRandom,
+    D: state.teamCounts.dRandom
+  };
+  state.moleRunning = false;
+  state.moleTimer = null;
+  // 시작과 동시에 무작위 순서 결정 (농구슛과 동일)
+  state.moleOrder = shuffle(state.attendingPool);
+  state.moleOrderIdx = 0;
+  renderOrderedNamePanel('mole-names', 'mole');
+  renderTeamsPanel('mole-teams');
+  $('mole-current').textContent = '-';
+  $('mole-msg').className = 'mole-msg';
+  $('mole-msg').textContent = '왼쪽 "랜덤 섞기"로 순서 다시 섞을 수 있어요';
+  $('mole-tension').style.display = 'none';
+  if (state.moleCountdown) { clearInterval(state.moleCountdown); state.moleCountdown = null; }
+  if ($('mole-timer')) $('mole-timer').style.display = 'none';
+  resetMoleHoles();
+  // 첫 사람 자동 활성화
+  activateNextOrderedTurn('mole');
+}
+
+function onMoleName(name) {
+  state.currentPicker = name;
+  $('mole-current').textContent = name;
+  renderOrderedNamePanel('mole-names', 'mole');
+  $('mole-msg').className = 'mole-msg';
+  $('mole-msg').textContent = `${name}님, 준비되면 시작 버튼을 누르세요!`;
+  $('mole-tension').style.display = 'none';
+  $('mole-start').style.display = '';
+  resetMoleHoles();
+}
+
+function startMoleGame() {
+  $('mole-start').style.display = 'none';
+  $('mole-msg').textContent = `${state.currentPicker}님, 빠르게 두더지를 클릭하세요!`;
+  $('mole-tension').style.display = '';
+  $('mole-tension').classList.add('shake');
+  $('mole-tension').textContent = '빠르게! 빠르게!';
+
+  // 3초 카운트다운
+  state.moleTimeLeft = 3;
+  const timerEl = $('mole-timer');
+  timerEl.textContent = state.moleTimeLeft;
+  timerEl.className = 'mole-timer';
+  timerEl.style.display = '';
+  if (state.moleCountdown) clearInterval(state.moleCountdown);
+  state.moleCountdown = setInterval(() => {
+    state.moleTimeLeft--;
+    timerEl.textContent = state.moleTimeLeft;
+    if (state.moleTimeLeft <= 1) timerEl.className = 'mole-timer danger';
+    if (state.moleTimeLeft <= 0) {
+      clearInterval(state.moleCountdown);
+      state.moleCountdown = null;
+      onMoleTimeout();
+    }
+  }, 1000);
+
+  startMoleSpawning();
+}
+
+function onMoleTimeout() {
+  stopMoleSpawning();
+  $('mole-timer').style.display = 'none';
+  $('mole-tension').style.display = 'none';
+  const active = getActiveMoleTeams();
+  if (active.length === 0) return;
+  const team = active[Math.floor(Math.random() * active.length)];
+  state.moleCapacity[team]--;
+  $('mole-msg').className = 'mole-msg big-reveal';
+  $('mole-msg').innerHTML = `<span style="color:${teamColor(team)}">⏰ ${team}조!</span>`;
+  setTimeout(() => {
+    commitItemPick(team, 'mole-current', 'mole-teams');
+    state.moleOrderIdx++;
+    renderOrderedNamePanel('mole-names', 'mole');
+    resetMoleHoles();
+    $('mole-msg').className = 'mole-msg';
+    if (isAllPicked()) finishGame();
+    else activateNextOrderedTurn('mole');
+  }, 1500);
+}
+
+function resetMoleHoles() {
+  document.querySelectorAll('#mole-grid .mole').forEach(m => {
+    m.classList.remove('up', 'hit', 'team-a', 'team-b', 'team-c', 'team-d');
+    m.dataset.team = '';
+    const lbl = m.querySelector('.mole-team-letter');
+    if (lbl) lbl.textContent = '?';
+    m.onclick = null;
+  });
+  document.querySelectorAll('.mole-burst').forEach(b => b.remove());
+}
+
+function getActiveMoleTeams() {
+  return ['A','B','C','D'].filter(t => state.moleCapacity[t] > 0);
+}
+
+function startMoleSpawning() {
+  if (state.moleRunning) return;
+  state.moleRunning = true;
+  scheduleMoleTick();
+}
+
+function stopMoleSpawning() {
+  state.moleRunning = false;
+  if (state.moleTimer) { clearTimeout(state.moleTimer); state.moleTimer = null; }
+  document.querySelectorAll('#mole-grid .mole.up').forEach(m => m.classList.remove('up'));
+}
+
+function scheduleMoleTick() {
+  if (!state.moleRunning) return;
+  const delay = 20 + Math.floor(Math.random() * 25);
+  state.moleTimer = setTimeout(() => {
+    spawnMole();          // 첫 번째 두더지
+    spawnMole();          // 두 번째 두더지 (동시 2개)
+    scheduleMoleTick();
+  }, delay);
+}
+
+function spawnMole() {
+  const moles = document.querySelectorAll('#mole-grid .mole');
+  const activeTeams = getActiveMoleTeams();
+  if (activeTeams.length === 0) return;
+  const candidates = [];
+  moles.forEach(m => { if (!m.classList.contains('up') && !m.classList.contains('hit')) candidates.push(m); });
+  if (candidates.length === 0) return;
+  const m = candidates[Math.floor(Math.random() * candidates.length)];
+  const team = activeTeams[Math.floor(Math.random() * activeTeams.length)];
+  m.classList.remove('team-a','team-b','team-c','team-d');
+  m.classList.add('team-' + team.toLowerCase());
+  m.dataset.team = team;
+  const lbl = m.querySelector('.mole-team-letter');
+  if (lbl) lbl.textContent = team;
+  m.classList.add('up');
+  m.onclick = (ev) => onMoleClick(m, ev);
+  const stayMs = 110 + Math.floor(Math.random() * 90);
+  setTimeout(() => {
+    if (m.classList.contains('up') && !m.classList.contains('hit')) {
+      m.classList.remove('up');
+      m.onclick = null;
+    }
+  }, stayMs);
+}
+
+function onMoleClick(m, ev) {
+  if (!state.moleRunning) return;
+  if (!m.classList.contains('up')) return;
+  const team = m.dataset.team;
+  if (!team) return;
+  if (state.moleCapacity[team] <= 0) return;
+  state.moleCapacity[team]--;
+  m.classList.add('hit');
+  m.onclick = null;
+  if (state.moleCountdown) { clearInterval(state.moleCountdown); state.moleCountdown = null; }
+  $('mole-timer').style.display = 'none';
+  stopMoleSpawning();
+
+  // 별 폭발 효과
+  const stage = $('mole-stage');
+  const stageRect = stage.getBoundingClientRect();
+  const moleRect = m.getBoundingClientRect();
+  const burst = document.createElement('div');
+  burst.className = 'mole-burst';
+  burst.textContent = '💥';
+  burst.style.left = ((moleRect.left + moleRect.width/2) - stageRect.left) + 'px';
+  burst.style.top = ((moleRect.top + moleRect.height/2) - stageRect.top) + 'px';
+  stage.appendChild(burst);
+  setTimeout(() => burst.remove(), 600);
+
+  $('mole-tension').style.display = 'none';
+  $('mole-start').style.display = 'none';
+  $('mole-msg').className = 'mole-msg big-reveal';
+  $('mole-msg').innerHTML = `<span style="color:${teamColor(team)}">${team}조!</span>`;
+  setTimeout(() => {
+    commitItemPick(team, 'mole-current', 'mole-teams');
+    state.moleOrderIdx++;
+    renderOrderedNamePanel('mole-names', 'mole');
+    resetMoleHoles();
+    $('mole-msg').className = 'mole-msg';
+    if (isAllPicked()) finishGame();
+    else activateNextOrderedTurn('mole');
+  }, 1500);
+}
+/* ============================================================
+   POINT 17: BOOT
+   ============================================================ */
+window.addEventListener('DOMContentLoaded', () => {
+  $('main-month').textContent = getCurrentMonthLabel();
+});
+
+
+/* ============================================================
+   BONUS LADDER GAME (번외 사다리타기)
+   ============================================================ */
+const bonusState = {
+  participants: [],
+  prizeCount: 1,
+  assignments: {},    // col(0-based) → name
+  nameToCol: {},      // name → col
+  activeName: null,
+  ladderRungs: [],
+  prizeColumns: [],
+  animIdx: 0,
+  winners: []
+};
+
+function launchBonusLadder() {
+  showScreen('screen-bonus-ladder');
+  Object.assign(bonusState, {
+    participants: [], prizeCount: 1,
+    assignments: {}, nameToCol: {}, activeName: null,
+    ladderRungs: [], prizeColumns: [], animIdx: 0, winners: []
+  });
+  $('bonus-setup-phase').style.display = '';
+  $('bonus-pick-phase').style.display = 'none';
+  $('bonus-ladder-phase').style.display = 'none';
+  renderBonusParticipants();
+  renderBonusPrizeCount();
+}
+
+function renderBonusParticipants() {
+  const grid = $('bonus-participant-grid');
+  grid.innerHTML = '';
+  RANDOM_POOL.forEach(name => {
+    const on = bonusState.participants.includes(name);
+    const div = document.createElement('div');
+    div.className = 'bonus-chip' + (on ? ' on' : '');
+    div.textContent = name;
+    div.onclick = () => {
+      if (on) bonusState.participants = bonusState.participants.filter(n => n !== name);
+      else    bonusState.participants.push(name);
+      bonusState.prizeCount = Math.min(bonusState.prizeCount, Math.max(1, bonusState.participants.length - 1));
+      renderBonusParticipants();
+      renderBonusPrizeCount();
+    };
+    grid.appendChild(div);
+  });
+}
+
+function renderBonusPrizeCount() {
+  $('bonus-prize-count').textContent = bonusState.prizeCount;
+  const max = Math.max(1, bonusState.participants.length - 1);
+  $('bonus-prize-minus').disabled = bonusState.prizeCount <= 1;
+  $('bonus-prize-plus').disabled  = bonusState.participants.length < 2 || bonusState.prizeCount >= max;
+}
+
+function bonusPrizeAdj(d) {
+  const max = Math.max(1, bonusState.participants.length - 1);
+  bonusState.prizeCount = Math.max(1, Math.min(max, bonusState.prizeCount + d));
+  renderBonusPrizeCount();
+}
+
+function startBonusPickPhase() {
+  if (bonusState.participants.length < 2) { alert('참여자를 2명 이상 선택해 주세요!'); return; }
+  Object.assign(bonusState, { assignments: {}, nameToCol: {}, activeName: null });
+  $('bonus-setup-phase').style.display = 'none';
+  $('bonus-pick-phase').style.display = '';
+  $('bonus-ladder-phase').style.display = 'none';
+  $('bonus-reveal-btn').style.display = 'none';
+  $('bonus-status').textContent = '참여자 이름을 누른 뒤 번호를 선택하세요';
+  renderBonusPickPhase();
+}
+
+function renderBonusPickPhase() {
+  const n = bonusState.participants.length;
+  const assignedNames = new Set(Object.values(bonusState.assignments));
+  const unassigned = bonusState.participants.filter(nm => !assignedNames.has(nm));
+
+  // 이름 목록 (ㄱㄴㄷ 정렬, 배정된 것은 흐리게)
+  const nl = $('bonus-name-list');
+  nl.innerHTML = '';
+  const sortedAll = [...bonusState.participants].sort((a, b) => a.localeCompare(b, 'ko'));
+  sortedAll.forEach(nm => {
+    const isDone = assignedNames.has(nm);
+    const d = document.createElement('div');
+    d.className = 'bonus-name-item' + (bonusState.activeName === nm ? ' active' : isDone ? ' done' : '');
+    d.textContent = nm;
+    if (!isDone) d.onclick = () => { bonusState.activeName = nm; renderBonusPickPhase(); };
+    nl.appendChild(d);
+  });
+
+  // 번호 그리드
+  const ng = $('bonus-number-grid');
+  ng.innerHTML = '';
+  for (let i = 0; i < n; i++) {
+    const assigned = bonusState.assignments[i];
+    const d = document.createElement('div');
+    d.className = 'bonus-num-btn' + (assigned ? ' taken' : '');
+    if (assigned) {
+      d.innerHTML = `<span class="bonus-num-digit">${i+1}</span><span class="bonus-num-name">${assigned}</span>`;
+    } else {
+      d.innerHTML = `<span class="bonus-num-digit">${i+1}</span>`;
+      d.onclick = () => {
+        if (!bonusState.activeName) { $('bonus-status').textContent = '먼저 왼쪽에서 이름을 선택하세요!'; return; }
+        bonusState.assignments[i] = bonusState.activeName;
+        bonusState.nameToCol[bonusState.activeName] = i;
+        bonusState.activeName = null;
+        if (Object.keys(bonusState.assignments).length === n) {
+          $('bonus-reveal-btn').style.display = '';
+          $('bonus-status').textContent = '모두 번호를 골랐어요! 사다리를 시작하세요 🎰';
+        } else {
+          $('bonus-status').textContent = '다음 참여자가 번호를 고르세요';
+        }
+        renderBonusPickPhase();
+      };
+    }
+    ng.appendChild(d);
+  }
+}
+
+// ── 사다리 역방향 추적 (경품 → 위로) ──
+function ladderTraceReverse(startCol, rungs) {
+  let col = startCol;
+  const path = [{ x: col, y: rungs.length }];
+  for (let r = rungs.length - 1; r >= 0; r--) {
+    const row = rungs[r];
+    if (row.includes(col)) {
+      path.push({ x: col, y: r });
+      col = col + 1;
+      path.push({ x: col, y: r });
+    } else if (row.includes(col - 1)) {
+      path.push({ x: col, y: r });
+      col = col - 1;
+      path.push({ x: col, y: r });
+    }
+  }
+  path.push({ x: col, y: -1 });
+  return { path, finalCol: col };
+}
+
+function bonusSVG(col, row, n, ROWS) {
+  const W = 760, mg = 55;
+  const topY = 80, botY = 450;
+  const cs = n > 1 ? (W - mg * 2) / (n - 1) : 0;
+  const rs = (botY - topY) / (ROWS + 1);
+  const x = mg + col * cs;
+  const y = row === -1 ? topY : row === ROWS ? botY : topY + (row + 1) * rs;
+  return { x, y, cs, rs, topY, botY, mg };
+}
+
+function startBonusLadder() {
+  const n = bonusState.participants.length;
+  bonusState.ladderRungs = generateLadder(n);
+  const cols = shuffle(Array.from({ length: n }, (_, i) => i));
+  bonusState.prizeColumns = cols.slice(0, bonusState.prizeCount);
+  bonusState.animatedPrizes = new Set();
+  bonusState.winners = [];
+
+  $('bonus-setup-phase').style.display = 'none';
+  $('bonus-pick-phase').style.display = 'none';
+  $('bonus-ladder-phase').style.display = '';
+  $('bonus-reset-btn').style.display = 'none';
+  $('bonus-result-area').innerHTML = '';
+  drawBonusLadder();
+}
+
+function bonusCoord(col, row, n, ROWS) {
+  const W = 720, mg = 50;
+  const topY = 80, botY = 440;
+  const cs = n > 1 ? (W - mg * 2) / (n - 1) : 0;
+  const rs = (botY - topY) / (ROWS + 1);
+  const x = mg + col * cs;
+  const y = row === -1 ? topY : row === ROWS ? botY : topY + (row + 1) * rs;
+  return { x, y, cs, rs, topY, botY, mg };
+}
+
+function drawBonusLadder() {
+  const n = bonusState.participants.length;
+  const rungs = bonusState.ladderRungs;
+  const ROWS = rungs.length;
+  const { cs, rs, topY, botY, mg } = bonusCoord(0, -1, n, ROWS);
+  let s = `<defs>
+    <filter id="bglow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="4" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+  </defs>`;
+
+  // 세로선
+  for (let i = 0; i < n; i++) {
+    const x = mg + i * cs;
+    s += `<line x1="${x.toFixed(1)}" y1="${topY}" x2="${x.toFixed(1)}" y2="${botY}" stroke="#2d2960" stroke-width="3"/>`;
+  }
+  // 가로 rungs
+  rungs.forEach((row, r) => {
+    const y = (topY + (r + 1) * rs).toFixed(1);
+    row.forEach(left => {
+      const x1 = (mg + left * cs).toFixed(1), x2 = (mg + (left + 1) * cs).toFixed(1);
+      s += `<line x1="${x1}" y1="${y}" x2="${x2}" y2="${y}" stroke="#2d2960" stroke-width="3"/>`;
+    });
+  });
+  // 상단: 번호 + 이름
+  for (let i = 0; i < n; i++) {
+    const x = (mg + i * cs).toFixed(1);
+    const name = bonusState.assignments[i] || '?';
+    const sn = name.length > 3 ? name.slice(0, 3) + '.' : name;
+    s += `<circle cx="${x}" cy="${topY - 22}" r="18" fill="#1e1b4b" stroke="#4338ca" stroke-width="2"/>`;
+    s += `<text x="${x}" y="${topY - 17}" text-anchor="middle" font-size="14" fill="#a5b4fc" font-weight="800" font-family="Pretendard Variable,Pretendard,sans-serif">${i+1}</text>`;
+    s += `<text x="${x}" y="${topY - 46}" text-anchor="middle" font-size="11" fill="#7c8aff" font-family="Pretendard Variable,Pretendard,sans-serif">${sn}</text>`;
+  }
+  // 하단: ★ 클릭 가능
+  for (let i = 0; i < n; i++) {
+    const x = (mg + i * cs).toFixed(1);
+    const isPrize = bonusState.prizeColumns.includes(i);
+    if (isPrize) {
+      s += `<g class="bonus-prize-btn" data-col="${i}" style="cursor:pointer">`;
+      s += `<rect x="${parseFloat(x)-22}" y="${botY+6}" width="44" height="40" rx="8" fill="#78350f" stroke="#fbbf24" stroke-width="2.5"/>`;
+      s += `<text x="${x}" y="${botY+32}" text-anchor="middle" font-size="24" fill="#fbbf24" font-family="Pretendard Variable,Pretendard,sans-serif">★</text>`;
+      s += `</g>`;
+    } else {
+      s += `<rect x="${parseFloat(x)-16}" y="${botY+10}" width="32" height="30" rx="6" fill="#15123a" stroke="#2d2960" stroke-width="1"/>`;
+      s += `<text x="${x}" y="${botY+30}" text-anchor="middle" font-size="16" fill="#312e60" font-family="Pretendard Variable,Pretendard,sans-serif">—</text>`;
+    }
+  }
+  const svgEl = $('bonus-ladder-svg');
+  svgEl.innerHTML = s;
+
+  // ★ 클릭 이벤트
+  svgEl.querySelectorAll('.bonus-prize-btn').forEach(g => {
+    g.addEventListener('click', () => {
+      const col = parseInt(g.dataset.col);
+      if (bonusState.animatedPrizes.has(col)) return;
+      bonusState.animatedPrizes.add(col);
+      g.style.cursor = 'default';
+      g.style.opacity = '0.6';
+      runBonusPrizeAnim(col);
+    });
+  });
+}
+
+function runBonusPrizeAnim(prizeCol) {
+  const n = bonusState.participants.length;
+  const rungs = bonusState.ladderRungs;
+  const ROWS = rungs.length;
+  const svgEl = $('bonus-ladder-svg');
+  const { path, finalCol } = ladderTraceReverse(prizeCol, rungs);
+
+  // 경로를 SVG path "d" 문자열로 변환
+  const pts = path.map(pt => bonusCoord(pt.x, pt.y, n, ROWS));
+  const d = pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+  const pathEl = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+  pathEl.setAttribute('d', d);
+  pathEl.setAttribute('stroke', '#fbbf24');
+  pathEl.setAttribute('stroke-width', '5');
+  pathEl.setAttribute('stroke-linecap', 'round');
+  pathEl.setAttribute('stroke-linejoin', 'round');
+  pathEl.setAttribute('fill', 'none');
+  pathEl.setAttribute('filter', 'url(#bglow)');
+  svgEl.appendChild(pathEl);
+
+  // stroke-dashoffset 애니메이션
+  const len = pathEl.getTotalLength();
+  pathEl.style.strokeDasharray = len;
+  pathEl.style.strokeDashoffset = len;
+  pathEl.style.transition = 'none';
+
+  // 한 프레임 뒤에 애니메이션 시작 (layout 확정 후)
+  requestAnimationFrame(() => requestAnimationFrame(() => {
+    const dur = Math.max(0.5, len / 450); // 경로 길이에 비례한 속도
+    pathEl.style.transition = `stroke-dashoffset ${dur}s linear`;
+    pathEl.style.strokeDashoffset = '0';
+
+    // 완료 후 상단 당첨자 강조
+    setTimeout(() => {
+      bonusState.winners.push({ prizeCol, winnerCol: finalCol });
+      const { x: wx, topY } = bonusCoord(finalCol, -1, n, ROWS);
+
+      // 당첨 원 강조
+      const winCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      winCircle.setAttribute('cx', wx.toFixed(1));
+      winCircle.setAttribute('cy', (topY - 22).toFixed(1));
+      winCircle.setAttribute('r', '20');
+      winCircle.setAttribute('fill', '#fbbf24');
+      winCircle.setAttribute('filter', 'url(#bglow)');
+      svgEl.appendChild(winCircle);
+
+      const winNum = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      winNum.setAttribute('x', wx.toFixed(1));
+      winNum.setAttribute('y', (topY - 16).toFixed(1));
+      winNum.setAttribute('text-anchor', 'middle');
+      winNum.setAttribute('font-size', '15');
+      winNum.setAttribute('fill', '#1e1b4b');
+      winNum.setAttribute('font-weight', '900');
+      winNum.setAttribute('font-family', 'Pretendard Variable,Pretendard,sans-serif');
+      winNum.textContent = finalCol + 1;
+      svgEl.appendChild(winNum);
+
+      // 결과 표시
+      showBonusWinner(bonusState.assignments[finalCol]);
+
+      // 모든 경품 완료 시 다시하기 버튼
+      if (bonusState.animatedPrizes.size >= bonusState.prizeColumns.length) {
+        $('bonus-reset-btn').style.display = '';
+      }
+    }, dur * 1000 + 100);
+  }));
+}
+
+function showBonusWinner(name) {
+  const ra = $('bonus-result-area');
+  if (!ra.querySelector('.bonus-result-title')) {
+    ra.innerHTML = '<div class="bonus-result-title">🎉 경품 당첨!</div>';
+  }
+  const row = document.createElement('div');
+  row.className = 'bonus-winner-row';
+  row.innerHTML = `<span class="bonus-winner-star">★</span><span class="bonus-winner-name">${name}</span>`;
+  ra.appendChild(row);
+}
+
+</script>
+
+  <!-- ============ BONUS LADDER GAME ============ -->
+  <div id="screen-bonus-ladder" class="screen">
+    <div class="title-bar" style="max-width:700px;width:100%;margin:0 auto 8px;">
+      <h2>🎰 번외 사다리타기</h2>
+      <div class="controls">
+        <button class="btn secondary" onclick="showScreen('screen-main')">← 메인</button>
+      </div>
+    </div>
+
+    <!-- Phase 1: 참여자 & 경품 설정 -->
+    <div id="bonus-setup-phase" class="bonus-phase">
+      <div class="bonus-section-label">참여자 선택</div>
+      <div class="bonus-participant-grid" id="bonus-participant-grid"></div>
+
+      <div class="bonus-prize-row">
+        <span>경품 수</span>
+        <button class="bonus-adj" id="bonus-prize-minus" onclick="bonusPrizeAdj(-1)">−</button>
+        <span id="bonus-prize-count">1</span>
+        <button class="bonus-adj" id="bonus-prize-plus" onclick="bonusPrizeAdj(1)">+</button>
+        <span style="font-size:18px">★</span>
+      </div>
+
+      <button class="btn" onclick="startBonusPickPhase()">번호 배정 시작 →</button>
+    </div>
+
+    <!-- Phase 2: 번호 고르기 -->
+    <div id="bonus-pick-phase" class="bonus-phase" style="display:none">
+      <div class="bonus-section-label">번호를 고르세요</div>
+      <div style="font-size:12px;color:#64748b;margin-top:-8px">이름 선택 → 번호 클릭</div>
+      <div class="bonus-pick-layout">
+        <div class="bonus-name-col" id="bonus-name-list"></div>
+        <div class="bonus-number-grid-centered" id="bonus-number-grid"></div>
+      </div>
+      <div class="bonus-status" id="bonus-status">참여자 이름을 누른 뒤 번호를 선택하세요</div>
+      <button class="btn" id="bonus-reveal-btn" onclick="startBonusLadder()" style="display:none">사다리 시작! 🎰</button>
+    </div>
+
+    <!-- Phase 3: 사다리 & 애니메이션 -->
+    <div id="bonus-ladder-phase" class="bonus-phase" style="display:none">
+      <svg id="bonus-ladder-svg" viewBox="0 0 760 520" style="max-width:680px;width:100%"></svg>
+      <div class="bonus-result-area" id="bonus-result-area"></div>
+      <div style="font-size:12px;color:#64748b;text-align:center;margin-top:-4px">★ 를 클릭하면 사다리가 시작됩니다</div>
+      <div class="bonus-btn-row">
+        <button class="btn secondary" id="bonus-reset-btn" onclick="launchBonusLadder()" style="display:none">다시 하기</button>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>
