@@ -6,6 +6,9 @@
 <title>휴가 관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<!-- Firebase SDK -->
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
 /* ══════════════════════════════════════════════
    공통 / 탭 네비게이션
@@ -184,14 +187,14 @@ tr.er input:focus { outline:none; border-color:var(--a); }
 
 .date-field { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
 .date-field label { font-size:12px; font-weight:700; color:var(--mu); white-space:nowrap; }
-.date-field input { border:1.5px solid var(--bdr); border-radius:9px; padding:5px 10px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:120px; }
+.date-field input { border:1.5px solid var(--bdr); border-radius:9px; padding:5px 8px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:98px; }
 .date-field input:focus { outline:none; border-color:var(--a); }
 
 tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px solid var(--grn); border-bottom:0.5px solid var(--grn); display:flex; align-items:center; gap:10px; }
 .long-div-lbl { font-size:12px; font-weight:800; color:var(--grn); }
 .yr-badge { font-size:11px; font-weight:700; color:var(--a); background:var(--all); padding:2px 9px; border-radius:99px; white-space:nowrap; flex-shrink:0; }
 
-.xl-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:9px; border:1.5px solid var(--bdr); background:var(--all); color:var(--ad); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
+.xl-btn { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border-radius:9px; border:1.5px solid var(--bdr); background:var(--all); color:var(--mu); font-size:16px; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; padding:0; }
 .xl-btn:hover { background:#1D6F42; color:white; border-color:#1D6F42; }
 .xl-btn-up:hover { background:var(--a) !important; color:white !important; border-color:var(--a) !important; }
 .xl-group { display:flex; gap:6px; align-items:center; }
@@ -381,15 +384,16 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
 <div class="app">
 
 <div class="topbar">
-  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--add);margin-right:6px;">🗓 휴가 관리</h1>
+  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--add);margin-right:4px;">🗓 휴가 관리</h1>
   <div class="ebadges" id="ebadges"></div>
+  <span id="syncStatus" style="font-size:11px;color:var(--mu);font-weight:600;white-space:nowrap;">☁️ 클라우드 저장됨</span>
   <div class="entry-wrap">
     <div class="xl-group">
       <button class="xl-btn" onclick="exportExcel()" title="엑셀로 저장">
-        <i class="ti ti-file-spreadsheet"></i> 엑셀 저장
+        <i class="ti ti-file-spreadsheet"></i>
       </button>
       <button class="xl-btn xl-btn-up" onclick="document.getElementById('xlUploadInput').click()" title="엑셀 불러오기">
-        <i class="ti ti-upload"></i> 불러오기
+        <i class="ti ti-upload"></i>
       </button>
       <input type="file" id="xlUploadInput" accept=".xlsx" onchange="importExcel(event)">
     </div>
@@ -596,6 +600,76 @@ document.addEventListener('keydown', e => {
   ) e.preventDefault();
 });
 
+// ── Firebase 초기화 ───────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
+  authDomain: "project-709b.firebaseapp.com",
+  projectId: "project-709b",
+  storageBucket: "project-709b.firebasestorage.app",
+  messagingSenderId: "446139391233",
+  appId: "1:446139391233:web:a229fbb157b15566204f00",
+  measurementId: "G-J4Z46HBH27"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const DOC_REF = db.collection('vacationData').doc('main');
+
+// 저장 상태 표시
+function showSyncStatus(msg, ok=true) {
+  let el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--grn)' : '#E53E3E';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = '☁️ 클라우드 저장됨'; el.style.color = 'var(--mu)'; }, 2500);
+}
+
+// Firestore에 저장
+async function saveToCloud(data) {
+  try {
+    data._updatedAt = Date.now();
+    S._updatedAt = data._updatedAt;
+    await DOC_REF.set(data);
+    showSyncStatus('✅ 저장됨');
+  } catch(e) {
+    console.error('저장 오류:', e);
+    showSyncStatus('❌ 저장 실패', false);
+  }
+}
+
+// Firestore에서 불러오기
+async function loadFromCloud() {
+  try {
+    const doc = await DOC_REF.get();
+    if (doc.exists) {
+      return doc.data();
+    }
+    return null;
+  } catch(e) {
+    console.error('불러오기 오류:', e);
+    return null;
+  }
+}
+
+// 실시간 동기화 (다른 기기에서 변경 시 자동 반영)
+function startRealtimeSync() {
+  DOC_REF.onSnapshot(snapshot => {
+    if (snapshot.exists && !_isSaving) {
+      const data = snapshot.data();
+      const remoteTs = data._updatedAt || 0;
+      const localTs  = S._updatedAt  || 0;
+      if (remoteTs > localTs) {
+        S = data;
+        localStorage.setItem('vac_v6', JSON.stringify(S));
+        render();
+        if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+        showSyncStatus('🔄 다른 기기에서 동기화됨');
+      }
+    }
+  });
+}
+let _isSaving = false;
+
 // ── 탭 전환 ───────────────────────────────
 function switchTab(tab) {
   document.getElementById('tab-manage').classList.toggle('active', tab==='manage');
@@ -648,7 +722,17 @@ catch { S=JSON.parse(JSON.stringify(DEF)); }
 })();
 
 let elId=null, ewId=null;
-const save = () => localStorage.setItem('vac_v6', JSON.stringify(S));
+let _saveTimer = null;
+const save = () => {
+  localStorage.setItem('vac_v6', JSON.stringify(S)); // 로컬 백업
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _isSaving = true;
+    saveToCloud(JSON.parse(JSON.stringify(S))).finally(() => {
+      setTimeout(() => { _isSaving = false; }, 1000);
+    });
+  }, 600); // 600ms 내 연속 호출은 마지막 것만 저장
+};
 const yr   = () => S.years[S.activeYear];
 const fmt  = n  => n%1===0 ? String(n) : n.toFixed(1);
 const nid  = a  => a.length ? Math.max(...a.map(r=>r.id))+1 : 1;
@@ -676,7 +760,7 @@ function deleteYear(e, y) {
   if (!confirm(`${y}년 데이터를 삭제할까요?`)) return;
   delete S.years[y];
   if (S.activeYear === y) S.activeYear = Object.keys(S.years).sort().at(-1);
-  render();
+  save(); render();
 }
 function fd(s) {
   if (!s) return '—';
@@ -918,7 +1002,7 @@ function renderWLTable() {
 function selDay(id, val) { return `<input type="number" id="${id}" min="0.5" max="30" step="0.5" value="${val!=null?val:''}" placeholder="일수">`; }
 function selHour(id, val) { return `<input type="number" id="${id}" min="0.5" max="24" step="0.5" value="${val!=null?val:''}" placeholder="시간">`; }
 
-function switchYear(y) { S.activeYear=y; elId=null; ewId=null; render(); }
+function switchYear(y) { S.activeYear=y; elId=null; ewId=null; save(); render(); }
 function addYear() {
   const v = prompt('추가할 연도를 입력하세요 (예: 2027)');
   if (!v) return;
@@ -927,11 +1011,11 @@ function addYear() {
   if (S.years[y]) { alert('이미 있는 연도예요'); return; }
   const c = calc(y);
   S.years[y] = { leave:{total:c?c.days:15, longTotal:c?c.longDays:0, records:[]}, wl:{total:40, records:[]} };
-  S.activeYear = y; render();
+  S.activeYear = y; save(); render();
 }
-function setTot(mode, v) { const n=parseFloat(v); if (!n||n<=0) return; if (mode==='leave') yr().leave.total=n; else yr().wl.total=n; render(); }
-function setLongTot(v) { yr().leave.longTotal = parseFloat(v)||0; render(); }
-function applyCalc(tabY) { const c=calc(tabY); if (!c) return; S.years[tabY].leave.total=c.days; S.years[tabY].leave.longTotal=c.longDays; render(); }
+function setTot(mode, v) { const n=parseFloat(v); if (!n||n<=0) return; if (mode==='leave') yr().leave.total=n; else yr().wl.total=n; save(); render(); }
+function setLongTot(v) { yr().leave.longTotal = parseFloat(v)||0; save(); render(); }
+function applyCalc(tabY) { const c=calc(tabY); if (!c) return; S.years[tabY].leave.total=c.days; S.years[tabY].leave.longTotal=c.longDays; save(); render(); }
 
 function addRow(mode, isLong=false) {
   if (mode === 'leave') {
@@ -982,13 +1066,13 @@ function saveEdit(mode, id) {
     if (r) { r.date=date; r.note=note; r.used=used; }
     ewId = null;
   }
-  render();
+  save(); render();
 }
 function del(mode, id) {
   if (!confirm('삭제할까요?')) return;
   if (mode==='leave') yr().leave.records = yr().leave.records.filter(r=>r.id!==id);
   else yr().wl.records = yr().wl.records.filter(r=>r.id!==id);
-  render();
+  save(); render();
 }
 
 // ── 테마 ──
@@ -1045,13 +1129,13 @@ document.getElementById('entryDate').addEventListener('change', e => {
   if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
   S.entryDate = v;
   Object.keys(S.years).forEach(y => { const c=calc(y); if (c) { S.years[y].leave.total=c.days; S.years[y].leave.longTotal=c.longDays; } });
-  render();
+  save(); render();
 });
 document.getElementById('careerDate').addEventListener('change', e => {
   const v = normDate(e.target.value, new Date().getFullYear().toString());
   e.target.value = v;
   if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
-  S.careerDate = v; render();
+  S.careerDate = v; save(); render();
 });
 
 // ── Enter 포커스 이동 ──
@@ -1140,7 +1224,17 @@ function importExcel(e) {
   reader.readAsBinaryString(file);
 }
 
-render();
+// 클라우드에서 불러온 뒤 render
+(async () => {
+  const cloudData = await loadFromCloud();
+  if (cloudData) {
+    S = cloudData;
+    if (!S.careerDate) S.careerDate = '';
+  }
+  render();
+  if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+  startRealtimeSync();
+})();
 
 // ══════════════════════════════════════════
 // 휴가 신청서 로직
