@@ -4689,5 +4689,25 @@ window.addEventListener('load', function() {
     if (typeof hookTypeChange === 'function') hookTypeChange();
 });
 </script>
+
+<!-- 제작자 배지 -->
+<div id="_709_badge" style="
+  position: fixed; bottom: 14px; right: 14px; z-index: 9999;
+  color: rgba(0,0,0,0.18); font-size: 10px; font-weight: 600;
+  letter-spacing: 0.5px; user-select: none; pointer-events: none;
+  font-family: 'Apple SD Gothic Neo', '맑은 고딕', sans-serif;
+">709._.b</div>
+
+<script>
+// 소스 보호
+(function() {
+  document.addEventListener('contextmenu', function(e) { e.preventDefault(); });
+  document.addEventListener('keydown', function(e) {
+    const mod = e.ctrlKey || e.metaKey;
+    if (mod && ['u','U','s','S'].includes(e.key)) e.preventDefault();
+    if (e.key === 'F12') e.preventDefault();
+  });
+})();
+</script>
 </body>
 </html>
