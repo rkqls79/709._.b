@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>수임등록 및 EDI 가입 신청</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: '맑은 고딕','Malgun Gothic','굴림',sans-serif; display: flex; height: 100vh; overflow: hidden; background: #E8E0D8; }
+
+/* ===== 왼쪽 사이드바 ===== */
+#sidebar {
+  width: 260px; flex-shrink: 0;
+  background: #FDFAF7; color: #4A3E38;
+  overflow-y: auto; padding: 12px 12px 16px;
+  display: flex; flex-direction: column; gap: 0;
+  border-right: 1px solid #DDD5CC;
+}
+.sb-title { font-size: 10px; font-weight: 700; color: #8C7D72; border-bottom: 1px solid #DDD5CC; padding-bottom: 4px; margin: 10px 0 6px; letter-spacing: .5px; text-transform: uppercase; }
+.sb-title:first-child { margin-top: 0; }
+.sf { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.sf label { font-size: 10px; color: #8C7D72; font-weight: 700; letter-spacing: .3px; }
+.sf input[type=text] { background: #F8F3EE; border: 1px solid #E8DFD8; border-radius: 4px; color: #4A3E38; font-size: 13px; font-family: inherit; padding: 5px 7px; outline: none; width: 100%; }
+.sf input[type=text]:focus { border-color: #A8988C; box-shadow: 0 0 0 2px rgba(168,152,140,.15); }
+.sr { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+.sr > .sr-lbl { font-size: 10px; color: #8C7D72; font-weight: 700; margin-bottom: 1px; letter-spacing: .3px; }
+.sr label { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; color: #4A3E38; }
+.sr input[type=radio], .sr input[type=checkbox] { accent-color: #A8988C; }
+.date-row { display: flex; gap: 3px; align-items: center; margin-bottom: 6px; }
+.date-inp { background: #F8F3EE; border: 1px solid #E8DFD8; border-radius: 4px; color: #4A3E38; font-size: 13px; font-family: inherit; padding: 5px 4px; outline: none; text-align: center; }
+.date-inp:focus { border-color: #A8988C; }
+.date-row span { font-size: 12px; color: #8C7D72; }
+.divider { border-top: 1px solid #DDD5CC; margin: 7px 0; }
+.attach-lbl { display: flex; align-items: center; justify-content: center; width: 100%; background: #F8F3EE; border: 1px dashed #E8DFD8; border-radius: 4px; padding: 12px 7px; font-size: 9.5px; color: #8C7D72; cursor: pointer; text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-height: 44px; }
+.attach-lbl:hover { background: #F0E8E0; border-color: #A8988C; color: #4A3E38; }
+.attach-lbl.has-file { color: #3a8a5a; border-color: #a8d8b8; background: #f4fbf6; }
+.sb-btns { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.sb-btn { padding: 9px; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center; }
+.sb-btn-primary { background: #A8988C; color: #fff; }
+.sb-btn-primary:hover { background: #8C7D72; }
+.sb-btn-secondary { background: #E8DFD8; color: #4A3E38; }
+.sb-btn-secondary:hover { background: #DDD5CC; }
+.sb-btn-clear { background: #F8F3EE; color: #6B5E56; border: 1px solid #E8DFD8; }
+.sb-btn-clear:hover { background: #F0E8E0; }
+
+/* ===== 탭 ===== */
+#main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+#tabbar { display: flex; align-items: center; background: #F0E8E0; border-bottom: 2px solid #DDD5CC; flex-shrink: 0; }
+.tab-btn { padding: 10px 18px; border: none; background: transparent; cursor: pointer; font-size: 12px; font-weight: 700; font-family: inherit; color: #8C7D72; border-bottom: 3px solid transparent; margin-bottom: -2px; align-self: stretch; }
+.tab-btn.active { background: #FDFAF7; color: #4A3E38; border-bottom: 3px solid #A8988C; }
+.tab-btn:hover:not(.active) { background: #E8DFD8; }
+.tabbar-actions { margin-left: auto; display: flex; gap: 6px; padding: 6px 12px; align-self: center; }
+.tabbar-btn { padding: 6px 14px; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; border: none; white-space: nowrap; }
+.tabbar-btn-primary { background: #A8988C; color: #fff; }
+.tabbar-btn-primary:hover { background: #8C7D72; }
+.tabbar-btn-secondary { background: #E8DFD8; color: #4A3E38; border: 1px solid #DDD5CC; }
+.tabbar-btn-secondary:hover { background: #DDD5CC; }
+#content { flex: 1; overflow-y: auto; padding: 20px; }
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* ===== 서식 공통 ===== */
+.sheet { background: #fff; width: 210mm; margin: 0 auto; padding: 7mm 13mm 13mm 22mm; box-shadow: 0 4px 20px rgba(0,0,0,.2); }
+.ft { width: 100%; border-collapse: collapse; font-size: 8.5pt; table-layout: fixed; line-height: 1.3; }
+.ft td { border: 0.4pt solid #000; vertical-align: middle; padding: 0.4mm 1mm; overflow: hidden; }
+.sec-lbl { background: #f0f0f0; font-weight: 700; font-size: 7.5pt; text-align: center; vertical-align: middle; word-break: keep-all; line-height: 1.4; }
+.lbl { font-size: 8pt; font-weight: 500; background: #fafafa; white-space: nowrap; vertical-align: middle !important; text-align: center; word-break: keep-all; line-height: 1.4; }
+.spacer { border-left: none !important; border-right: none !important; padding: 0 !important; height: 1.5mm !important; }
+.notice { font-size: 6.8pt; line-height: 1.6; vertical-align: top; }
+.fi-wrap { display: flex; flex-direction: column; height: 100%; width: 100%; }
+.fi-lbl { font-size: 7.5pt; font-weight: 500; padding-bottom: 0.3mm; flex-shrink: 0; }
+.fi-lbl .sub { font-size: 6.5pt; font-weight: 400; }
+.fi { border: none; border-bottom: 1px dashed #bbb; outline: none; width: 100%; font-family: inherit; font-size: 9.5pt; background: transparent; padding: 0; flex: 1; min-height: 3mm; }
+.fi:focus { background: #fffde7; border-bottom-color: #e67e22; border-radius: 2px; }
+.fi-inline { border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 9.5pt; background: transparent; padding: 0; vertical-align: bottom; }
+.fi-inline:focus { background: #fffde7; }
+.fi-chk { width: 12px; height: 12px; margin: 0; vertical-align: middle; accent-color: #1b3a6b; cursor: pointer; }
+.fi-date { border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 9.5pt; background: transparent; text-align: center; }
+.fi-date:focus { background: #fffde7; }
+.fi-ro { background: transparent !important; color: #333; border-bottom: 1px solid #ccc !important; }
+div.fi-ro { display: flex; align-items: flex-end; min-height: 3mm; overflow: visible; white-space: nowrap; }
+.fi-sign { width: 25mm; border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 10pt; background: transparent; text-align: center; }
+.fi-sign:focus { background: #fffde7; }
+.sign-row { display: flex; align-items: center; justify-content: flex-end; gap: 2mm; font-size: 8pt; }
+.section-divider { border: none; border-top: 1.2pt dashed #555; margin: 5mm 0; }
+
+/* ===== 도장 ===== */
+.stamp-zone { display: inline-block; position: relative; width: 14mm; height: 14mm; flex-shrink: 0; cursor: pointer; vertical-align: middle; z-index: 1; }
+.stamp-zone canvas { width: 100%; height: 100%; display: block; }
+.stamp-zone::after { content: ''; position: absolute; inset: 0; border: 1px dashed rgba(180,80,80,0.22); border-radius: 50%; pointer-events: none; }
+.stamp-zone.has-stamp::after { display: none; }
+.stamp-zones-row { display: inline-flex; gap: 1mm; vertical-align: middle; margin-left: -12mm; position: relative; z-index: 1; }
+.stamp-corp-zone { display: none; }
+
+/* 건강보험/국민연금/보험사무대행 도장 힌트 */
+.stamp-zone.hint::after { content: '도장'; display: flex; align-items: center; justify-content: center; font-size: 7pt; color: #ccc; border: 1px dashed #ddd; border-radius: 50%; }
+.stamp-zone.hint.has-stamp::after { display: none; }
+
+/* ===== 인쇄 ===== */
+@media print {
+  body { display: block; background: #fff; }
+  #sidebar, #tabbar { display: none !important; }
+  #main, #content { overflow: visible; padding: 0; display: block; }
+  .tab-panel { display: none !important; }
+  .tab-panel.active { display: block !important; }
+  .sheet { box-shadow: none; width: 100%; padding: 0; }
+  .fi, .fi-inline, .fi-date, .fi-sign { border-bottom: none !important; background: transparent !important; }
+  .stamp-zone::after { display: none !important; }
+  @page { size: A4; margin: 7mm 13mm 13mm 22mm; }
+}
+</style>
+</head>
+<body>
+<div id="sidebar">
+
+  <div class="sb-title">⚡ 거래처 정보</div>
+
+  <div class="sr" style="margin-bottom:6px;">
+    <span class="sr-lbl">사업장 구분</span>
+    <div style="display:flex;gap:14px;">
+      <label><input type="radio" name="c_biztype" value="personal" checked onchange="onBizTypeChange()"> 개인</label>
+      <label><input type="radio" name="c_biztype" value="corp" onchange="onBizTypeChange()"> 법인</label>
+    </div>
+  </div>
+
+  <div class="sf"><label>사업장명 / 상호(법인명)</label>
+    <input type="text" id="c_name" placeholder="○○주식회사 / ○○상사" oninput="onNameChange()"></div>
+  <div class="sf"><label>사업자등록번호</label>
+    <input type="text" id="c_biz" placeholder="000-00-00000" maxlength="12" oninput="onBizChange()"></div>
+  <div class="sf"><label>대표자 성명</label>
+    <input type="text" id="c_rep" placeholder="홍길동" oninput="onRepChange()"></div>
+  <div class="sf"><label>주민등록번호</label>
+    <input type="text" id="c_rrn" placeholder="000000-0000000" maxlength="14" oninput="hf_fmtRrn(this)"></div>
+  <div id="sb_addr_mgmt">
+  <div class="sf"><label>소재지</label>
+    <input type="text" id="c_addr" placeholder="서울시 강남구..." oninput="onAddrChange()"></div>
+  <div class="sf"><label>사업장관리번호</label>
+    <input type="text" id="c_mgmt" placeholder="000-00-00000-0" maxlength="15" oninput="fmtMgmt(this); onMgmtChange()"></div>
+  </div>
+
+  <div class="divider"></div>
+
+  <input type="hidden" id="c_y">
+  <input type="hidden" id="c_mo">
+  <input type="hidden" id="c_d">
+
+
+  <div class="divider"></div>
+
+  <!-- ===== 홈택스 전용 ===== -->
+  <div id="sb_hometax" class="sb-tab-extra">
+    <div class="sb-title">📋 홈택스 전용</div>
+    <input type="hidden" id="h_tel">
+    <div class="sf"><label>휴대전화</label>
+      <input type="text" id="h_mobile" value="010-0000-0000" maxlength="13" oninput="hf_fmtPhone(this,'hf_f5m')"></div>
+    <div class="sr">
+      <span class="sr-lbl">신청 구분</span>
+      <label><input type="radio" name="h_qtype" value="use" checked onchange="hf_syncType()"> 정보이용</label>
+      <label><input type="radio" name="h_qtype" value="renew" onchange="hf_syncType()"> 해지 후 재신청</label>
+    </div>
+    <div class="divider"></div>
+    <div class="sb-title">👤 위임받은 사람</div>
+    <div class="sf"><label>성명</label>
+      <input type="text" id="h_del1" placeholder="홍길동" oninput="hf_syncDelegate()"></div>
+    <div class="sf"><label>주민등록번호</label>
+      <input type="text" id="h_del_rrn" placeholder="000000-0000000" maxlength="14" oninput="hf_fmtDelRrn(this)"></div>
+    <div class="sf"><label>연락처</label>
+      <input type="text" id="h_del4" placeholder="010-0000-0000" maxlength="13" oninput="hf_fmtPhone(this,'hf_fdel4')"></div>
+    <div class="divider"></div>
+    <div class="sb-title">📎 첨부 서류</div>
+    <div class="sf"><label>위임받은 사람 신분증</label>
+      <label class="attach-lbl" id="lbl_del_id" onclick="document.getElementById('file_del_id').click()">파일 선택 또는 드래그</label>
+      <input type="file" id="file_del_id" style="display:none;" accept="image/*,application/pdf" onchange="onAttach('file_del_id','lbl_del_id',false)"></div>
+    <div class="sf">
+      <label style="display:flex;justify-content:space-between;align-items:center;">위임자 신분증
+        <button type="button" onclick="clearApplId()" style="font-size:9px;padding:1px 6px;border:1px solid #DDD5CC;background:#F8F3EE;color:#8C7D72;border-radius:3px;cursor:pointer;font-family:inherit;">삭제</button>
+      </label>
+      <label class="attach-lbl" id="lbl_appl_id" onclick="document.getElementById('file_appl_id').click()">파일 선택 또는 드래그</label>
+      <input type="file" id="file_appl_id" style="display:none;" accept="image/*,application/pdf" onchange="onAttach('file_appl_id','lbl_appl_id',true)"></div>
+  </div>
+
+  <!-- ===== 건강보험 전용 ===== -->
+  <div id="sb_health" class="sb-tab-extra" style="display:none;">
+    <div class="sb-title">📋 건강보험 전용</div>
+    <div class="sf"><label>단위사업장기호</label>
+      <input type="text" id="hi_unit" placeholder="(없으면 생략)" oninput="updateHealthMgmt(); saveLocal()"></div>
+    <div class="sf"><label>주민번호 (생년월일-성별)</label>
+      <input type="text" id="hi_rrn" placeholder="000000-0000000" maxlength="14" oninput="hi_fmtRrn(this)"></div>
+  </div>
+
+  <!-- ===== 국민연금 전용 ===== -->
+  <div id="sb_pension" class="sb-tab-extra" style="display:none;">
+    <div class="sb-title">📋 국민연금 전용</div>
+    <div class="sf"><label>법인등록번호</label>
+      <input type="text" id="p_corpreg" placeholder="000000-0000000" maxlength="14" oninput="pf_fmtCorpReg(this)"></div>
+    <div class="sf"><label>생년월일</label>
+      <input type="text" id="p_birth" placeholder="1990-01-01" maxlength="10" oninput="pf_fmtBirth(this)"></div>
+  </div>
+
+  <!-- ===== 보험사무대행 전용 ===== -->
+  <div id="sb_labor" class="sb-tab-extra" style="display:none;">
+    <div class="sb-title">📋 보험사무대행 전용</div>
+    <div class="sf"><label>상시사용근로자수</label>
+      <input type="text" id="l_workers" placeholder="5" oninput="setVal('lf_fb_wk',this.value); saveLocal()"></div>
+    <div class="sf"><label>전화번호</label>
+      <input type="text" id="l_tel" placeholder="031-000-0000" oninput="setVal('lf_fb_tel',this.value); saveLocal()"></div>
+    <div class="sf"><label>대표자 전화번호</label>
+      <input type="text" id="l_tel2" placeholder="010-0000-0000" oninput="setVal('lf_fb_tel2',this.value); saveLocal()"></div>
+  </div>
+
+  <div class="sb-btns">
+    <button class="sb-btn sb-btn-clear" onclick="clearAll()">↺ 새로 작성하기</button>
+  </div>
+</div>
+<div id="main">
+<div id="tabbar">
+  <button class="tab-btn active" onclick="switchTab(0)">홈택스</button>
+  <button class="tab-btn" onclick="switchTab(1)">건강보험 EDI</button>
+  <button class="tab-btn" onclick="switchTab(2)">국민연금 EDI</button>
+  <button class="tab-btn" onclick="switchTab(3)">보험사무대행</button>
+  <div class="tabbar-actions">
+    <button class="tabbar-btn tabbar-btn-secondary" onclick="savePDF(currentTab)">📄 이 서식만 저장</button>
+    <button class="tabbar-btn tabbar-btn-primary" id="btn_save_all" onclick="saveAllPDF()">💾 전체 저장 (4개)</button>
+  </div>
+</div>
+<div id="content">
+<div class="tab-panel active" id="panel0">
+<div class="sheet">
+<table class="ft">
+<colgroup><col style="width:37.78mm;"><col style="width:59.28mm;"><col style="width:19.13mm;"><col style="width:49.81mm;"></colgroup>
+<tbody>
+<tr><td colspan="4" style="height:5.5mm;border-left:none;border-right:none;border-top:none;font-size:7.5pt;padding:0.5mm 1mm;">[별지 제6호 서식]</td></tr>
+<tr><td colspan="4" style="height:6mm;text-align:center;font-size:13pt;font-weight:700;letter-spacing:1px;border-left:none;border-right:none;">홈택스 세무대리정보 이용(해지)신청서</td></tr>
+<tr>
+  <td colspan="3" style="height:5mm;font-size:8pt;border-left:none;border-top:none;padding:0.3mm 1mm;">접수번호</td>
+  <td style="height:5mm;border-top:none;"></td>
+</tr>
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td rowspan="4" class="sec-lbl" style="height:30mm;">1.신청인 및<br>정보이용(해지)<br>사업장</td>
+  <td style="height:8mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">① 성명(대표자명)</div><input class="fi" type="text" id="hf_f1"></div>
+  </td>
+  <td colspan="2" style="height:8mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">② 주민등록번호(외국인등록번호 등)</div><input class="fi" type="text" id="hf_f2" maxlength="14"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">③-1 상호(법인명) <span class="sub">* 별지 작성 가능</span></div><input class="fi" type="text" id="hf_f3a"></div>
+  </td>
+  <td colspan="2" style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">④-1 사업자등록번호</div><input class="fi" type="text" id="hf_f4a" maxlength="12"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;overflow:visible;">
+    <div class="fi-wrap"><div class="fi-lbl">③-2</div><input class="fi" type="text" id="hf_f3b"></div>
+  </td>
+  <td colspan="2" style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;overflow:visible;">
+    <div class="fi-wrap"><div class="fi-lbl">④-2</div><input class="fi" type="text" id="hf_f4b" maxlength="12"></div>
+  </td>
+</tr>
+<tr>
+  <td colspan="3" style="height:7mm;font-size:8pt;padding:0.3mm 1mm;vertical-align:middle;white-space:nowrap;">
+    ⑤ 연락처(전화번호 :&nbsp;<input class="fi-inline" style="width:28mm;" type="text" id="hf_f5t">)&nbsp;(휴대전화번호 :&nbsp;<input class="fi-inline" style="width:26mm;" type="text" id="hf_f5m">)
+  </td>
+</tr>
+
+<tr><td class="spacer" style="border-right:none;"></td><td colspan="3" class="spacer"></td></tr>
+
+<tr>
+  <td class="sec-lbl" style="height:15mm;">2.신청 구분</td>
+  <td colspan="3" style="height:15mm;font-size:8pt;vertical-align:top;padding:1mm 2mm;line-height:1.8;">
+    <label style="cursor:pointer;display:block;"><input type="radio" name="hf_ftype" id="hf_f6" value="use" checked style="display:none;" onchange="hf_updateChkInds()"> ⑥ 정보이용 신청 <span class="chk-ind" id="hf_chk_f6">☑</span></label>
+    <label style="cursor:pointer;display:block;"><input type="radio" name="hf_ftype" id="hf_f7" value="renew" style="display:none;" onchange="hf_updateChkInds()"> ⑦ 기존 정보이용 해지 후 새로운 정보이용 신청 <span class="chk-ind" id="hf_chk_f7">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="radio" name="hf_ftype" id="hf_f8" value="cancel" style="display:none;" onchange="hf_updateChkInds()"> ⑧ 정보이용 해지신청 <span class="chk-ind" id="hf_chk_f8">□</span></label>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td class="sec-lbl" style="height:28mm;">3.세무대리정보<br>이용 구분 등<br><span style="font-size:6.5pt;font-weight:400;">(정보이용 신청<br>시 작성)</span></td>
+  <td colspan="3" style="height:28mm;vertical-align:top;padding:0.8mm 2mm;font-size:8pt;line-height:1.7;">
+    ⑨ 세무대리정보이용 구분 및 기간<br>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="hf_f9a" style="display:none;" onchange="hf_updateChkInds()"> ▶ 기장대리 : 동의 처리일로부터 해지일까지 <span class="chk-ind" id="hf_chk_f9a">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="hf_f9b" style="display:none;" onchange="hf_updateChkInds()"> ▶ 신고대리 : 동의 처리일로부터 당해 세무신고의 신고기한까지 <span class="chk-ind" id="hf_chk_f9b">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="hf_f9c" style="display:none;" onchange="hf_updateChkInds()"> ▶ 외부조정(법인) : 동의 처리일로부터 당해 세무신고의 신고기한까지 <span class="chk-ind" id="hf_chk_f9c">□</span></label>
+    <span style="font-size:7pt;line-height:1.6;">
+      ※ 세무대리정보 이용 범위:「홈택스 이용에 관한 규정」 제54조의 정보<br>
+      ※ 신청인의 개인정보보호를 위하여 세무대리인과 위임계약이 해지된 경우 반드시<br>
+      &nbsp;&nbsp;신청인 또는 세무대리인이 홈택스에서 수임등록을 해지하시기 바랍니다.
+    </span>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td rowspan="2" class="sec-lbl" style="height:18mm;">4.정보이용(해지)<br>세무대리인</td>
+  <td style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑩ 성명(상호)</div><div class="fi fi-ro" id="hf_f10">대한세무법인</div></div>
+  </td>
+  <td colspan="2" style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑪ 사업자등록번호</div><div class="fi fi-ro" id="hf_f11">129-81-68431</div></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑫ 세무사관리번호</div><div class="fi fi-ro" id="hf_f12">U16004</div></div>
+  </td>
+  <td colspan="2" style="height:9mm;font-size:8pt;vertical-align:middle;padding:0.5mm 1mm;">
+    ⑬ 연락처&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(전화번호:&nbsp;<span class="fi-inline fi-ro" id="hf_f13" style="display:inline-block;width:36mm;border-bottom:1px dashed #bbb;">031-783-8877</span>)
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" style="height:32mm;padding:1mm 2mm;vertical-align:top;">
+    <div style="font-size:8.5pt;line-height:1.6;">상기 세무대리인이 국세청 홈택스에서 제공되는 신청인의 세무관련 정보 이용(해지)에 대하여 동의합니다.</div>
+    <div style="text-align:center;font-size:8.5pt;margin-top:2.5mm;">
+      <span id="hf_fy" style="font-size:8.5pt;"></span>년&nbsp;&nbsp;<span id="hf_fmo" style="font-size:8.5pt;"></span>월&nbsp;&nbsp;<span id="hf_fd" style="font-size:8.5pt;"></span>일
+    </div>
+    <div class="sign-row" style="margin-top:2mm;">
+      신 청 인 :&nbsp;<input class="fi-sign" type="text" id="hf_fsign">&nbsp;<span style="font-size:7.5pt;white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+        <span class="stamp-zone" id="hf_sz_sign" onclick="toggleStamp('hf_sz_sign')" title="대표자 도장"><canvas id="hf_sc_sign" width="100" height="100"></canvas></span>
+        <span class="stamp-zone stamp-corp-zone" id="hf_sz_sign_corp" onclick="toggleStamp('hf_sz_sign_corp')" title="법인 도장"><canvas id="hf_sc_sign_corp" width="100" height="100"></canvas></span>
+      </span>
+    </div>
+    <div style="text-align:right;font-size:8.5pt;margin-top:2mm;">세무서장 귀하</div>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td colspan="4" style="height:6mm;text-align:center;font-size:9.5pt;font-weight:700;vertical-align:middle;">
+    위&nbsp;&nbsp;&nbsp;임&nbsp;&nbsp;&nbsp;장&nbsp;&nbsp;<span style="font-size:7.5pt;font-weight:400;">(대리인에게 위임하는 경우 작성)</span>
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" style="height:15mm;font-size:8pt;padding:1mm 2mm;line-height:1.8;vertical-align:top;">
+    위 신청인 본인은 아래 위임받은 사람에게 홈택스 세무대리정보 이용(해지)신청에 관한<br>모든 권리와 의무를 위임합니다.
+    <div class="sign-row" style="margin-top:1mm;">
+      위임하는 사람(신청인) :&nbsp;<input class="fi-sign" type="text" id="hf_fdel0">&nbsp;<span style="font-size:7.5pt;white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+        <span class="stamp-zone" id="hf_sz_del" onclick="toggleStamp('hf_sz_del')" title="대표자 도장"><canvas id="hf_sc_del" width="100" height="100"></canvas></span>
+        <span class="stamp-zone stamp-corp-zone" id="hf_sz_del_corp" onclick="toggleStamp('hf_sz_del_corp')" title="법인 도장"><canvas id="hf_sc_del_corp" width="100" height="100"></canvas></span>
+      </span>
+    </div>
+  </td>
+</tr>
+
+<tr>
+  <td rowspan="2" class="sec-lbl" style="height:16mm;">위임받은<br>사&nbsp;람</td>
+  <td style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">성&nbsp;&nbsp;명</div><input class="fi" type="text" id="hf_fdel1"></div>
+  </td>
+  <td colspan="2" style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">주민등록번호</div><input class="fi" type="text" id="hf_fdel2" maxlength="14"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">위임하는 사람과의 관계</div><div class="fi fi-ro" id="hf_fdel3">세무대리인</div></div>
+  </td>
+  <td colspan="2" style="height:8mm;font-size:8pt;vertical-align:middle;padding:0.5mm 1mm;">
+    연락처(전화번호 :&nbsp;<input class="fi-inline" style="width:38mm;" type="text" id="hf_fdel4">)
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td colspan="4" style="height:6mm;font-size:8.5pt;font-weight:700;vertical-align:middle;text-align:center;">
+    개인정보 수집&#8231;이용에 대한 동의(개인정보보호법 제24조)
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" class="notice" style="height:22mm;padding:0.8mm 2mm;vertical-align:top;">
+    ※ 동의를 거부할 권리가 있으며, 거부할 경우 신청서 처리 불가능 등의 불이익이 따를 수 있습니다.
+    &nbsp;&nbsp;○ 수집&#8231;이용목적 (신청서 처리, 사후관리 등)&nbsp;&nbsp;○ 보유&#8231;이용기간 ( 5년 )&nbsp;&nbsp;○ 수집대상 고유식별정보 (주민등록번호, 외국인등록번호, 여권번호 등)<br>
+    <label style="cursor:pointer;"><input type="radio" name="hf_agree_type" id="hf_fagree1" value="yes" checked style="display:none;" onchange="hf_updateChkInds()"><span class="chk-ind" id="hf_chk_agree1">☑</span> 상기내용에 대해 동의합니다.</label>&nbsp;&nbsp;&nbsp;
+    <label style="cursor:pointer;"><input type="radio" name="hf_agree_type" id="hf_fagree2" value="no" style="display:none;" onchange="hf_updateChkInds()"><span class="chk-ind" id="hf_chk_agree2">□</span> 상기내용에 대해 동의하지 않습니다.</label><br>
+    <div style="text-align:right;margin-top:1.5mm;display:flex;justify-content:flex-end;align-items:center;gap:4mm;">
+      <span style="display:inline-flex;align-items:center;white-space:nowrap;">신청인 :&nbsp;<input class="fi-sign" style="width:20mm;" type="text" id="hf_fsgn1">&nbsp;<span style="font-size:7.5pt;">(서명 또는 인)</span><span class="stamp-zones-row">
+          <span class="stamp-zone" id="hf_sz_agree" onclick="toggleStamp('hf_sz_agree')" title="대표자 도장"><canvas id="hf_sc_agree" width="100" height="100"></canvas></span>
+          <span class="stamp-zone stamp-corp-zone" id="hf_sz_agree_corp" onclick="toggleStamp('hf_sz_agree_corp')" title="법인 도장"><canvas id="hf_sc_agree_corp" width="100" height="100"></canvas></span>
+        </span>
+      </span>
+      <span style="display:inline-flex;align-items:center;white-space:nowrap;">위임받은 사람 :&nbsp;<input class="fi-sign" style="width:20mm;" type="text" id="hf_fsgn2">&nbsp;<span style="font-size:7.5pt;">(서명 또는 인)</span><span class="stamp-zones-row">
+          <span class="stamp-zone" id="hf_sz_agree2" onclick="toggleStamp('hf_sz_agree2')" title="위임받은 사람 도장"><canvas id="hf_sc_agree2" width="100" height="100"></canvas></span>
+        </span>
+      </span>
+    </div>
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" class="notice" style="height:20mm;padding:0.8mm 2mm;">
+    ※ 정보이용(해지) 신청 시 준비하실 사항<br>
+    &nbsp;&nbsp;1. 신청인 또는 국세기본법 제82조의 납세관리인이 신청 시 신분증(주민등록증, 운전면허증, 여권 등)<br>
+    &nbsp;&nbsp;2. 세무대리인 등 위임받은 사람이 신청 시 위임하는 사람(법인의 경우 법인대표자 등)의 신분증*(사본) 및 위임받은 사람의 신분증<br>
+    &nbsp;&nbsp;&nbsp;* 위임하는 사람이 희망하는 경우에 3개월 이내에 발급된 인감증명서(사본), 법인인감증명서(사본), 본인서명사실확인서, 전자본인서명사실확인서 가능
+  </td>
+</tr>
+<tr>
+  <td colspan="4" class="notice" style="height:9mm;padding:0.8mm 2mm;">
+    ※ 다른 사람의 인장 도용 등 허위로 위임장을 작성하여 신청할 경우에는 「형법」 제231조와 제232조에 따라 사문서 위&#8231;변조 죄로 5년 이하의 징역 또는 1천만원 이하의 벌금에 처하게 됩니다.
+  </td>
+</tr>
+<tr>
+  <td colspan="4" style="height:4.5mm;text-align:center;font-size:6.5pt;border-bottom:none;border-left:none;border-right:none;color:#555;">
+    210mm×297mm[백상지 80g/㎡(재활용품)]
+  </td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<div class="tab-panel" id="panel1">
+<div class="sheet" style="padding:20mm 18mm 15mm 20mm; min-height:297mm;">
+
+  <div style="font-size:8pt; margin-bottom:1mm;">[별지 제6호서식]</div>
+  <div style="text-align:center; font-size:14pt; font-weight:700; letter-spacing:2px; margin:2mm 0 4mm;">건강보험 EDI 업무대행 위임장</div>
+
+  <table class="ft">
+    <colgroup>
+      <col style="width:20mm;"><col style="width:30mm;"><col style="width:65mm;"><col style="width:57mm;">
+    </colgroup>
+    <tbody>
+
+    <!-- 업무대행기관 (고정값) -->
+    <tr>
+      <td rowspan="4" class="sec-lbl" style="height:44mm;">업무대행<br>기관</td>
+      <td class="lbl" style="height:10mm;">사업장관리번호</td>
+      <td colspan="2" style="height:10mm;"><div class="fi-ro">129-81-68431-0</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:10mm;">기&nbsp;&nbsp;관&nbsp;&nbsp;명</td>
+      <td colspan="2" style="height:10mm;"><div class="fi-ro">대한세무법인</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:10mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="2" style="height:10mm; overflow:visible;">
+        <div class="fi-ro" style="border-bottom:none !important;">경기도 성남시 분당구 야탑동 367-1 BYC빌딩 515호&nbsp;&nbsp;(전화번호 : 031-783-8877 )</div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:10mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</td>
+      <td style="height:10mm;"><div class="fi-ro">이 석 제</div></td>
+      <td style="height:10mm; font-size:8.5pt; vertical-align:middle;">
+        주 민 번 호 :&nbsp;<span style="display:inline-flex; align-items:flex-end; min-width:30mm; border-bottom:1px solid #ccc; font-size:9pt;">720106 – 1******</span>
+      </td>
+    </tr>
+
+    <tr><td colspan="4" class="spacer"></td></tr>
+
+    <!-- 위임사업장 -->
+    <tr>
+      <td rowspan="5" class="sec-lbl" style="height:55mm;">위임<br>사업장</td>
+      <td class="lbl" style="height:11mm; font-size:7.5pt; line-height:1.4;">사업장관리번호<br>(단위사업장기호)</td>
+      <td colspan="2" style="height:11mm; overflow:visible;">
+        <span id="hi_fb1_disp" style="font-size:9pt; display:flex; align-items:flex-end; min-height:3mm; border-bottom:1px dashed #bbb; width:100%;"></span>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:11mm;">사&nbsp;&nbsp;업&nbsp;&nbsp;장&nbsp;&nbsp;명</td>
+      <td colspan="2" style="height:11mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="hi_fb3"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:11mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="2" style="height:11mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="hi_fb4"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:11mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</td>
+      <td style="height:11mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="hi_fb5"></div>
+      </td>
+      <td style="height:11mm; font-size:8.5pt; vertical-align:middle; overflow:visible;">
+        주 민 번 호 :&nbsp;<span id="hi_fb6" style="display:inline-flex; align-items:flex-end; min-width:28mm; border-bottom:1px dashed #bbb; font-size:9pt;"></span>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:11mm;">사업자등록번호</td>
+      <td colspan="2" style="height:11mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="hi_fb7" maxlength="12"></div>
+      </td>
+    </tr>
+
+    <tr><td colspan="4" class="spacer"></td></tr>
+
+    <!-- 위임 -->
+    <tr>
+      <td class="sec-lbl" style="height:11mm;">위&nbsp;&nbsp;&nbsp;임</td>
+      <td class="lbl" style="height:11mm;">업&nbsp;무&nbsp;범&nbsp;위</td>
+      <td colspan="2" style="height:11mm;"><div class="fi-ro" style="border-bottom:none !important;">공단 웹 EDI 서비스 업무</div></td>
+    </tr>
+
+    </tbody>
+  </table>
+
+  <div style="font-size:7.5pt; color:#333; margin:2mm 0 1mm; padding-left:1mm;">
+    &lt;작성방법&gt; - 주민번호 : 생년월일 + 성별까지 기재
+  </div>
+
+  <div style="font-size:8.5pt; line-height:2; padding:3mm 1mm 2mm; text-align:justify;">
+    &nbsp;&nbsp;&nbsp;&nbsp;민법 제114조(대리행위의 효력)의 규정에 의하여 위와 같이 건강보험 EDI 업무대행 대리인 위임을 신청합니다.
+  </div>
+
+  <div style="text-align:right; font-size:8.5pt; padding-right:6mm; margin-bottom:2mm;">
+    <span id="hi_fy"></span>&nbsp;년&nbsp;&nbsp;<span id="hi_fmo"></span>&nbsp;월&nbsp;&nbsp;<span id="hi_fd"></span>&nbsp;일
+  </div>
+
+  <div class="sign-row" style="justify-content:flex-end; padding-right:6mm; margin-top:1mm;">
+    위&nbsp;임&nbsp;자&nbsp;:&nbsp;<input class="fi-sign" type="text" id="hi_fsign">&nbsp;<span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+      <span class="stamp-zone hint" id="hi_sz_sign" onclick="toggleStamp('hi_sz_sign')" title="대표자 도장"><canvas id="hi_sc_sign" width="100" height="100"></canvas></span>
+      <span class="stamp-zone stamp-corp-zone hint" id="hi_sz_sign_corp" onclick="toggleStamp('hi_sz_sign_corp')" title="법인 도장"><canvas id="hi_sc_sign_corp" width="100" height="100"></canvas></span>
+    </span>
+  </div>
+
+  <div style="text-align:right; font-size:8.5pt; padding-right:6mm; margin-top:4mm;">
+    국민건강보험공단&nbsp;<span id="hi_fjisa"></span>지사장&nbsp;귀하
+  </div>
+
+</div>
+</div>
+<div class="tab-panel" id="panel2">
+<div class="sheet" style="padding:20mm 18mm 15mm 20mm; min-height:297mm;">
+
+  <div style="font-size:8pt; margin-bottom:1mm;">[별지 제4호서식]</div>
+  <div style="text-align:center; font-size:14pt; font-weight:700; letter-spacing:2px; margin:2mm 0 4mm;">국민연금 웹 EDI 업무대행 신청서</div>
+
+  <table class="ft" style="font-size:10pt;">
+    <colgroup>
+      <col style="width:18mm;"><col style="width:28mm;"><col style="width:44mm;"><col style="width:28mm;"><col style="width:54mm;">
+    </colgroup>
+    <tbody>
+
+    <tr>
+      <td class="lbl" style="height:8mm;">접수번호</td>
+      <td colspan="2" style="height:8mm;"></td>
+      <td class="lbl">처리기간</td>
+      <td style="text-align:center; font-size:10pt;">즉&nbsp;&nbsp;시</td>
+    </tr>
+
+    <tr><td colspan="5" class="spacer"></td></tr>
+
+    <!-- 업무대행기관 (고정값) -->
+    <tr>
+      <td rowspan="4" class="sec-lbl" style="height:42mm;">업무<br>대행<br>기관</td>
+      <td class="lbl" style="height:9mm;">사업장관리번호</td>
+      <td style="height:9mm;"><div class="fi-ro">129-81-68431-0</div></td>
+      <td class="lbl">사업장 명칭</td>
+      <td><div class="fi-ro">대한세무법인</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:14mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="3" style="height:14mm; overflow:visible; vertical-align:middle;">
+        <div class="fi-ro" style="border-bottom:none !important; flex-direction:column; align-items:flex-start; line-height:1.6;">
+          <span>경기도 성남시 분당구 성남대로 912, 515호</span>
+          <span>(야탑동, BYC빌딩)</span>
+        </div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">사업자등록번호</td>
+      <td style="height:9mm;"><div class="fi-ro">129-81-68431</div></td>
+      <td class="lbl">법인등록번호</td>
+      <td><div class="fi-ro">135671-0032224</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">사용자 성명</td>
+      <td style="height:9mm;"><div class="fi-ro">이 석 제</div></td>
+      <td class="lbl">생년월일</td>
+      <td><div class="fi-ro">1972-01-06</div></td>
+    </tr>
+
+    <tr><td colspan="5" class="spacer"></td></tr>
+
+    <!-- 위탁사업장 -->
+    <tr>
+      <td rowspan="4" class="sec-lbl" style="height:42mm;">위탁<br>사업장</td>
+      <td class="lbl" style="height:9mm;">사업장관리번호</td>
+      <td style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="pf_fb1"></div></td>
+      <td class="lbl">사업장 명칭</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="pf_fb3"></div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:14mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="3" style="height:14mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="pf_fb4"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">사업자등록번호</td>
+      <td style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="pf_fb7" maxlength="12"></div></td>
+      <td class="lbl">법인등록번호</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="pf_fb8" maxlength="14"></div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">사용자 성명</td>
+      <td style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="pf_fb5"></div></td>
+      <td class="lbl">생년월일</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="pf_fb6" maxlength="10"></div></td>
+    </tr>
+
+    <tr><td colspan="5" class="spacer"></td></tr>
+
+    <!-- 업무위탁범위 -->
+    <tr>
+      <td class="sec-lbl" rowspan="2" style="height:20mm;">업무<br>위탁<br>범위</td>
+      <td colspan="4" style="height:12mm; font-size:9.5pt; padding:1.5mm 2mm; vertical-align:middle;">
+        ▪ 자격의 취득 및 상실 신고&nbsp;&nbsp;&nbsp;&nbsp;▪ 내용변경 신고&nbsp;&nbsp;&nbsp;&nbsp;▪ 기준소득월액 변경 등 신고&nbsp;&nbsp;&nbsp;&nbsp;▪ 신고서 처리결과 및 보험료결정내역 확인
+      </td>
+    </tr>
+    <tr>
+      <td colspan="4" style="height:8mm; font-size:8.5pt; color:#333; padding:1mm 2mm; vertical-align:middle;">
+        ※ 증명서 발급에 관한 사항은 업무대행 범위에 포함되지 않음
+      </td>
+    </tr>
+
+    <tr>
+      <td colspan="5" style="padding:4mm 3mm; font-size:10pt; line-height:2; text-align:justify; vertical-align:top;">
+        &nbsp;&nbsp;&nbsp;&nbsp;위탁사업장은 민법 제114조 규정에 따라 국민연금 웹 EDI 업무대행을 위탁하고, 업무대행기관은 대행기관으로서 제반 업무처리에 따른 법적 책임을 부담하며, 각 신청인은 개인정보의 부적정 사용을 방지하기 위한 조치를 취하고 불법 유출 등으로 발생하는 손해배상 등에 대하여 연대하여 책임질 것을 서약하며 업무대행을 신청합니다.
+      </td>
+    </tr>
+
+    </tbody>
+  </table>
+
+  <div style="text-align:center; font-size:11pt; margin:6mm 0 3mm;">
+    <span id="pf_fy"></span>&nbsp;년&nbsp;&nbsp;<span id="pf_fmo"></span>&nbsp;월&nbsp;&nbsp;<span id="pf_fd"></span>&nbsp;일
+  </div>
+
+  <div class="sign-row" style="justify-content:center; margin-top:3mm; font-size:11pt;">
+    신청인(업무대행기관&nbsp;사용자)&nbsp;:&nbsp;대한세무법인&nbsp;<span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span>
+    <span class="stamp-zones-row">
+      <span class="stamp-zone hint" id="pf_sz_agency" onclick="toggleStamp('pf_sz_agency')" title="업무대행기관 도장">
+        <canvas id="pf_sc_agency" width="100" height="100"></canvas>
+      </span>
+    </span>
+  </div>
+
+  <div class="sign-row" style="justify-content:center; margin-top:4mm; font-size:11pt;">
+    신청인(위탁사업장&nbsp;사용자)&nbsp;:&nbsp;<input class="fi-sign" style="width:45mm;" type="text" id="pf_fsign">&nbsp;<span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span>
+    <span class="stamp-zones-row">
+      <span class="stamp-zone hint" id="pf_sz_client" onclick="toggleStamp('pf_sz_client')" title="대표자 도장">
+        <canvas id="pf_sc_client" width="100" height="100"></canvas>
+      </span>
+      <span class="stamp-zone stamp-corp-zone hint" id="pf_sz_client_corp" onclick="toggleStamp('pf_sz_client_corp')" title="법인 도장">
+        <canvas id="pf_sc_client_corp" width="100" height="100"></canvas>
+      </span>
+    </span>
+  </div>
+
+  <div style="text-align:center; font-size:11pt; font-weight:700; letter-spacing:1px; margin-top:6mm;">
+    국민연금공단&nbsp;<span id="pf_fjisa"></span>지사장&nbsp;귀하
+  </div>
+
+  <div style="text-align:right; font-size:8pt; color:#555; margin-top:4mm;">수수료 없음</div>
+
+</div>
+</div>
+<div class="tab-panel" id="panel3">
+<div class="sheet" style="padding:18mm 18mm 15mm 20mm; min-height:297mm;">
+
+  <div style="font-size:8pt; margin-bottom:1mm;">[별지 제12호 서식] &lt;개정 2012. 2. 5.&gt;</div>
+  <div style="text-align:center; font-size:14pt; font-weight:700; letter-spacing:2px; margin:2mm 0 4mm;">보험사무대행기관 사무위탁서</div>
+
+  <table class="ft" style="font-size:10pt;">
+    <colgroup>
+      <col style="width:28mm;"><col style="width:24mm;"><col style="width:16mm;"><col style="width:46mm;"><col style="width:32mm;"><col style="width:26mm;">
+    </colgroup>
+    <tbody>
+
+    <tr>
+      <td class="lbl" style="height:9mm;">사업장관리번호</td>
+      <td style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="lf_fb1"></div></td>
+      <td class="lbl">사업장명</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="lf_fb3"></div></td>
+      <td class="lbl">상시사용<br>근로자수</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="lf_fb_wk"></div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="3" style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="lf_fb4"></div></td>
+      <td class="lbl">전화번호</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="lf_fb_tel"></div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:9mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</td>
+      <td style="height:9mm;"><div class="fi-wrap"><input class="fi" type="text" id="lf_fb5"></div></td>
+      <td class="lbl">전화번호</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="lf_fb_tel2"></div></td>
+      <td class="lbl">사업의 종류</td>
+      <td><div class="fi-wrap"><input class="fi" type="text" id="lf_fb_biz"></div></td>
+    </tr>
+
+    <tr><td colspan="6" class="spacer"></td></tr>
+
+    <tr>
+      <td class="lbl" style="height:8mm; vertical-align:middle;">위탁사항</td>
+      <td colspan="5" style="height:8mm; font-size:9.5pt; font-weight:700; vertical-align:middle; padding:1.5mm 2mm;">
+        ☐ 고용보험 및 산업재해보상보험(임금채권 및 석면피해구제 포함) 관련 사무
+      </td>
+    </tr>
+    <tr>
+      <td style="border-top:none;" colspan="1"></td>
+      <td colspan="5" style="border-top:none; font-size:8.5pt; line-height:1.7; padding:1.5mm 3mm; vertical-align:top; height:38mm;">
+        1. 보수총액 및 근로자 고용정보 신고에 관한 사무<br>
+        2. 보험료 신고에 관한 사무<br>
+        3. 보험관계 성립, 변경, 소멸 등의 신고에 관한 사무<br>
+        4. 기타 관계 법령 및 규정 등에 의하여 사업주가 근로복지공단이나 지방고용노동관서에 신고 또는 보고하여야 할 보험사무<br>
+        5. 피보험자격의 취득·상실 및 근로내역확인 신고 등 피보험자관리에 관한 사무(고용보험에 한함)<br>
+        <span style="color:#444;">※ 보험사무대행기관이 상기 위탁사항의 처리에 필요한 정보를 근로복지공단에서 제공받는 것에 동의 함</span>
+      </td>
+    </tr>
+
+    <tr><td colspan="6" class="spacer"></td></tr>
+
+    <tr>
+      <td class="lbl" style="height:9mm;">사무처리<br>시작 연월일</td>
+      <td class="lbl" style="font-size:8pt;">(예정)</td>
+      <td colspan="4" style="height:9mm; font-size:10.5pt; padding:1mm 2mm;">
+        <span id="lf_fsy"></span>&nbsp;년&nbsp;&nbsp;<span id="lf_fsmo"></span>&nbsp;월&nbsp;&nbsp;<span id="lf_fsd"></span>&nbsp;일
+      </td>
+    </tr>
+
+    </tbody>
+  </table>
+
+  <div style="font-size:9pt; line-height:2; padding:3mm 1mm 2mm; text-align:justify;">
+    &nbsp;&nbsp;&nbsp;&nbsp;위와 같이 귀 보험사무대행기관에
+    &nbsp;<span id="lf_fc_emp_txt" style="font-weight:700;">[ ✔ ]</span>&nbsp;고용보험
+    &nbsp;<span id="lf_fc_occ_txt" style="font-weight:700;">[ ✔ ]</span>&nbsp;산업재해보상보험(임금채권 및 석면피해구제 포함)
+    &nbsp;사무의 처리를 위탁합니다.
+  </div>
+
+  <div style="text-align:center; font-size:11pt; margin:2mm 0 1.5mm;">
+    <span id="lf_fy"></span>&nbsp;년&nbsp;&nbsp;<span id="lf_fmo"></span>&nbsp;월&nbsp;&nbsp;<span id="lf_fd"></span>&nbsp;일
+  </div>
+
+  <div style="display:flex; flex-direction:column; align-items:flex-end; padding-right:10mm; gap:1.5mm;">
+    <div style="display:flex; align-items:center; gap:3mm; font-size:10.5pt;">
+      <span>위탁사업주&nbsp;주소&nbsp;:</span>
+      <input class="fi-sign" type="text" id="lf_fb_addr" style="width:65mm;">
+    </div>
+    <div class="sign-row" style="justify-content:flex-end; font-size:10.5pt;">
+      성&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;명&nbsp;:&nbsp;<input class="fi-sign" type="text" id="lf_fsign">&nbsp;<span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span>
+      <span class="stamp-zones-row">
+        <span class="stamp-zone hint" id="lf_sz_client" onclick="toggleStamp('lf_sz_client')" title="대표자 도장">
+          <canvas id="lf_sc_client" width="100" height="100"></canvas>
+        </span>
+        <span class="stamp-zone stamp-corp-zone hint" id="lf_sz_client_corp" onclick="toggleStamp('lf_sz_client_corp')" title="법인 도장">
+          <canvas id="lf_sc_client_corp" width="100" height="100"></canvas>
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <div style="text-align:center; font-size:11pt; font-weight:700; letter-spacing:1px; margin-top:3mm;">
+    보험사무대행기관 대표 귀하
+  </div>
+
+  <hr class="section-divider">
+
+  <div style="font-size:9pt; line-height:2; padding:1.5mm 1mm 1mm;">
+    &nbsp;&nbsp;&nbsp;&nbsp;[ ✔ ]&nbsp;고용보험&nbsp;&nbsp;[ ✔ ]&nbsp;산업재해보상보험(임금채권 및 석면피해구제 포함) 관련 사무 수탁을&nbsp;&nbsp;<strong>[ ✔ ]&nbsp;승낙</strong>&nbsp;&nbsp;[&nbsp;&nbsp;&nbsp;]&nbsp;불승낙 합니다.
+  </div>
+
+  <table class="ft" style="margin-top:2mm; font-size:10pt;">
+    <colgroup>
+      <col style="width:28mm;"><col style="width:24mm;"><col style="width:16mm;"><col style="width:46mm;"><col style="width:32mm;"><col style="width:26mm;">
+    </colgroup>
+    <tbody>
+    <tr>
+      <td class="lbl" style="height:8mm;">불승낙 사유</td>
+      <td colspan="5" style="height:8mm;"></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:8mm;">보험가입자<br>사업장관리번호</td>
+      <td colspan="5" style="height:8mm;"></td>
+    </tr>
+    </tbody>
+  </table>
+
+  <div style="display:flex; flex-direction:column; align-items:flex-end; font-size:10.5pt; line-height:2.2; margin-top:4mm;">
+    <div>
+      <span id="lf_fy2"></span>&nbsp;년&nbsp;&nbsp;&nbsp;<span id="lf_fmo2"></span>&nbsp;월&nbsp;&nbsp;&nbsp;<span id="lf_fd2"></span>&nbsp;일
+    </div>
+    <div style="display:flex; align-items:baseline; margin-top:1mm;">
+      <span style="white-space:nowrap; font-size:10pt;">보험사무대행기관&nbsp;&nbsp;&nbsp;&nbsp;명&nbsp;&nbsp;&nbsp;칭</span>
+      <span style="padding-left:4mm;">대한세무법인</span>
+    </div>
+    <div style="display:flex; align-items:baseline;">
+      <span style="white-space:nowrap; font-size:10pt; min-width:22mm; padding-left:14mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</span>
+      <span style="padding-left:4mm;">경기도 성남시 분당구 성남대로 912, 515호</span>
+    </div>
+    <div class="sign-row" style="gap:0; font-size:10.5pt;">
+      <span style="white-space:nowrap; font-size:10pt; min-width:36mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</span>
+      <span style="padding-left:4mm; min-width:28mm;">이&nbsp;석&nbsp;제</span>
+      <span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span>
+      <span class="stamp-zones-row">
+        <span class="stamp-zone hint" id="lf_sz_agency" onclick="toggleStamp('lf_sz_agency')" title="대표자 도장">
+          <canvas id="lf_sc_agency" width="100" height="100"></canvas>
+        </span>
+      </span>
+    </div>
+  </div>
+
+  <div style="text-align:center; font-size:11pt; font-weight:700; letter-spacing:1px; margin-top:5mm;">
+    <span id="lf_fb_귀하"></span>&nbsp;귀하
+  </div>
+
+</div>
+</div>
+</div></div>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script>
+
+// ===== 사업장관리번호 포맷 (000-00-00000-0) =====
+function fmtMgmt(src) {
+  let v = src.value.replace(/\D/g, '');
+  if (v.length > 11) v = v.slice(0, 11);
+  if (v.length > 9)      v = v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5,10)+'-'+v.slice(10);
+  else if (v.length > 5) v = v.slice(0,3)+'-'+v.slice(3,5)+'-'+v.slice(5);
+  else if (v.length > 3) v = v.slice(0,3)+'-'+v.slice(3);
+  src.value = v;
+}
+
+// ===== 탭 전환 =====
+let currentTab = 0;
+function switchTab(idx) {
+  document.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===idx));
+  document.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===idx));
+  document.querySelectorAll('.sb-tab-extra').forEach(d => d.style.display='none');
+  ['sb_hometax','sb_health','sb_pension','sb_labor'].forEach((id,i) => {
+    if(i===idx) document.getElementById(id).style.display='block';
+  });
+  document.getElementById('sb_addr_mgmt').style.display = idx === 0 ? 'none' : '';
+  currentTab = idx;
+}
+
+// ===== 공통 헬퍼 =====
+function setVal(id, val) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  if (el.tagName==='INPUT'||el.tagName==='TEXTAREA') el.value = val;
+  else el.textContent = val;
+}
+function isCorp() {
+  return document.querySelector('input[name=c_biztype]:checked')?.value === 'corp';
+}
+
+// ===== 공통 필드 동기화 =====
+function onNameChange() {
+  const v = document.getElementById('c_name').value;
+  ['hf_f3a','hi_fb3','pf_fb3','lf_fb3'].forEach(id => setVal(id, v));
+  autoStampAll();
+  saveLocal();
+}
+function spaceChars(s){ return [...s].join(' '); }
+function onRepChange() {
+  const v = document.getElementById('c_rep').value;
+  const sv = spaceChars(v);
+  // 일반 이름 필드 (원본 그대로)
+  ['hf_f1','hi_fb5','pf_fb5','lf_fb5','lf_fb_귀하'].forEach(id => setVal(id, v));
+  // 서명란 (한 칸씩 띄어쓰기, 가운데 정렬)
+  ['hf_fsign','hf_fdel0','hf_fsgn1','hi_fsign','pf_fsign','lf_fsign'].forEach(id => setVal(id, sv));
+  autoStampAll();
+  saveLocal();
+}
+function onBizChange() {
+  const src = document.getElementById('c_biz');
+  let v = src.value.replace(/\D/g,'');
+  if (v.length>3) v=v.slice(0,3)+'-'+v.slice(3);
+  if (v.length>6) v=v.slice(0,6)+'-'+v.slice(6,11);
+  src.value = v;
+  ['hf_f4a','hi_fb7','pf_fb7'].forEach(id => setVal(id, v));
+  saveLocal();
+}
+function onAddrChange() {
+  const v = document.getElementById('c_addr').value;
+  ['hi_fb4','pf_fb4','lf_fb4','lf_fb_addr'].forEach(id => setVal(id, v));
+  saveLocal();
+}
+function onMgmtChange() {
+  const v = document.getElementById('c_mgmt').value;
+  setVal('pf_fb1', v);
+  setVal('lf_fb1', v);
+  updateHealthMgmt();
+  saveLocal();
+}
+function updateHealthMgmt() {
+  const mgmt = document.getElementById('c_mgmt').value;
+  const unit = document.getElementById('hi_unit').value;
+  const disp = document.getElementById('hi_fb1_disp');
+  if (disp) disp.textContent = mgmt + (unit ? ' (' + unit + ')' : '');
+}
+function onDateChange() {
+  const y=document.getElementById('c_y').value, mo=document.getElementById('c_mo').value, d=document.getElementById('c_d').value;
+  ['hf_fy','hi_fy','pf_fy','lf_fy','lf_fy2'].forEach(id=>setVal(id,y));
+  ['hf_fmo','hi_fmo','pf_fmo','lf_fmo','lf_fmo2'].forEach(id=>setVal(id,mo));
+  ['hf_fd','hi_fd','pf_fd','lf_fd','lf_fd2'].forEach(id=>setVal(id,d));
+  lf_syncStartDate();
+}
+function onJisaChange() {
+  const v = document.getElementById('c_jisa').value;
+  setVal('hi_fjisa', v);
+  setVal('pf_fjisa', v);
+  saveLocal();
+}
+function onBizTypeChange() { autoStampAll(); saveLocal(); }
+
+// ===== 홈택스 전용 =====
+function hf_syncType() {
+  const v = document.querySelector('input[name=h_qtype]:checked')?.value;
+  document.getElementById('hf_f6').checked = v==='use';
+  document.getElementById('hf_f7').checked = v==='renew';
+  document.getElementById('hf_f8').checked = v==='cancel';
+  hf_updateChkInds();
+  saveLocal();
+}
+function hf_updateChkInds() {
+  [['hf_f6','hf_chk_f6'],['hf_f7','hf_chk_f7'],['hf_f8','hf_chk_f8']].forEach(([inp,ind])=>{
+    const el=document.getElementById(inp), sp=document.getElementById(ind);
+    if(el&&sp) sp.textContent=el.checked?'☑':'□';
+  });
+  // 기장대리 고정 체크
+  const f9a = document.getElementById('hf_f9a');
+  if(f9a) f9a.checked = true;
+  [['hf_f9a','hf_chk_f9a'],['hf_f9b','hf_chk_f9b'],['hf_f9c','hf_chk_f9c']].forEach(([inp,ind])=>{
+    const el=document.getElementById(inp), sp=document.getElementById(ind);
+    if(el&&sp) sp.textContent=el.checked?'☑':'□';
+  });
+  // 개인정보 동의
+  [['hf_fagree1','hf_chk_agree1'],['hf_fagree2','hf_chk_agree2']].forEach(([inp,ind])=>{
+    const el=document.getElementById(inp), sp=document.getElementById(ind);
+    if(el&&sp) sp.textContent=el.checked?'☑':'□';
+  });
+  saveLocal();
+}
+function hf_fmtRrn(src) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.length>6) v=v.slice(0,6)+'-'+v.slice(6,13);
+  src.value=v;
+  setVal('hf_f2', v);
+  const raw=v.replace(/\D/g,'');
+  if(raw.length>=7){
+    // 국민연금 생년월일 자동
+    const yy=raw.slice(0,2), mm=raw.slice(2,4), dd=raw.slice(4,6), gender=raw[6];
+    const yyyy=(['3','4'].includes(gender)?'20':'19')+yy;
+    const birth=yyyy+'-'+mm+'-'+dd;
+    const pbEl=document.getElementById('p_birth');
+    if(pbEl){ pbEl.value=birth; pf_fmtBirth(pbEl); }
+    // 건강보험 주민번호 자동
+    const hiEl=document.getElementById('hi_rrn');
+    if(hiEl){ hiEl.value=v; hi_fmtRrn(hiEl); }
+  }
+  saveLocal();
+}
+function hf_fmtPhone(src, fId) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.startsWith('02')){
+    if(v.length<=9) v=v.slice(0,2)+(v.length>2?'-'+v.slice(2,5):'')+(v.length>5?'-'+v.slice(5):'');
+    else v=v.slice(0,2)+'-'+v.slice(2,6)+'-'+v.slice(6,10);
+  } else {
+    if(v.length<=10) v=v.slice(0,3)+(v.length>3?'-'+v.slice(3,6):'')+(v.length>6?'-'+v.slice(6):'');
+    else v=v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+  }
+  src.value=v;
+  setVal(fId, v);
+  saveLocal();
+}
+function hf_syncDelegate() {
+  const name=document.getElementById('h_del1').value;
+  setVal('hf_fdel1', name);
+  setVal('hf_fsgn2', spaceChars(name));
+  hf_autoDelegateStamp();
+  saveLocal();
+}
+function hf_fmtDelRrn(src) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.length>6) v=v.slice(0,6)+'-'+v.slice(6,13);
+  src.value=v;
+  setVal('hf_fdel2', v);
+  saveLocal();
+}
+function hf_autoDelegateStamp() {
+  const name=document.getElementById('h_del1').value.trim();
+  if(!name) return;
+  const c=document.getElementById('hf_sc_agree2');
+  if(c){ drawPersonalStampOnCanvas(c,name); c.closest('.stamp-zone').classList.add('has-stamp'); c.style.opacity='1'; }
+}
+
+// ===== 건강보험 전용 =====
+function hi_fmtRrn(src) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.length>6) v=v.slice(0,6)+'-'+v.slice(6,13);
+  src.value=v;
+  // masked display in form
+  const raw=v.replace('-','');
+  const masked=raw.length>=7?raw.slice(0,6)+' – '+raw[6]+'******':v;
+  setVal('hi_fb6', masked);
+  saveLocal();
+}
+
+// ===== 국민연금 전용 =====
+function pf_fmtCorpReg(src) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.length>6) v=v.slice(0,6)+'-'+v.slice(6,13);
+  src.value=v;
+  setVal('pf_fb8', v);
+  saveLocal();
+}
+function pf_fmtBirth(src) {
+  let v=src.value.replace(/\D/g,'');
+  if(v.length>4) v=v.slice(0,4)+'-'+v.slice(4);
+  if(v.length>7) v=v.slice(0,7)+'-'+v.slice(7,9);
+  src.value=v;
+  setVal('pf_fb6', v);
+  saveLocal();
+}
+
+// ===== 보험사무대행 전용 =====
+function lf_updateChecks() {
+  setVal('lf_fc_emp_txt', '[ ✔ ]');
+  setVal('lf_fc_occ_txt', '[ ✔ ]');
+}
+function lf_syncStartDate() {
+  setVal('lf_fsy', document.getElementById('c_y').value);
+  setVal('lf_fsmo', document.getElementById('c_mo').value);
+  setVal('lf_fsd', document.getElementById('c_d').value);
+}
+
+// ===== 도장 그리기 =====
+function drawCorpStamp(ctx, cx, cy, coName, s, r) {
+  ctx.save();
+  const scx=cx*s, scy=cy*s, sr=r*s;
+  ctx.fillStyle='rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.arc(scx,scy,sr,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=1.8*s;
+  ctx.beginPath(); ctx.arc(scx,scy,sr,0,Math.PI*2); ctx.stroke();
+  const innerR=sr*0.55;
+  ctx.lineWidth=1.2*s;
+  ctx.beginPath(); ctx.arc(scx,scy,innerR,0,Math.PI*2); ctx.stroke();
+  const chars=[...coName.replace(/\(주\)/gi,'㈜')];
+  const total=chars.length+1;
+  const textR=(sr+innerR)/2;
+  const ringGap=sr-innerR;
+  const perA=(Math.PI*2)/total;
+  const fz=Math.min(textR*perA*0.88,ringGap*0.82);
+  const dotA=-Math.PI/2;
+  ctx.fillStyle='#cc0000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.save();
+  ctx.translate(scx+textR*Math.cos(dotA),scy+textR*Math.sin(dotA));
+  ctx.rotate(dotA+Math.PI/2); ctx.font=`${fz*0.55}px sans-serif`; ctx.fillText('●',0,0);
+  ctx.restore();
+  ctx.font=`bold ${fz}px 'Malgun Gothic','맑은 고딕',sans-serif`;
+  chars.forEach((c,i)=>{
+    const a=dotA+perA*(i+1);
+    ctx.save(); ctx.translate(scx+textR*Math.cos(a),scy+textR*Math.sin(a));
+    ctx.rotate(a+Math.PI/2); ctx.fillText(c,0,0); ctx.restore();
+  });
+  const hanjaRows=[['代','表'],['理','事']];
+  const hjFz=innerR*0.74, hjRowH=hjFz*1.02, hjColW=hjFz*1.02, totalHJ=hjRowH*hanjaRows.length;
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=hjFz*0.10; ctx.lineJoin='round';
+  ctx.font=`bold ${hjFz}px 'Batang','바탕체','Malgun Gothic',serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  hanjaRows.forEach((row,ri)=>{
+    const ry=scy-totalHJ/2+hjRowH*(ri+0.5);
+    if(row.length===2){
+      [[row[0],scx-hjColW/2],[row[1],scx+hjColW/2]].forEach(([c,rx])=>{ ctx.strokeText(c,rx,ry); ctx.fillText(c,rx,ry); });
+    } else { ctx.strokeText(row[0],scx,ry); ctx.fillText(row[0],scx,ry); }
+  });
+  ctx.restore();
+}
+function drawStamp(ctx, cx, cy, name, s, rx, ry) {
+  ctx.save();
+  const scx=cx*s, scy=cy*s, srx=rx*s, sry=ry*s;
+  ctx.fillStyle='rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.ellipse(scx,scy,srx,sry,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=1.8*s;
+  ctx.beginPath(); ctx.ellipse(scx,scy,srx,sry,0,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#cc0000'; ctx.textAlign='center'; ctx.textBaseline='middle';
+  const chars=[...name].slice(0,4);
+  const fz=Math.round(sry*1.8/chars.length);
+  ctx.font=`500 ${fz}px 'Batang','바탕체','Malgun Gothic','맑은 고딕',serif`;
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=fz*0.04; ctx.lineJoin='round';
+  const totalH=fz*chars.length;
+  chars.forEach((c,i)=>{ const cy2=scy-totalH/2+fz*(i+0.5); ctx.strokeText(c,scx,cy2); ctx.fillText(c,scx,cy2); });
+  ctx.restore();
+}
+function drawPersonalStampOnCanvas(canvas, name) {
+  const S=canvas.width; const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,S,S); if(!name) return;
+  drawStamp(ctx,S/2,S/2,name,1,S*0.27,S*0.43);
+}
+function drawCorpStampOnCanvas(canvas, name) {
+  const S=canvas.width; const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,S,S); if(!name) return;
+  drawCorpStamp(ctx,S/2,S/2,name,1,S/2-3);
+}
+
+// ===== 도장 자동 반영 =====
+function autoStampAll() {
+  const personalName=document.getElementById('c_rep').value.trim();
+  const corpName=document.getElementById('c_name').value.trim();
+  const corp=isCorp();
+  // 신청인 개인 도장
+  ['hf_sc_sign','hf_sc_del','hf_sc_agree','hi_sc_sign','pf_sc_client','lf_sc_client'].forEach(cid=>{
+    const c=document.getElementById(cid); if(!c||!personalName) return;
+    drawPersonalStampOnCanvas(c,personalName);
+    c.closest('.stamp-zone').classList.add('has-stamp'); c.style.opacity='1';
+  });
+  // 법인 도장
+  ['hf_sc_sign_corp','hf_sc_del_corp','hf_sc_agree_corp','hi_sc_sign_corp','pf_sc_client_corp','lf_sc_client_corp'].forEach(cid=>{
+    const c=document.getElementById(cid);
+    const zone=c?.closest('.stamp-zone'); if(!c||!zone) return;
+    if(corp&&corpName){
+      drawCorpStampOnCanvas(c,corpName); zone.classList.add('has-stamp'); c.style.opacity='1'; zone.style.display='inline-block';
+    } else {
+      zone.style.display='none'; zone.classList.remove('has-stamp'); c.style.opacity='0';
+    }
+  });
+}
+function drawAgencyStamps() {
+  // 국민연금: 대한세무법인 법인 도장
+  const pAg=document.getElementById('pf_sc_agency');
+  if(pAg){ drawCorpStampOnCanvas(pAg,'대한세무법인'); document.getElementById('pf_sz_agency').classList.add('has-stamp'); pAg.style.opacity='1'; }
+  // 보험사무대행: 이석제 개인 도장
+  const lAg=document.getElementById('lf_sc_agency');
+  if(lAg){ drawPersonalStampOnCanvas(lAg,'이석제'); document.getElementById('lf_sz_agency').classList.add('has-stamp'); lAg.style.opacity='1'; }
+}
+
+// 도장 토글 (클릭)
+function getStampName(zoneId) {
+  if(zoneId==='pf_sz_agency') return '대한세무법인';
+  if(zoneId==='lf_sz_agency') return '이석제';
+  if(zoneId==='hf_sz_agree2') return document.getElementById('h_del1')?.value.trim()||'';
+  if(zoneId.endsWith('_corp')) return document.getElementById('c_name')?.value.trim()||'';
+  return document.getElementById('c_rep')?.value.trim()||'';
+}
+function isCorpZone(zoneId) {
+  return zoneId.endsWith('_corp')||zoneId==='pf_sz_agency';
+}
+function toggleStamp(zoneId) {
+  const zone=document.getElementById(zoneId);
+  const canvas=zone.querySelector('canvas');
+  if(zone.classList.contains('has-stamp')){
+    zone.classList.remove('has-stamp'); canvas.style.opacity='0';
+    const ctx=canvas.getContext('2d'); ctx.clearRect(0,0,canvas.width,canvas.height);
+  } else {
+    const name=getStampName(zoneId);
+    if(!name){ alert('성명 또는 상호를 먼저 입력해 주세요.'); return; }
+    if(isCorpZone(zoneId)) drawCorpStampOnCanvas(canvas,name);
+    else drawPersonalStampOnCanvas(canvas,name);
+    zone.classList.add('has-stamp'); canvas.style.opacity='1';
+  }
+}
+
+// PDF.js worker
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+}
+
+// ===== 첨부파일 병합 헬퍼 =====
+async function addAttachmentToPdf(pdf, dataUrl, pageW, pageH) {
+  const isPdf = dataUrl.startsWith('data:application/pdf') || dataUrl.includes(';base64,JVBER');
+  if (isPdf) {
+    try {
+      const base64 = dataUrl.split(',')[1];
+      const binary = atob(base64);
+      const uint8 = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) uint8[i] = binary.charCodeAt(i);
+      const pdfDoc = await pdfjsLib.getDocument({data: uint8}).promise;
+      for (let n = 1; n <= pdfDoc.numPages; n++) {
+        const page = await pdfDoc.getPage(n);
+        const vp = page.getViewport({scale: 2});
+        const cvs = document.createElement('canvas');
+        cvs.width = vp.width; cvs.height = vp.height;
+        await page.render({canvasContext: cvs.getContext('2d'), viewport: vp}).promise;
+        const jpeg = cvs.toDataURL('image/jpeg', 0.92);
+        pdf.addPage();
+        let dw = pageW, dh = (vp.height / vp.width) * pageW;
+        if (dh > pageH) { dh = pageH; dw = (vp.width / vp.height) * pageH; }
+        pdf.addImage(jpeg, 'JPEG', (pageW - dw) / 2, (pageH - dh) / 2, dw, dh);
+      }
+    } catch(e) { console.warn('PDF 첨부 실패:', e); }
+  } else {
+    await new Promise(res => {
+      const img = new Image();
+      img.onload = () => {
+        try {
+          const cvs = document.createElement('canvas');
+          cvs.width = img.naturalWidth; cvs.height = img.naturalHeight;
+          cvs.getContext('2d').drawImage(img, 0, 0);
+          const jpeg = cvs.toDataURL('image/jpeg', 0.92);
+          pdf.addPage();
+          let dw = pageW, dh = (img.naturalHeight / img.naturalWidth) * pageW;
+          if (dh > pageH) { dh = pageH; dw = (img.naturalWidth / img.naturalHeight) * pageH; }
+          pdf.addImage(jpeg, 'JPEG', (pageW - dw) / 2, (pageH - dh) / 2, dw, dh);
+        } catch(e) { console.warn('이미지 첨부 실패:', e); }
+        res();
+      };
+      img.onerror = () => res();
+      img.src = dataUrl;
+    });
+  }
+}
+
+// ===== 첨부파일 =====
+const attachFiles = {}; // fileId -> dataURL
+
+function onAttach(fileId, lblId, autoSave) {
+  const f = document.getElementById(fileId).files[0];
+  const lbl = document.getElementById(lblId);
+  if (!f) { lbl.textContent='파일 선택 또는 드래그'; lbl.classList.remove('has-file'); delete attachFiles[fileId]; return; }
+  const reader = new FileReader();
+  reader.onload = e => {
+    attachFiles[fileId] = e.target.result;
+    lbl.textContent = f.name;
+    lbl.classList.add('has-file');
+    if (autoSave) {
+      try { localStorage.setItem('saved_appl_id', JSON.stringify({name: f.name, data: e.target.result})); } catch(ex) {}
+    }
+  };
+  reader.readAsDataURL(f);
+}
+
+function initDragDrop() {
+  document.querySelectorAll('.attach-lbl').forEach(lbl => {
+    lbl.addEventListener('dragover', e => { e.preventDefault(); lbl.style.borderColor='#A8988C'; lbl.style.background='#F0E8E0'; });
+    lbl.addEventListener('dragleave', () => { lbl.style.borderColor=''; lbl.style.background=''; });
+    lbl.addEventListener('drop', e => {
+      e.preventDefault(); lbl.style.borderColor=''; lbl.style.background='';
+      const file = e.dataTransfer.files[0]; if (!file) return;
+      const fileId = lbl.id.replace('lbl_','file_');
+      const autoSave = fileId === 'file_appl_id';
+      const reader = new FileReader();
+      reader.onload = ev => {
+        attachFiles[fileId] = ev.target.result;
+        lbl.textContent = file.name; lbl.classList.add('has-file');
+        if (autoSave) {
+          try { localStorage.setItem('saved_appl_id', JSON.stringify({name: file.name, data: ev.target.result})); } catch(ex) {}
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  });
+}
+
+function loadSavedApplId() {
+  try {
+    const s = localStorage.getItem('saved_appl_id'); if (!s) return;
+    const {name, data} = JSON.parse(s);
+    attachFiles['file_appl_id'] = data;
+    const lbl = document.getElementById('lbl_appl_id');
+    lbl.textContent = name + ' (저장됨)'; lbl.classList.add('has-file');
+  } catch(e) {}
+}
+
+function clearApplId() {
+  try { localStorage.removeItem('saved_appl_id'); } catch(e) {}
+  delete attachFiles['file_appl_id'];
+  document.getElementById('file_appl_id').value = '';
+  const lbl = document.getElementById('lbl_appl_id');
+  lbl.textContent = '파일 선택 또는 드래그'; lbl.classList.remove('has-file');
+}
+
+// ===== PDF 저장 =====
+async function savePDF(tabIdx) {
+  const panelIds=['panel0','panel1','panel2','panel3'];
+  const getName=()=>document.getElementById('c_name').value.trim()||document.getElementById('c_rep').value.trim()||'신청서';
+  const filenames=[
+    ()=>`홈택스_세무대리정보_이용신청서_${getName()}.pdf`,
+    ()=>`건강보험_EDI_업무대행_위임장_${getName()}.pdf`,
+    ()=>`국민연금_EDI_업무대행_신청서_${getName()}.pdf`,
+    ()=>`보험사무대행기관_사무위탁서_${getName()}.pdf`,
+  ];
+
+  const panel=document.getElementById(panelIds[tabIdx]);
+  const sheet=panel.querySelector('.sheet');
+  const replaced=[];
+
+  // 비활성 탭도 렌더링 가능하게 잠깐 화면 밖에 표시
+  const wasHidden=!panel.classList.contains('active');
+  if(wasHidden){
+    panel.style.display='block';
+    panel.style.position='absolute';
+    panel.style.left='-9999px';
+    panel.style.top='0';
+    panel.style.visibility='visible';
+  }
+
+  try {
+    document.activeElement?.blur();
+    // 패널 크기 확정 대기
+    await new Promise(r=>setTimeout(r,80));
+
+    sheet.querySelectorAll('input:not([type=checkbox]):not([type=radio]),textarea').forEach(inp=>{
+      const val=inp.value||''; const cs=getComputedStyle(inp);
+      const span=document.createElement('span');
+      span.style.fontFamily=cs.fontFamily; span.style.fontSize=cs.fontSize;
+      span.style.fontWeight=cs.fontWeight; span.style.color=cs.color;
+      span.style.background='transparent'; span.style.borderBottom=cs.borderBottom||'1px dashed #bbb';
+      span.style.verticalAlign='middle'; span.style.padding='0';
+      span.style.boxSizing='border-box'; span.style.whiteSpace='pre'; span.style.textAlign=cs.textAlign;
+      span.textContent=val;
+      if(inp.classList.contains('fi')){
+        span.style.flex='1'; span.style.width='100%'; span.style.display='flex'; span.style.alignItems='center';
+      } else {
+        span.style.display='inline-flex'; span.style.alignItems='center'; span.style.width=cs.width; span.style.minWidth='2mm';
+        if(cs.textAlign==='center') span.style.justifyContent='center';
+      }
+      inp.parentNode.insertBefore(span,inp); inp.style.display='none';
+      replaced.push({span,inp});
+    });
+    const canvas=await html2canvas(sheet,{scale:2,useCORS:true,logging:false,allowTaint:true,width:sheet.offsetWidth,height:sheet.scrollHeight,windowWidth:sheet.offsetWidth});
+    replaced.forEach(({span,inp})=>{ inp.style.display=''; span.remove(); });
+    if(wasHidden){ panel.style.cssText=''; }
+
+    const {jsPDF}=window.jspdf;
+    const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
+    const pageW=pdf.internal.pageSize.getWidth(), pageH=pdf.internal.pageSize.getHeight();
+    const imgW=pageW, imgH=(canvas.height/canvas.width)*imgW;
+    const imgData=canvas.toDataURL('image/jpeg',0.95);
+    if(imgH<=pageH){
+      // 한 페이지에 딱 맞는 경우
+      pdf.addImage(imgData,'JPEG',0,0,imgW,imgH);
+    } else if(imgH <= pageH * 1.15){
+      // 살짝 넘치는 경우 → 높이 기준으로 축소해서 한 장에 맞춤
+      const fitW=(canvas.width/canvas.height)*pageH;
+      pdf.addImage(imgData,'JPEG',(pageW-fitW)/2,0,fitW,pageH);
+    } else {
+      // 진짜 여러 페이지가 필요한 경우
+      const pxPerMm=canvas.width/imgW, pageHpx=pageH*pxPerMm;
+      let yPx=0;
+      while(yPx<canvas.height){
+        const sliceH=Math.min(pageHpx,canvas.height-yPx);
+        const sc=document.createElement('canvas'); sc.width=canvas.width; sc.height=sliceH;
+        sc.getContext('2d').drawImage(canvas,0,yPx,canvas.width,sliceH,0,0,canvas.width,sliceH);
+        if(yPx>0) pdf.addPage();
+        pdf.addImage(sc.toDataURL('image/jpeg',0.95),'JPEG',0,0,imgW,(sliceH/canvas.width)*imgW);
+        yPx+=sliceH;
+      }
+    }
+    // 홈택스: 첨부 신분증을 추가 페이지로 병합 (이미지 + PDF 모두 지원)
+    if (tabIdx === 0) {
+      for (const aid of ['file_del_id', 'file_appl_id']) {
+        const dataUrl = attachFiles[aid]; if (!dataUrl) continue;
+        await addAttachmentToPdf(pdf, dataUrl, pageW, pageH);
+      }
+    }
+    pdf.save(filenames[tabIdx]());
+  } catch(e) {
+    replaced.forEach(({span,inp})=>{ inp.style.display=''; try{span.remove();}catch(_){} });
+    if(wasHidden){ panel.style.cssText=''; }
+    alert('저장 오류: '+e.message); console.error(e);
+  }
+}
+
+async function saveAllPDF() {
+  const btn=document.getElementById('btn_save_all');
+  btn.disabled=true;
+  for(let i=0;i<4;i++){
+    btn.textContent=`⏳ 저장 중... (${i+1}/4)`;
+    await savePDF(i);
+    await new Promise(r=>setTimeout(r,300));
+  }
+  btn.textContent='💾 전체 저장 (4개)';
+  btn.disabled=false;
+}
+
+// ===== 초기화 =====
+function clearAll() {
+  if(!confirm('모든 내용을 초기화하시겠습니까?')) return;
+  ['c_name','c_biz','c_rep','c_rrn','c_addr','c_mgmt',
+   'h_tel','h_del1','h_del_rrn','h_del4',
+   'hi_unit','hi_rrn','p_corpreg','p_birth',
+   'l_workers','l_tel','l_tel2'].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=''; });
+  document.getElementById('h_mobile').value='010-0000-0000';
+  // form fields
+  ['hf_f1','hf_f2','hf_f3a','hf_f4a','hf_f3b','hf_f4b','hf_f5t','hf_f5m',
+   'hf_fsign','hf_fdel0','hf_fdel1','hf_fdel2','hf_fdel4','hf_fsgn1','hf_fsgn2',
+   'hi_fb3','hi_fb4','hi_fb5','hi_fb7','hi_fsign',
+   'pf_fb1','pf_fb3','pf_fb4','pf_fb5','pf_fb6','pf_fb7','pf_fb8','pf_fsign',
+   'lf_fb1','lf_fb3','lf_fb_wk','lf_fb4','lf_fb_tel','lf_fb5','lf_fb_tel2','lf_fb_biz','lf_fsign','lf_fb_addr'].forEach(id=>{
+    const el=document.getElementById(id); if(el&&el.tagName==='INPUT') el.value='';
+  });
+  ['hi_fb1_disp','hi_fb6','hi_fjisa','pf_fjisa','lf_fb_귀하'].forEach(id=>{ const el=document.getElementById(id); if(el) el.textContent=''; });
+  // 도장 초기화 (agency 제외)
+  const stampIds=['hf_sc_sign','hf_sc_del','hf_sc_agree','hf_sc_agree2',
+    'hf_sc_sign_corp','hf_sc_del_corp','hf_sc_agree_corp',
+    'hi_sc_sign','hi_sc_sign_corp','pf_sc_client','pf_sc_client_corp','lf_sc_client','lf_sc_client_corp'];
+  stampIds.forEach(cid=>{
+    const c=document.getElementById(cid); if(!c) return;
+    c.getContext('2d').clearRect(0,0,c.width,c.height); c.style.opacity='0';
+    const zone=c.closest('.stamp-zone'); if(zone) zone.classList.remove('has-stamp');
+  });
+  ['hf_sz_sign_corp','hf_sz_del_corp','hf_sz_agree_corp','hi_sz_sign_corp','pf_sz_client_corp','lf_sz_client_corp'].forEach(id=>{
+    const z=document.getElementById(id); if(z) z.style.display='none';
+  });
+  // 체크박스 초기화
+  document.querySelector('input[name=c_biztype][value=personal]').checked=true;
+  document.querySelector('input[name=h_qtype][value=use]').checked=true;
+  document.querySelector('input[name=hf_agree_type][value=yes]').checked=true;
+  hf_syncType(); hf_updateChkInds(); lf_updateChecks();
+  setToday();
+  drawAgencyStamps();
+  try { localStorage.removeItem('multi_form_v1'); } catch(e){}
+}
+
+// ===== localStorage =====
+function saveLocal() {
+  try {
+    const d={};
+    ['c_name','c_biz','c_rep','c_rrn','c_addr','c_mgmt','c_y','c_mo','c_d',
+     'h_tel','h_mobile','h_del1','h_del_rrn','h_del4',
+     'hi_unit','hi_rrn','p_corpreg','p_birth',
+     'l_workers','l_tel','l_tel2'].forEach(id=>{
+      const el=document.getElementById(id); if(el) d[id]=el.value;
+    });
+    d.c_biztype=document.querySelector('input[name=c_biztype]:checked')?.value;
+    d.h_qtype=document.querySelector('input[name=h_qtype]:checked')?.value;
+    d.hf_agree_type=document.querySelector('input[name=hf_agree_type]:checked')?.value;
+    localStorage.setItem('multi_form_v1',JSON.stringify(d));
+  } catch(e){}
+}
+function loadLocal() {
+  try {
+    const saved=localStorage.getItem('multi_form_v1'); if(!saved) return;
+    const d=JSON.parse(saved);
+    ['c_name','c_biz','c_rep','c_rrn','c_addr','c_mgmt','c_y','c_mo','c_d',
+     'h_tel','h_mobile','h_del1','h_del_rrn','h_del4',
+     'hi_unit','hi_rrn','p_corpreg','p_birth',
+     'l_workers','l_tel','l_tel2'].forEach(id=>{
+      const el=document.getElementById(id); if(el&&d[id]) el.value=d[id];
+    });
+    if(d.c_biztype){ const r=document.querySelector(`input[name=c_biztype][value="${d.c_biztype}"]`); if(r) r.checked=true; }
+    if(d.h_qtype){ const r=document.querySelector(`input[name=h_qtype][value="${d.h_qtype}"]`); if(r) r.checked=true; }
+    if(d.hf_agree_type){ const r=document.querySelector(`input[name=hf_agree_type][value="${d.hf_agree_type}"]`); if(r) r.checked=true; }
+    // sync everything
+    if(d.c_name) onNameChange();
+    if(d.c_rep) onRepChange();
+    if(d.c_biz) onBizChange();
+    if(d.c_addr) onAddrChange();
+    if(d.c_mgmt) onMgmtChange();
+    if(d.c_y||d.c_mo||d.c_d) onDateChange();
+    if(d.c_rrn) hf_fmtRrn(document.getElementById('c_rrn'));
+    if(d.h_tel) hf_fmtPhone(document.getElementById('h_tel'),'hf_f5t');
+    if(d.h_mobile) hf_fmtPhone(document.getElementById('h_mobile'),'hf_f5m');
+    if(d.h_del1) hf_syncDelegate();
+    if(d.h_del_rrn) hf_fmtDelRrn(document.getElementById('h_del_rrn'));
+    if(d.h_del4) hf_fmtPhone(document.getElementById('h_del4'),'hf_fdel4');
+    if(d.hi_rrn) hi_fmtRrn(document.getElementById('hi_rrn'));
+    if(d.p_corpreg) pf_fmtCorpReg(document.getElementById('p_corpreg'));
+    if(d.p_birth) pf_fmtBirth(document.getElementById('p_birth'));
+    ['l_workers','l_tel','l_tel2'].forEach(id=>{
+      const map={l_workers:'lf_fb_wk',l_tel:'lf_fb_tel',l_tel2:'lf_fb_tel2'};
+      if(d[id]) setVal(map[id], d[id]);
+    });
+    hf_syncType(); hf_updateChkInds(); lf_updateChecks();
+    updateHealthMgmt();
+  } catch(e){}
+}
+
+function setToday() {
+  const dt=new Date();
+  const y=dt.getFullYear(), mo=dt.getMonth()+1, d=dt.getDate();
+  document.getElementById('c_y').value=y;
+  document.getElementById('c_mo').value=mo;
+  document.getElementById('c_d').value=d;
+  onDateChange();
+}
+
+// ===== 초기화 로드 =====
+window.addEventListener('load', ()=>{
+  switchTab(0);
+  setToday();
+  hf_syncType();
+  hf_updateChkInds();
+  lf_updateChecks();
+  drawAgencyStamps();
+  // 초기 도장 opacity 0
+  ['hf_sc_sign','hf_sc_del','hf_sc_agree','hf_sc_agree2',
+   'hf_sc_sign_corp','hf_sc_del_corp','hf_sc_agree_corp',
+   'hi_sc_sign','hi_sc_sign_corp','pf_sc_client','pf_sc_client_corp',
+   'lf_sc_client','lf_sc_client_corp'].forEach(id=>{
+    const el=document.getElementById(id); if(el) el.style.opacity='0';
+  });
+  const saved=(()=>{ try{ return localStorage.getItem('multi_form_v1'); } catch(e){ return null; } })();
+  if(saved) loadLocal();
+  loadSavedApplId();
+  initDragDrop();
+  // Enter → 다음 필드
+  const sideInputs=Array.from(document.querySelectorAll('#sidebar input[type=text], #sidebar .date-inp'));
+  sideInputs.forEach((inp,i)=>{
+    inp.addEventListener('keydown', e=>{
+      if(e.key==='Enter'){ e.preventDefault(); const next=sideInputs[i+1]; if(next) next.focus(); }
+    });
+  });
+  document.getElementById('c_name').focus();
+});
+</script>
+</body>
+</html>

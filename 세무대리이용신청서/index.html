@@ -1,0 +1,936 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>홈택스 세무대리정보 이용(해지)신청서</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: '맑은 고딕','Malgun Gothic','굴림',sans-serif; display: flex; height: 100vh; overflow: hidden; background: #e0e0e0; }
+
+/* ===== 왼쪽 사이드바 ===== */
+#sidebar {
+  width: 260px; flex-shrink: 0;
+  background: #f0f0f0; color: #2c2c2c;
+  overflow-y: auto; padding: 12px 12px 16px;
+  display: flex; flex-direction: column; gap: 0;
+  border-right: 1px solid #d8d8d8;
+}
+.sb-title {
+  font-size: 10px; font-weight: 700; color: #6a6a6a;
+  border-bottom: 1px solid #d0d0d0;
+  padding-bottom: 4px; margin: 10px 0 6px;
+  letter-spacing: .5px; text-transform: uppercase;
+}
+.sb-title:first-child { margin-top: 0; }
+.sf { display: flex; flex-direction: column; gap: 2px; margin-bottom: 6px; }
+.sf label { font-size: 10px; color: #6a6a6a; font-weight: 700; letter-spacing: .3px; }
+.sf input[type=text] {
+  background: #fff; border: 1px solid #c8c8c8;
+  border-radius: 4px; color: #2c2c2c; font-size: 13px; font-family: inherit;
+  padding: 5px 7px; outline: none; width: 100%;
+}
+.sf input[type=text]::placeholder { color: #aaa; }
+.sf input[type=text]:focus { background: #fff; border-color: #8a8a8a; box-shadow: 0 0 0 2px rgba(0,0,0,.08); }
+.sr { display: flex; flex-direction: column; gap: 3px; margin-bottom: 6px; }
+.sr > .sr-lbl { font-size: 10px; color: #6a6a6a; font-weight: 700; margin-bottom: 1px; letter-spacing: .3px; text-transform: uppercase; }
+.sr label { display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; color: #3a3a3a; }
+.sr input[type=radio] { accent-color: #6a6a6a; }
+.date-row { display: flex; gap: 3px; align-items: center; margin-bottom: 6px; }
+.date-inp {
+  background: #fff; border: 1px solid #c8c8c8;
+  border-radius: 4px; color: #2c2c2c; font-size: 13px; font-family: inherit;
+  padding: 5px 4px; outline: none; text-align: center;
+}
+.date-inp:focus { border-color: #8a8a8a; box-shadow: 0 0 0 2px rgba(0,0,0,.08); }
+.date-row span { font-size: 12px; color: #7a7a7a; }
+.divider { border-top: 1px solid #d4d4d4; margin: 7px 0; }
+
+/* 도장 */
+.stamp-type-row { display: flex; gap: 12px; margin-bottom: 5px; }
+.stamp-type-row label { display: flex; align-items: center; gap: 3px; font-size: 10.5px; cursor: pointer; color: #3a3a3a; }
+.stamp-type-row input[type=radio] { accent-color: #6a6a6a; }
+.stamp-prev-wrap { display: flex; align-items: center; gap: 8px; margin-bottom: 3px; }
+.sbtn { padding: 4px 8px; border: none; border-radius: 3px; font-size: 9.5px; font-weight: 700; font-family: inherit; cursor: pointer; display: block; width: 100%; margin-bottom: 3px; }
+.sbtn-off { background: #fff; color: #3a3a3a; border: 1px solid #c8c8c8; }
+
+/* 첨부서류 */
+.attach-lbl {
+  display: block; width: 100%;
+  background: #fff; border: 1px dashed #c8c8c8;
+  border-radius: 4px; padding: 5px 7px;
+  font-size: 9.5px; color: #aaa; cursor: pointer;
+  text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.attach-lbl:hover { background: #f8f8f8; border-color: #8a8a8a; color: #5a5a5a; }
+.attach-lbl.has-file { color: #3a8a5a; border-color: #a8d8b8; background: #f4fbf6; }
+
+/* 고정값 표시 */
+.agent-fixed {
+  background: #fff; border: 1px solid #d8d8d8; border-radius: 4px;
+  padding: 5px 8px; margin-bottom: 6px;
+  font-size: 9.5px; color: #7a7a7a;
+  line-height: 1.7;
+}
+.agent-fixed strong { color: #4a4a4a; font-size: 10px; }
+
+/* 하단 버튼 */
+.sb-btns { margin-top: auto; padding-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+.sb-btn { padding: 9px; border: none; border-radius: 6px; font-size: 11px; font-weight: 700; font-family: inherit; cursor: pointer; text-align: center; }
+.sb-btn-print { background: #4a4a4a; color: #fff; }
+.sb-btn-print:hover { background: #2c2c2c; }
+.sb-btn-clear { background: #fff; color: #5a5a5a; border: 1px solid #c8c8c8; }
+.sb-btn-clear:hover { background: #f4f4f4; }
+
+/* ===== 오른쪽 서식 영역 ===== */
+#content { flex: 1; overflow-y: auto; padding: 20px; }
+.sheet {
+  background: #fff; width: 210mm; margin: 0 auto;
+  padding: 7mm 13mm 13mm 22mm;
+  box-shadow: 0 4px 20px rgba(0,0,0,.2);
+}
+
+/* ===== 서식 테이블 ===== */
+.ft { width: 100%; border-collapse: collapse; font-size: 8.5pt; table-layout: fixed; line-height: 1.3; }
+.ft td { border: 0.4pt solid #000; vertical-align: middle; padding: 0.4mm 1mm; overflow: hidden; }
+.ft col.c1 { width: 37.78mm; }
+.ft col.c2 { width: 59.28mm; }
+.ft col.c3 { width: 19.13mm; }
+.ft col.c4 { width: 49.81mm; }
+.sec-lbl { background: #f0f0f0; font-weight: 700; font-size: 7.5pt; text-align: center; vertical-align: middle; word-break: keep-all; line-height: 1.4; }
+.spacer { border-left: none !important; border-right: none !important; padding: 0 !important; height: 1.5mm !important; }
+.notice { font-size: 6.8pt; line-height: 1.6; vertical-align: top; }
+
+/* ===== 입력 필드 ===== */
+.fi-wrap { display: flex; flex-direction: column; height: 100%; width: 100%; }
+.fi-lbl { font-size: 7.5pt; font-weight: 500; padding-bottom: 0.3mm; flex-shrink: 0; }
+.fi-lbl .sub { font-size: 6.5pt; font-weight: 400; }
+.fi { border: none; border-bottom: 1px dashed #bbb; outline: none; width: 100%; font-family: inherit; font-size: 9.5pt; background: transparent; padding: 0; flex: 1; min-height: 3mm; }
+.fi:focus { background: #fffde7; border-bottom-color: #e67e22; border-radius: 2px; }
+.fi-inline { border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 8pt; background: transparent; padding: 0; vertical-align: bottom; }
+.fi-inline:focus { background: #fffde7; }
+.fi-chk { width: 12px; height: 12px; margin: 0; vertical-align: middle; accent-color: #1b3a6b; cursor: pointer; }
+.fi-date { border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 8.5pt; background: transparent; text-align: center; }
+.fi-date:focus { background: #fffde7; }
+.fi-ro { background: transparent !important; color: #333; border-bottom: 1px solid #ccc !important; }
+div.fi-ro { display: flex; align-items: flex-end; min-height: 3mm; overflow: visible; white-space: nowrap; }
+
+/* ===== 도장 캔버스 ===== */
+.stamp-zone {
+  display: inline-block; position: relative;
+  width: 14mm; height: 14mm; flex-shrink: 0;
+  cursor: pointer; vertical-align: middle; z-index: 1;
+}
+.stamp-zone canvas { width: 100%; height: 100%; display: block; }
+.stamp-zone::after {
+  content: ''; position: absolute; inset: 0;
+  border: 1px dashed rgba(180,80,80,0.22); border-radius: 50%; pointer-events: none;
+}
+.stamp-zone.has-stamp::after { display: none; }
+.stamp-zones-row { display: inline-flex; gap: 1mm; vertical-align: middle; margin-left: -12mm; position: relative; z-index: 1; }
+.stamp-corp-zone { display: none; }
+.sign-row { display: flex; align-items: center; justify-content: flex-end; gap: 2mm; font-size: 8pt; }
+.fi-sign { width: 25mm; border: none; border-bottom: 1px dashed #bbb; outline: none; font-family: inherit; font-size: 8.5pt; background: transparent; }
+.fi-sign:focus { background: #fffde7; }
+
+/* ===== 인쇄 ===== */
+@media print {
+  body { display: block; background: #fff; }
+  #sidebar { display: none !important; }
+  #content { overflow: visible; padding: 0; }
+  .sheet { box-shadow: none; width: 100%; padding: 0; }
+  .fi, .fi-inline, .fi-date, .fi-sign { border-bottom: none !important; background: transparent !important; }
+  .stamp-zone::after { display: none !important; }
+  @page { size: A4; margin: 7mm 13mm 13mm 22mm; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 왼쪽 사이드바 ===== -->
+<div id="sidebar">
+
+  <div class="sb-title">⚡ 거래처 정보</div>
+  <div class="sf"><label>① 성명(대표자명)</label>
+    <input type="text" id="q1" placeholder="홍길동" oninput="syncApplicant(); autoStamp()"></div>
+  <div class="sf"><label>② 주민등록번호</label>
+    <input type="text" id="q2" placeholder="000000-0000000" maxlength="14" oninput="fmtRrn(this,'f2')"></div>
+  <div class="sf"><label>③ 상호(법인명)</label>
+    <input type="text" id="q3a" placeholder="○○상사" oninput="sync('q3a','f3a'); autoStamp(); saveLocal()"></div>
+  <div class="sf"><label>④ 사업자등록번호</label>
+    <input type="text" id="q4a" placeholder="000-00-00000" maxlength="12" oninput="fmtBiz(this,'f4a')"></div>
+  <div class="sf"><label>⑤ 전화번호</label>
+    <input type="text" id="q5t" placeholder="02-0000-0000" maxlength="13" oninput="fmtPhone(this,'f5t')"></div>
+  <div class="sf"><label>⑤ 휴대전화</label>
+    <input type="text" id="q5m" maxlength="13" oninput="fmtPhone(this,'f5m')"></div>
+
+  <div class="divider"></div>
+
+  <div class="sr">
+    <span class="sr-lbl">신청 구분</span>
+    <label><input type="radio" name="qtype" value="use" checked onchange="syncType()"> ⑥ 정보이용</label>
+    <label><input type="radio" name="qtype" value="renew" onchange="syncType()"> ⑦ 해지 후 재신청</label>
+    <label><input type="radio" name="qtype" value="cancel" onchange="syncType()"> ⑧ 해지신청</label>
+  </div>
+  <div class="date-row">
+    <input class="date-inp" style="width:44px;" id="qy" oninput="sync('qy','fy')">
+    <span>년</span>
+    <input class="date-inp" style="width:28px;" id="qmo" oninput="sync('qmo','fmo')">
+    <span>월</span>
+    <input class="date-inp" style="width:28px;" id="qd" oninput="sync('qd','fd')">
+    <span>일</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sb-title">👤 위임받은 사람</div>
+  <div class="sf"><label>성명</label>
+    <input type="text" id="qdel1" placeholder="홍길동" oninput="syncDelegate()"></div>
+  <div class="sf"><label>주민등록번호</label>
+    <input type="text" id="qdel_rn" placeholder="000000-0000000" maxlength="14" oninput="fmtDelRrn(this)"></div>
+  <div class="sf"><label>연락처</label>
+    <input type="text" id="qdel4" placeholder="010-0000-0000" maxlength="13" oninput="fmtPhone(this,'fdel4')"></div>
+
+  <div class="divider"></div>
+
+  <div class="sb-title">📎 첨부 서류</div>
+  <div class="sf"><label>위임받은 사람 신분증</label>
+    <label class="attach-lbl" id="lbl_del_id" for="file_del_id">파일 선택 또는 드래그</label>
+    <input type="file" id="file_del_id" style="display:none;" accept="image/*,application/pdf" onchange="onAttach('file_del_id','lbl_del_id')"></div>
+  <div class="sf"><label>위임자 신분증</label>
+    <label class="attach-lbl" id="lbl_appl_id" for="file_appl_id">파일 선택 또는 드래그</label>
+    <input type="file" id="file_appl_id" style="display:none;" accept="image/*,application/pdf" onchange="onAttach('file_appl_id','lbl_appl_id')"></div>
+
+  <div class="sb-btns">
+    <button class="sb-btn sb-btn-print" onclick="savePDF()">💾 PDF 저장</button>
+    <button class="sb-btn sb-btn-clear" onclick="clearClient()">↺ 새로 작성하기</button>
+  </div>
+</div>
+
+<!-- ===== 오른쪽 A4 서식 ===== -->
+<div id="content"><div class="sheet">
+<table class="ft">
+<colgroup><col class="c1"><col class="c2"><col class="c3"><col class="c4"></colgroup>
+<tbody>
+<tr><td colspan="4" style="height:5.5mm;border-left:none;border-right:none;border-top:none;font-size:7.5pt;padding:0.5mm 1mm;">[별지 제6호 서식]</td></tr>
+<tr><td colspan="4" style="height:6mm;text-align:center;font-size:13pt;font-weight:700;letter-spacing:1px;border-left:none;border-right:none;">홈택스 세무대리정보 이용(해지)신청서</td></tr>
+<tr>
+  <td colspan="3" style="height:5mm;font-size:8pt;border-left:none;border-top:none;padding:0.3mm 1mm;">접수번호</td>
+  <td style="height:5mm;border-top:none;"></td>
+</tr>
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td rowspan="4" class="sec-lbl" style="height:30mm;">1.신청인 및<br>정보이용(해지)<br>사업장</td>
+  <td style="height:8mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">① 성명(대표자명)</div><input class="fi" type="text" id="f1"></div>
+  </td>
+  <td colspan="2" style="height:8mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">② 주민등록번호(외국인등록번호 등)</div><input class="fi" type="text" id="f2" maxlength="14"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">③-1 상호(법인명) <span class="sub">* 별지 작성 가능</span></div><input class="fi" type="text" id="f3a"></div>
+  </td>
+  <td colspan="2" style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">④-1 사업자등록번호</div><input class="fi" type="text" id="f4a" maxlength="12"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;overflow:visible;">
+    <div class="fi-wrap"><div class="fi-lbl">③-2</div><input class="fi" type="text" id="f3b"></div>
+  </td>
+  <td colspan="2" style="height:7.5mm;vertical-align:top;padding:0.3mm 1mm;overflow:visible;">
+    <div class="fi-wrap"><div class="fi-lbl">④-2</div><input class="fi" type="text" id="f4b" maxlength="12"></div>
+  </td>
+</tr>
+<tr>
+  <td colspan="3" style="height:7mm;font-size:8pt;padding:0.3mm 1mm;vertical-align:middle;white-space:nowrap;">
+    ⑤ 연락처(전화번호 :&nbsp;<input class="fi-inline" style="width:28mm;" type="text" id="f5t">)&nbsp;(휴대전화번호 :&nbsp;<input class="fi-inline" style="width:26mm;" type="text" id="f5m">)
+  </td>
+</tr>
+
+<tr><td class="spacer" style="border-right:none;"></td><td colspan="3" class="spacer"></td></tr>
+
+<tr>
+  <td class="sec-lbl" style="height:15mm;">2.신청 구분</td>
+  <td colspan="3" style="height:15mm;font-size:8pt;vertical-align:top;padding:1mm 2mm;line-height:1.8;">
+    <label style="cursor:pointer;display:block;"><input type="radio" name="ftype" id="f6" value="use" checked style="display:none;" onchange="updateChkInds()"> ⑥ 정보이용 신청 <span class="chk-ind" id="chk_f6">☑</span></label>
+    <label style="cursor:pointer;display:block;"><input type="radio" name="ftype" id="f7" value="renew" style="display:none;" onchange="updateChkInds()"> ⑦ 기존 정보이용 해지 후 새로운 정보이용 신청 <span class="chk-ind" id="chk_f7">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="radio" name="ftype" id="f8" value="cancel" style="display:none;" onchange="updateChkInds()"> ⑧ 정보이용 해지신청 <span class="chk-ind" id="chk_f8">□</span></label>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td class="sec-lbl" style="height:28mm;">3.세무대리정보<br>이용 구분 등<br><span style="font-size:6.5pt;font-weight:400;">(정보이용 신청<br>시 작성)</span></td>
+  <td colspan="3" style="height:28mm;vertical-align:top;padding:0.8mm 2mm;font-size:8pt;line-height:1.7;">
+    ⑨ 세무대리정보이용 구분 및 기간<br>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="f9a" style="display:none;" onchange="updateChkInds()"> ▶ 기장대리 : 동의 처리일로부터 해지일까지 <span class="chk-ind" id="chk_f9a">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="f9b" style="display:none;" onchange="updateChkInds()"> ▶ 신고대리 : 동의 처리일로부터 당해 세무신고의 신고기한까지 <span class="chk-ind" id="chk_f9b">□</span></label>
+    <label style="cursor:pointer;display:block;"><input type="checkbox" id="f9c" style="display:none;" onchange="updateChkInds()"> ▶ 외부조정(법인) : 동의 처리일로부터 당해 세무신고의 신고기한까지 <span class="chk-ind" id="chk_f9c">□</span></label>
+    <span style="font-size:7pt;line-height:1.6;">
+      ※ 세무대리정보 이용 범위:「홈택스 이용에 관한 규정」 제54조의 정보<br>
+      ※ 신청인의 개인정보보호를 위하여 세무대리인과 위임계약이 해지된 경우 반드시<br>
+      &nbsp;&nbsp;신청인 또는 세무대리인이 홈택스에서 수임등록을 해지하시기 바랍니다.
+    </span>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td rowspan="2" class="sec-lbl" style="height:18mm;">4.정보이용(해지)<br>세무대리인</td>
+  <td style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑩ 성명(상호)</div><div class="fi fi-ro" id="f10"></div></div>
+  </td>
+  <td colspan="2" style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑪ 사업자등록번호</div><div class="fi fi-ro" id="f11"></div></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:9mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">⑫ 세무사관리번호</div><div class="fi fi-ro" id="f12"></div></div>
+  </td>
+  <td colspan="2" style="height:9mm;font-size:8pt;vertical-align:middle;padding:0.5mm 1mm;">
+    ⑬ 연락처&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;(전화번호:&nbsp;<span class="fi-inline fi-ro" id="f13" style="display:inline-block;width:36mm;border-bottom:1px dashed #bbb;"></span>)
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" style="height:32mm;padding:1mm 2mm;vertical-align:top;">
+    <div style="font-size:8.5pt;line-height:1.6;">상기 세무대리인이 국세청 홈택스에서 제공되는 신청인의 세무관련 정보 이용(해지)에 대하여 동의합니다.</div>
+    <div style="text-align:center;font-size:8.5pt;margin-top:2.5mm;">
+      <span id="fy" style="font-size:8.5pt;"></span>년&nbsp;&nbsp;<span id="fmo" style="font-size:8.5pt;"></span>월&nbsp;&nbsp;<span id="fd" style="font-size:8.5pt;"></span>일
+    </div>
+    <div class="sign-row" style="margin-top:2mm;">
+      신 청 인 :&nbsp;<input class="fi-sign" type="text" id="fsign">&nbsp;<span style="font-size:7.5pt;white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+        <span class="stamp-zone" id="sz_sign" onclick="toggleStamp('sz_sign')" title="대표자 도장"><canvas id="sc_sign" width="100" height="100"></canvas></span>
+        <span class="stamp-zone stamp-corp-zone" id="sz_sign_corp" onclick="toggleStamp('sz_sign_corp')" title="법인 도장"><canvas id="sc_sign_corp" width="100" height="100"></canvas></span>
+      </span>
+    </div>
+    <div style="text-align:right;font-size:8.5pt;margin-top:2mm;">세무서장 귀하</div>
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td colspan="4" style="height:6mm;text-align:center;font-size:9.5pt;font-weight:700;vertical-align:middle;">
+    위&nbsp;&nbsp;&nbsp;임&nbsp;&nbsp;&nbsp;장&nbsp;&nbsp;<span style="font-size:7.5pt;font-weight:400;">(대리인에게 위임하는 경우 작성)</span>
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" style="height:15mm;font-size:8pt;padding:1mm 2mm;line-height:1.8;vertical-align:top;">
+    위 신청인 본인은 아래 위임받은 사람에게 홈택스 세무대리정보 이용(해지)신청에 관한<br>모든 권리와 의무를 위임합니다.
+    <div class="sign-row" style="margin-top:1mm;">
+      위임하는 사람(신청인) :&nbsp;<input class="fi-sign" type="text" id="fdel0">&nbsp;<span style="font-size:7.5pt;white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+        <span class="stamp-zone" id="sz_del" onclick="toggleStamp('sz_del')" title="대표자 도장"><canvas id="sc_del" width="100" height="100"></canvas></span>
+        <span class="stamp-zone stamp-corp-zone" id="sz_del_corp" onclick="toggleStamp('sz_del_corp')" title="법인 도장"><canvas id="sc_del_corp" width="100" height="100"></canvas></span>
+      </span>
+    </div>
+  </td>
+</tr>
+
+<tr>
+  <td rowspan="2" class="sec-lbl" style="height:16mm;">위임받은<br>사&nbsp;람</td>
+  <td style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">성&nbsp;&nbsp;명</div><input class="fi" type="text" id="fdel1"></div>
+  </td>
+  <td colspan="2" style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">주민등록번호</div><input class="fi" type="text" id="fdel2" maxlength="14"></div>
+  </td>
+</tr>
+<tr>
+  <td style="height:8mm;vertical-align:top;padding:0.5mm 1mm;">
+    <div class="fi-wrap"><div class="fi-lbl">위임하는 사람과의 관계</div><div class="fi fi-ro" id="fdel3"></div></div>
+  </td>
+  <td colspan="2" style="height:8mm;font-size:8pt;vertical-align:middle;padding:0.5mm 1mm;">
+    연락처(전화번호 :&nbsp;<input class="fi-inline" style="width:38mm;" type="text" id="fdel4">)
+  </td>
+</tr>
+
+<tr><td colspan="4" class="spacer"></td></tr>
+
+<tr>
+  <td colspan="4" style="height:6mm;font-size:8.5pt;font-weight:700;vertical-align:middle;text-align:center;">
+    개인정보 수집&#8231;이용에 대한 동의(개인정보보호법 제24조)
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" class="notice" style="height:22mm;padding:0.8mm 2mm;vertical-align:top;">
+    ※ 동의를 거부할 권리가 있으며, 거부할 경우 신청서 처리 불가능 등의 불이익이 따를 수 있습니다.
+    &nbsp;&nbsp;○ 수집&#8231;이용목적 (신청서 처리, 사후관리 등)&nbsp;&nbsp;○ 보유&#8231;이용기간 ( 5년 )&nbsp;&nbsp;○ 수집대상 고유식별정보 (주민등록번호, 외국인등록번호, 여권번호 등)<br>
+    <label style="cursor:pointer;"><input class="fi-chk" type="checkbox" id="fagree1" checked> □ 상기내용에 대해 동의합니다.</label>&nbsp;&nbsp;&nbsp;
+    <label style="cursor:pointer;"><input class="fi-chk" type="checkbox" id="fagree2"> □ 상기내용에 대해 동의하지 않습니다.</label><br>
+    <div style="text-align:right;margin-top:1.5mm;display:flex;justify-content:flex-end;align-items:center;gap:4mm;">
+      <span style="display:inline-flex;align-items:center;white-space:nowrap;">신청인 :&nbsp;<input class="fi-sign" style="width:20mm;" type="text" id="fsgn1">&nbsp;<span style="font-size:7.5pt;">(서명 또는 인)</span><span class="stamp-zones-row">
+          <span class="stamp-zone" id="sz_agree" onclick="toggleStamp('sz_agree')" title="대표자 도장"><canvas id="sc_agree" width="100" height="100"></canvas></span>
+          <span class="stamp-zone stamp-corp-zone" id="sz_agree_corp" onclick="toggleStamp('sz_agree_corp')" title="법인 도장"><canvas id="sc_agree_corp" width="100" height="100"></canvas></span>
+        </span>
+      </span>
+      <span style="display:inline-flex;align-items:center;white-space:nowrap;">위임받은 사람 :&nbsp;<input class="fi-sign" style="width:20mm;" type="text" id="fsgn2">&nbsp;<span style="font-size:7.5pt;">(서명 또는 인)</span><span class="stamp-zones-row">
+          <span class="stamp-zone" id="sz_agree2" onclick="toggleStamp('sz_agree2')" title="위임받은 사람 도장"><canvas id="sc_agree2" width="100" height="100"></canvas></span>
+        </span>
+      </span>
+    </div>
+  </td>
+</tr>
+
+<tr>
+  <td colspan="4" class="notice" style="height:20mm;padding:0.8mm 2mm;">
+    ※ 정보이용(해지) 신청 시 준비하실 사항<br>
+    &nbsp;&nbsp;1. 신청인 또는 국세기본법 제82조의 납세관리인이 신청 시 신분증(주민등록증, 운전면허증, 여권 등)<br>
+    &nbsp;&nbsp;2. 세무대리인 등 위임받은 사람이 신청 시 위임하는 사람(법인의 경우 법인대표자 등)의 신분증*(사본) 및 위임받은 사람의 신분증<br>
+    &nbsp;&nbsp;&nbsp;* 위임하는 사람이 희망하는 경우에 3개월 이내에 발급된 인감증명서(사본), 법인인감증명서(사본), 본인서명사실확인서, 전자본인서명사실확인서 가능
+  </td>
+</tr>
+<tr>
+  <td colspan="4" class="notice" style="height:9mm;padding:0.8mm 2mm;">
+    ※ 다른 사람의 인장 도용 등 허위로 위임장을 작성하여 신청할 경우에는 「형법」 제231조와 제232조에 따라 사문서 위&#8231;변조 죄로 5년 이하의 징역 또는 1천만원 이하의 벌금에 처하게 됩니다.
+  </td>
+</tr>
+<tr>
+  <td colspan="4" style="height:4.5mm;text-align:center;font-size:6.5pt;border-bottom:none;border-left:none;border-right:none;color:#555;">
+    210mm×297mm[백상지 80g/㎡(재활용품)]
+  </td>
+</tr>
+</tbody>
+</table>
+</div></div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+// ===== 세무대리인 고정값 =====
+const AGENT = {
+  name: '대한세무법인',
+  biz:  '129-81-68431',
+  mgmt: 'U16004',
+  tel:  '031-783-8877'
+};
+
+function fillAgent() {
+  document.getElementById('f10').textContent = AGENT.name;
+  document.getElementById('f11').textContent = AGENT.biz;
+  document.getElementById('f12').textContent = AGENT.mgmt;
+  document.getElementById('f13').textContent = AGENT.tel;
+  // 위임하는 사람과의 관계 고정
+  document.getElementById('fdel3').textContent = '세무대리인';
+}
+
+// 위임받은 사람 성명 → fdel1, fsgn2 동기화 + 도장 자동 반영
+function syncDelegate() {
+  const name = document.getElementById('qdel1').value;
+  ['fdel1','fsgn2'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = name;
+  });
+  autoDelegateStamp();
+  saveLocal();
+}
+function fmtDelRrn(src) {
+  let v = src.value.replace(/\D/g,'');
+  if (v.length > 6) v = v.slice(0,6)+'-'+v.slice(6,13);
+  src.value = v;
+  const t = document.getElementById('fdel2'); if(t) t.value = v;
+  saveLocal();
+}
+
+// ===== 동기화 =====
+function sync(qId, fId) {
+  const val = document.getElementById(qId)?.value || '';
+  const t = document.getElementById(fId);
+  if (!t) return;
+  if (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA') t.value = val;
+  else t.textContent = val;
+}
+
+// 성명 → 신청인 서명란 전체(f1, fsign, fdel0, fsgn1) 반영
+function syncApplicant() {
+  const name = document.getElementById('q1').value;
+  ['f1','fsign','fdel0','fsgn1'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = name;
+  });
+  saveLocal();
+}
+
+function fmtRrn(src, fId) {
+  let v = src.value.replace(/\D/g,'');
+  if (v.length > 6) v = v.slice(0,6)+'-'+v.slice(6,13);
+  src.value = v;
+  const t = document.getElementById(fId); if (t) t.value = v;
+  saveLocal();
+}
+function fmtPhone(src, fId) {
+  let v = src.value.replace(/\D/g, '');
+  if (v.startsWith('02')) {
+    if (v.length <= 9) v = v.slice(0,2) + (v.length>2?'-'+v.slice(2,5):'') + (v.length>5?'-'+v.slice(5):'');
+    else v = v.slice(0,2)+'-'+v.slice(2,6)+'-'+v.slice(6,10);
+  } else {
+    if (v.length <= 10) v = v.slice(0,3)+(v.length>3?'-'+v.slice(3,6):'')+(v.length>6?'-'+v.slice(6):'');
+    else v = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+  }
+  src.value = v;
+  const t = document.getElementById(fId);
+  if (t) { if(t.tagName==='INPUT') t.value=v; else t.textContent=v; }
+  saveLocal();
+}
+function fmtBiz(src, fId) {
+  let v = src.value.replace(/\D/g,'');
+  if (v.length > 3) v = v.slice(0,3)+'-'+v.slice(3);
+  if (v.length > 6) v = v.slice(0,6)+'-'+v.slice(6,11);
+  src.value = v;
+  if (fId) { const t = document.getElementById(fId); if (t && t!==src) t.value = v; }
+  saveLocal();
+}
+function updateChkInds() {
+  // 신청구분 라디오
+  [['f6','chk_f6'],['f7','chk_f7'],['f8','chk_f8']].forEach(([inp,ind]) => {
+    const el = document.getElementById(inp);
+    const sp = document.getElementById(ind);
+    if (el && sp) sp.textContent = el.checked ? '☑' : '□';
+  });
+  // 이용구분 체크박스
+  [['f9a','chk_f9a'],['f9b','chk_f9b'],['f9c','chk_f9c']].forEach(([inp,ind]) => {
+    const el = document.getElementById(inp);
+    const sp = document.getElementById(ind);
+    if (el && sp) sp.textContent = el.checked ? '☑' : '□';
+  });
+}
+
+function syncType() {
+  const v = document.querySelector('input[name=qtype]:checked')?.value;
+  document.getElementById('f6').checked = v==='use';
+  document.getElementById('f7').checked = v==='renew';
+  document.getElementById('f8').checked = v==='cancel';
+  updateChkInds();
+}
+
+// ===== 도장 그리기 =====
+function drawCorpStamp(ctx, cx, cy, coName, s, r) {
+  ctx.save();
+  const scx = cx*s, scy = cy*s, sr = r*s;
+  ctx.fillStyle = 'rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.arc(scx, scy, sr, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 1.8*s;
+  ctx.beginPath(); ctx.arc(scx, scy, sr, 0, Math.PI*2); ctx.stroke();
+  const innerR = sr * 0.55;
+  ctx.lineWidth = 1.2*s;
+  ctx.beginPath(); ctx.arc(scx, scy, innerR, 0, Math.PI*2); ctx.stroke();
+  const chars = [...coName.replace(/\(주\)/gi, '㈜')];
+  const total = chars.length + 1;
+  const textR = (sr + innerR) / 2;
+  const ringGap = sr - innerR;
+  const perA = (Math.PI*2) / total;
+  const fz = Math.min(textR * perA * 0.88, ringGap * 0.82);
+  const dotA = -Math.PI / 2;
+  ctx.fillStyle = '#cc0000';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  ctx.save();
+  ctx.translate(scx + textR*Math.cos(dotA), scy + textR*Math.sin(dotA));
+  ctx.rotate(dotA + Math.PI/2);
+  ctx.font = `${fz*0.55}px sans-serif`;
+  ctx.fillText('●', 0, 0);
+  ctx.restore();
+  ctx.font = `bold ${fz}px 'Malgun Gothic','맑은 고딕',sans-serif`;
+  chars.forEach((c, i) => {
+    const a = dotA + perA*(i+1);
+    ctx.save();
+    ctx.translate(scx + textR*Math.cos(a), scy + textR*Math.sin(a));
+    ctx.rotate(a + Math.PI/2);
+    ctx.fillText(c, 0, 0);
+    ctx.restore();
+  });
+  const hanjaRows = [['代','表'], ['理','事']];
+  const hjFz = innerR * 0.74;
+  const hjRowH = hjFz * 1.02;
+  const hjColW = hjFz * 1.02;
+  const totalHJ = hjRowH * hanjaRows.length;
+  ctx.strokeStyle = '#cc0000'; ctx.lineWidth = hjFz*0.10; ctx.lineJoin = 'round';
+  ctx.font = `bold ${hjFz}px 'Batang','바탕체','Malgun Gothic',serif`;
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  hanjaRows.forEach((row, ri) => {
+    const ry = scy - totalHJ/2 + hjRowH*(ri+0.5);
+    if (row.length === 2) {
+      [[row[0], scx-hjColW/2], [row[1], scx+hjColW/2]].forEach(([c,rx]) => {
+        ctx.strokeText(c, rx, ry); ctx.fillText(c, rx, ry);
+      });
+    } else {
+      ctx.strokeText(row[0], scx, ry); ctx.fillText(row[0], scx, ry);
+    }
+  });
+  ctx.restore();
+}
+
+function drawStamp(ctx, cx, cy, name, s, rx, ry) {
+  ctx.save();
+  const scx = cx*s, scy = cy*s, srx = rx*s, sry = ry*s;
+  ctx.fillStyle = 'rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.ellipse(scx, scy, srx, sry, 0, 0, Math.PI*2); ctx.fill();
+  ctx.strokeStyle = '#cc0000'; ctx.lineWidth = 1.8*s;
+  ctx.beginPath(); ctx.ellipse(scx, scy, srx, sry, 0, 0, Math.PI*2); ctx.stroke();
+  ctx.fillStyle = '#cc0000';
+  ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+  const chars = [...name].slice(0, 4);
+  const fz = Math.round(sry * 1.8 / chars.length);
+  ctx.font = `bold ${fz}px 'Batang','바탕체','Malgun Gothic','맑은 고딕',serif`;
+  ctx.strokeStyle = '#cc0000'; ctx.lineWidth = fz*0.12; ctx.lineJoin = 'round';
+  const totalH = fz * chars.length;
+  chars.forEach((c, i) => {
+    const cy2 = scy - totalH/2 + fz*(i+0.5);
+    ctx.strokeText(c, scx, cy2); ctx.fillText(c, scx, cy2);
+  });
+  ctx.restore();
+}
+
+function isCorp() {
+  return document.getElementById('q3a').value.trim() !== '';
+}
+function drawPersonalStampOnCanvas(canvas, name) {
+  const S = canvas.width;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, S, S);
+  if (!name) return;
+  drawStamp(ctx, S/2, S/2, name, 1, S*0.27, S*0.43);
+}
+function drawCorpStampOnCanvas(canvas, name) {
+  const S = canvas.width;
+  const ctx = canvas.getContext('2d');
+  ctx.clearRect(0, 0, S, S);
+  if (!name) return;
+  drawCorpStamp(ctx, S/2, S/2, name, 1, S/2 - 3);
+}
+function drawStampOnCanvas(canvas, name) {
+  drawPersonalStampOnCanvas(canvas, name);
+}
+
+let stampData = null;
+
+function getStampName() {
+  return isCorpMode()
+    ? (document.getElementById('q3a').value.trim() || document.getElementById('f3a').value.trim())
+    : (document.getElementById('q1').value.trim() || document.getElementById('f1').value.trim());
+}
+
+// 신청인 도장: 이름/상호 입력 시 자동 반영
+function autoStamp() {
+  const personalName = document.getElementById('q1').value.trim();
+  const corpName = document.getElementById('q3a').value.trim();
+  const corp = isCorp();
+
+  // 대표자(개인) 도장
+  ['sc_sign','sc_del','sc_agree'].forEach(id => {
+    const c = document.getElementById(id);
+    if (!c || !personalName) return;
+    drawPersonalStampOnCanvas(c, personalName);
+    c.closest('.stamp-zone').classList.add('has-stamp');
+    c.style.opacity = '1';
+  });
+
+  // 법인 도장 (법인명 입력 시 표시)
+  const corpZones    = ['sz_sign_corp','sz_del_corp','sz_agree_corp'];
+  const corpCanvases = ['sc_sign_corp','sc_del_corp','sc_agree_corp'];
+  corpCanvases.forEach((cid, i) => {
+    const c    = document.getElementById(cid);
+    const zone = document.getElementById(corpZones[i]);
+    if (!c || !zone) return;
+    if (corp && corpName) {
+      drawCorpStampOnCanvas(c, corpName);
+      zone.classList.add('has-stamp');
+      c.style.opacity = '1';
+      zone.style.display = 'inline-block';
+    } else {
+      zone.style.display = 'none';
+      zone.classList.remove('has-stamp');
+      c.style.opacity = '0';
+    }
+  });
+
+  stampData = { name: personalName };
+}
+
+// 위임받은 사람 도장: qdel1 입력 시 자동 반영
+function autoDelegateStamp() {
+  const name = document.getElementById('qdel1').value.trim();
+  if (!name) return;
+  const c = document.getElementById('sc_agree2');
+  drawStampOnCanvas(c, name);
+  c.closest('.stamp-zone').classList.add('has-stamp');
+  c.style.opacity = '1';
+}
+
+function getStampNameForZone(zoneId) {
+  if (zoneId === 'sz_agree2') {
+    return document.getElementById('qdel1')?.value.trim()
+        || document.getElementById('fdel1')?.value.trim() || '';
+  }
+  if (zoneId.endsWith('_corp')) {
+    return document.getElementById('q3a')?.value.trim()
+        || document.getElementById('f3a')?.value.trim() || '';
+  }
+  return stampData?.name || getStampName();
+}
+
+function toggleStamp(zoneId) {
+  const zone = document.getElementById(zoneId);
+  const canvas = zone.querySelector('canvas');
+  if (zone.classList.contains('has-stamp')) {
+    zone.classList.remove('has-stamp'); canvas.style.opacity = '0';
+  } else {
+    const name = getStampNameForZone(zoneId);
+    if (!name) { alert('성명 또는 상호를 먼저 입력해 주세요.'); return; }
+    if (zoneId.endsWith('_corp')) {
+      drawCorpStampOnCanvas(canvas, name);
+    } else if (zoneId === 'sz_agree2') {
+      drawPersonalStampOnCanvas(canvas, name);
+    } else {
+      drawPersonalStampOnCanvas(canvas, name);
+    }
+    zone.classList.add('has-stamp'); canvas.style.opacity = '1';
+    if (zoneId !== 'sz_agree2' && !zoneId.endsWith('_corp')) stampData = { name };
+  }
+}
+
+function clearStamp() {
+  ['sc_sign','sc_del','sc_agree','sc_agree2',
+   'sc_sign_corp','sc_del_corp','sc_agree_corp'].forEach(id => {
+    const c = document.getElementById(id); if (!c) return;
+    c.getContext('2d').clearRect(0, 0, c.width, c.height);
+    const zone = c.closest('.stamp-zone');
+    if (zone) { zone.classList.remove('has-stamp'); c.style.opacity='0'; }
+  });
+  ['sz_sign_corp','sz_del_corp','sz_agree_corp'].forEach(id => {
+    const z = document.getElementById(id); if (z) z.style.display = 'none';
+  });
+  stampData = null;
+}
+
+['sc_sign','sc_del','sc_agree','sc_agree2',
+ 'sc_sign_corp','sc_del_corp','sc_agree_corp'].forEach(id => {
+  const el = document.getElementById(id); if (el) el.style.opacity = '0';
+});
+
+// ===== PDF 직접 저장 =====
+async function savePDF() {
+  const btn = document.querySelector('.sb-btn-print');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
+
+  const sheet = document.querySelector('.sheet');
+  const replaced = []; // { placeholder, original } 복원용
+
+  try {
+    document.activeElement?.blur();
+
+    // 캡처 전: 시트 내 모든 input/select를 span으로 교체 (html2canvas가 input 값을 못 읽는 문제 해결)
+    sheet.querySelectorAll('input:not([type=checkbox]):not([type=radio]), select, textarea').forEach(inp => {
+      const val = inp.value || '';
+      const cs  = getComputedStyle(inp);
+
+      const span = document.createElement('span');
+      // 원본과 동일한 스타일 적용
+      span.style.cssText = inp.style.cssText;
+      span.style.display      = 'inline-block';
+      span.style.width        = cs.width;
+      span.style.fontFamily   = cs.fontFamily;
+      span.style.fontSize     = cs.fontSize;
+      span.style.fontWeight   = cs.fontWeight;
+      span.style.color        = cs.color;
+      span.style.background   = 'transparent';
+      span.style.borderBottom = cs.borderBottom || '1px dashed #bbb';
+      span.style.verticalAlign = 'bottom';
+      span.style.minHeight    = cs.minHeight;
+      span.style.padding      = '0';
+      span.style.boxSizing    = 'border-box';
+      span.style.whiteSpace   = 'pre';
+      span.textContent        = val;
+
+      // input이 flex: 1 인 경우 (fi 클래스) span도 flex:1로
+      if (inp.classList.contains('fi')) {
+        span.style.flex   = '1';
+        span.style.width  = '100%';
+        span.style.display = 'flex';
+        span.style.alignItems = 'flex-end';
+      }
+
+      inp.parentNode.insertBefore(span, inp);
+      inp.style.display = 'none';
+      replaced.push({ span, inp });
+    });
+
+    const canvas = await html2canvas(sheet, {
+      scale: 2, useCORS: true, logging: false,
+      allowTaint: true
+    });
+
+    // 복원
+    replaced.forEach(({ span, inp }) => {
+      inp.style.display = '';
+      span.remove();
+    });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    pdf.addImage(canvas.toDataURL('image/jpeg', 0.95), 'JPEG', 0, 0,
+                 canvas.width * ratio, canvas.height * ratio);
+    const name = document.getElementById('q1').value.trim()
+               || document.getElementById('q3a').value.trim()
+               || '신청서';
+    pdf.save(`홈택스_세무대리정보_이용신청서_${name}.pdf`);
+
+  } catch(e) {
+    // 오류 시에도 반드시 복원
+    replaced.forEach(({ span, inp }) => {
+      inp.style.display = '';
+      try { span.remove(); } catch(_) {}
+    });
+    alert('저장 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+}
+
+// ===== localStorage 저장/불러오기 =====
+function saveLocal() {
+  try {
+    const d = {};
+    ['q1','q2','q3a','q4a','q5t','q5m','qdel1','qdel_rn','qdel4'].forEach(id => {
+      const el = document.getElementById(id); if(el) d[id] = el.value;
+    });
+    localStorage.setItem('tax_form_v6', JSON.stringify(d));
+  } catch(e) {}
+}
+function loadLocal() {
+  try {
+    const saved = localStorage.getItem('tax_form_v6');
+    if (!saved) return;
+    const d = JSON.parse(saved);
+    ['q1','q2','q3a','q4a','q5t','q5m','qdel1','qdel_rn','qdel4'].forEach(id => {
+      const el = document.getElementById(id); if(el && d[id]) el.value = d[id];
+    });
+    if (d.q1) { syncApplicant(); autoStamp(); }
+    if (d.q3a) { sync('q3a','f3a'); autoStamp(); }
+    if (d.q4a) fmtBiz(document.getElementById('q4a'), 'f4a');
+    if (d.q2)  fmtRrn(document.getElementById('q2'), 'f2');
+    if (d.q5t) fmtPhone(document.getElementById('q5t'), 'f5t');
+    if (d.q5m) fmtPhone(document.getElementById('q5m'), 'f5m');
+    else { // 저장된 휴대전화 없으면 기본값
+      const q5m=document.getElementById('q5m'); if(q5m) q5m.value='010-0000-0000';
+      const f5m=document.getElementById('f5m'); if(f5m){if(f5m.tagName==='INPUT')f5m.value='010-0000-0000';else f5m.textContent='010-0000-0000';}
+    }
+    if (d.qdel1) syncDelegate();
+    if (d.qdel_rn) fmtDelRrn(document.getElementById('qdel_rn'));
+    if (d.qdel4) fmtPhone(document.getElementById('qdel4'), 'fdel4');
+  } catch(e) {}
+  // 저장된 위임자 신분증 파일명 복원
+  try {
+    const name = localStorage.getItem('appl_id_name');
+    if (name) {
+      const lbl = document.getElementById('lbl_appl_id');
+      if (lbl) { lbl.textContent = name + ' (저장됨)'; lbl.classList.add('has-file'); }
+    }
+  } catch(e) {}
+}
+
+// ===== 첨부파일 =====
+function onAttach(fileId, lblId) {
+  const f = document.getElementById(fileId).files[0];
+  const lbl = document.getElementById(lblId);
+  lbl.textContent = f ? f.name : '파일 선택 또는 드래그';
+  lbl.classList.toggle('has-file', !!f);
+  // 위임자 신분증만 localStorage에 base64로 저장
+  if (fileId === 'file_appl_id' && f) {
+    const reader = new FileReader();
+    reader.onload = e => {
+      try {
+        localStorage.setItem('appl_id_data', e.target.result);
+        localStorage.setItem('appl_id_name', f.name);
+      } catch(err) { /* 파일 너무 크면 저장 생략 */ }
+    };
+    reader.readAsDataURL(f);
+  }
+}
+
+// ===== 초기화 =====
+function clearClient() {
+  // localStorage 초기화
+  try { localStorage.removeItem('tax_form_v6'); localStorage.removeItem('appl_id_data'); localStorage.removeItem('appl_id_name'); } catch(e) {}
+  ['q1','q2','q3a','q4a','q5t'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  // 휴대전화 기본값 복원
+  const q5m = document.getElementById('q5m'); if(q5m) q5m.value='010-0000-0000';
+  const f5m = document.getElementById('f5m'); if(f5m) { if(f5m.tagName==='INPUT') f5m.value='010-0000-0000'; else f5m.textContent='010-0000-0000'; }
+  ['f1','f2','f3a','f4a','f3b','f4b','f5t',
+   'fsign','fdel0','fdel1','fdel2','fdel4','fsgn1','fsgn2'].forEach(id => {
+    const el=document.getElementById(id); if(el) el.value='';
+  });
+  // 신분증 라벨 초기화
+  const lbl=document.getElementById('lbl_appl_id'); if(lbl){lbl.textContent='파일 선택 또는 드래그';lbl.classList.remove('has-file');}
+  // div 요소 초기화 후 재설정
+  document.getElementById('fdel3').textContent = '세무대리인';
+  ['fy','fmo','fd'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
+  ['qdel1','qdel_rn','qdel4'].forEach(id => { const el=document.getElementById(id); if(el) el.value=''; });
+  document.querySelector('input[name=qtype][value=use]').checked=true;
+  document.getElementById('f9a').checked = true;
+  document.getElementById('f9b').checked = false;
+  document.getElementById('f9c').checked = false;
+  document.getElementById('fagree1').checked = true;
+  document.getElementById('fagree2').checked = false;
+  syncType(); setToday(); clearStamp();
+  fillAgent();
+  document.getElementById('q1').focus();
+}
+function setToday() {
+  const d = new Date();
+  const year = d.getFullYear(), month = d.getMonth()+1, day = d.getDate();
+  document.getElementById('qy').value = year;
+  document.getElementById('fy').textContent = year;
+  document.getElementById('qmo').value = month;
+  document.getElementById('fmo').textContent = month;
+  document.getElementById('qd').value = day;
+  document.getElementById('fd').textContent = day;
+}
+window.addEventListener('load', () => {
+  setToday(); syncType();
+  document.getElementById('f9a').checked = true;
+  fillAgent();
+  updateChkInds();
+
+  // 저장된 데이터 불러오기 (있으면 복원, 없으면 휴대전화 기본값 설정)
+  const saved = (() => { try { return localStorage.getItem('tax_form_v6'); } catch(e) { return null; } })();
+  if (saved) {
+    loadLocal();
+  } else {
+    // 휴대전화 기본값
+    const q5m = document.getElementById('q5m'); if(q5m) q5m.value='010-0000-0000';
+    const f5m = document.getElementById('f5m'); if(f5m) { if(f5m.tagName==='INPUT') f5m.value='010-0000-0000'; else f5m.textContent='010-0000-0000'; }
+  }
+
+  document.getElementById('q1').focus();
+
+  // 사이드바 입력칸에서 Enter → 다음 필드로 이동
+  const sidebarInputs = Array.from(document.querySelectorAll(
+    '#sidebar input[type=text], #sidebar input[type=tel], #sidebar .date-inp'
+  ));
+  sidebarInputs.forEach((inp, i) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        const next = sidebarInputs[i + 1];
+        if (next) next.focus();
+      }
+    });
+  });
+});
+</script>
+</body>
+</html>
