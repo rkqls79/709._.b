@@ -686,7 +686,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
       </div>
       <span class="shortcut-label">휴가<br>관리</span>
     </a>
-    <a class="shortcut" href="수임등록_및_EDI_가입_신청.html" target="_blank">
+    <a class="shortcut" href="https://rkqls79.github.io/709._.b/수임등록_및_EDI_가입_신청/index.html" target="_blank">
       <div class="shortcut-icon">
         <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
           <rect width="30" height="30" rx="7" fill="#FFF3EC"/>
@@ -1583,6 +1583,29 @@ setTimeout(() => {
       document.getElementById('cal-fallback').style.display = 'flex';
   } catch(e) {}
 }, 5000);
+</script>
+
+<!-- 보안: 우클릭 비활성화 + 로고 -->
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700&display=swap" rel="stylesheet">
+<style>
+#wm {
+  position: fixed;
+  bottom: 14px;
+  right: 16px;
+  z-index: 9999;
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(168, 152, 140, 0.4);
+  letter-spacing: 0.5px;
+  user-select: none;
+  pointer-events: none;
+}
+</style>
+<!-- 워터마크 -->
+<div id="wm">709._.b</div>
+<script>
+document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body>
 </html>
