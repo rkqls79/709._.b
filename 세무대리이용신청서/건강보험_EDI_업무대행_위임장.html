@@ -1,0 +1,637 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>건강보험 EDI 업무대행 위임장</title>
+<style>
+body { font-family:'맑은 고딕','Malgun Gothic','굴림',sans-serif; display:flex; height:100vh; overflow:hidden; background:#e0e0e0; margin:0; }
+
+/* ===== 사이드바 ===== */
+#sidebar {
+  width:260px; flex-shrink:0;
+  background:#f0f0f0; color:#2c2c2c;
+  overflow-y:auto; padding:12px 12px 16px;
+  display:flex; flex-direction:column; gap:0;
+  border-right:1px solid #d8d8d8;
+}
+.sb-title { font-size:10px; font-weight:700; color:#6a6a6a; text-transform:uppercase; letter-spacing:.5px; margin:10px 0 4px; }
+.sb-title:first-child { margin-top:0; }
+.sf { display:flex; flex-direction:column; gap:2px; margin-bottom:6px; }
+.sf label { font-size:10px; color:#6a6a6a; font-weight:700; }
+.sf input[type=text] { font-size:13px; background:#fff; border:1px solid #c8c8c8; border-radius:3px; padding:4px 6px; outline:none; color:#1a1a1a; }
+.sf input[type=text]:focus { border-color:#888; box-shadow:0 0 0 2px rgba(0,0,0,.08); }
+.sr { display:flex; flex-wrap:wrap; align-items:center; gap:4px 10px; margin-bottom:8px; }
+.sr-lbl { font-size:10px; color:#6a6a6a; font-weight:700; width:100%; }
+.sr label { font-size:12px; display:flex; align-items:center; gap:4px; cursor:pointer; }
+.divider { height:1px; background:#d8d8d8; margin:8px 0; }
+.date-row { display:flex; align-items:center; gap:4px; }
+.date-inp { font-size:13px; background:#fff; border:1px solid #c8c8c8; border-radius:3px; padding:4px 4px; outline:none; text-align:center; }
+.date-inp:focus { border-color:#888; }
+.date-row span { font-size:12px; color:#555; }
+.sb-btn-row { display:flex; gap:6px; margin-top:10px; }
+.sb-btn { flex:1; padding:8px 4px; border:none; border-radius:4px; cursor:pointer; font-size:12px; font-weight:700; font-family:inherit; }
+.sb-btn-print { background:#4a4a4a; color:#fff; }
+.sb-btn-print:hover { background:#333; }
+.sb-btn-clear { background:#fff; color:#5a5a5a; border:1px solid #c8c8c8; }
+.sb-btn-clear:hover { background:#f5f5f5; }
+
+/* ===== 콘텐츠 ===== */
+#content { flex:1; overflow-y:auto; padding:20px; display:flex; justify-content:center; }
+
+/* ===== A4 시트 ===== */
+.sheet {
+  background:#fff; width:210mm;
+  padding:12mm 18mm 15mm 20mm;
+  box-shadow:0 3px 16px rgba(0,0,0,.22);
+  box-sizing:border-box;
+  align-self:flex-start;
+}
+
+/* ===== 폼 테이블 ===== */
+.ft { width:100%; border-collapse:collapse; font-size:8.5pt; table-layout:fixed; line-height:1.3; }
+.ft td { border:0.4pt solid #000; vertical-align:middle; padding:0.5mm 1.5mm; overflow:hidden; }
+.ft col.c1 { width:20mm; }
+.ft col.c2 { width:30mm; }
+.ft col.c3 { width:65mm; }
+.ft col.c4 { width:57mm; }
+.sec-lbl { text-align:center; font-size:8pt; font-weight:700; background:#f7f7f7; vertical-align:middle !important; line-height:1.7; word-break:keep-all; }
+.lbl { font-size:8pt; font-weight:500; background:#fafafa; white-space:nowrap; vertical-align:middle !important; }
+.spacer { border:none !important; height:1.2mm; }
+.fi-wrap { display:flex; flex-direction:column; height:100%; width:100%; }
+.fi { border:none; border-bottom:1px dashed #bbb; outline:none; width:100%; font-family:inherit; font-size:9pt; background:transparent; padding:0; flex:1; min-height:3mm; }
+.fi:focus { background:#fffde7; border-bottom-color:#e67e22; }
+.fi-ro { background:transparent !important; border-bottom:1px solid #ccc !important; display:flex; align-items:flex-end; min-height:3mm; font-size:9pt; overflow:visible; white-space:nowrap; }
+.fi-inline { border:none; border-bottom:1px dashed #bbb; outline:none; font-family:inherit; font-size:8.5pt; background:transparent; padding:0; vertical-align:bottom; }
+.fi-sign { width:38mm; border:none; border-bottom:1px dashed #bbb; outline:none; font-family:inherit; font-size:8.5pt; background:transparent; }
+.fi-sign:focus { background:#fffde7; }
+
+/* ===== 도장 ===== */
+.stamp-zone {
+  display:inline-block; position:relative;
+  width:14mm; height:14mm; flex-shrink:0;
+  cursor:pointer; vertical-align:middle; z-index:1;
+}
+.stamp-zone canvas { width:100%; height:100%; display:block; opacity:0; transition:opacity .2s; }
+.stamp-zone.has-stamp canvas { opacity:1; }
+.stamp-zone::after { content:'도장'; position:absolute; inset:0; display:flex; align-items:center; justify-content:center; font-size:7pt; color:#ccc; border:1px dashed #ddd; border-radius:50%; pointer-events:none; }
+.stamp-zone.has-stamp::after { display:none; }
+.stamp-zones-row { display:inline-flex; gap:1mm; vertical-align:middle; margin-left:-12mm; position:relative; z-index:1; }
+.stamp-corp-zone { display:none; }
+.sign-row { display:flex; align-items:center; gap:2mm; font-size:8pt; }
+
+/* ===== 인쇄 ===== */
+@media print {
+  body { display:block; height:auto; overflow:visible; background:#fff; }
+  #sidebar { display:none; }
+  #content { overflow:visible; padding:0; display:block; }
+  .sheet { box-shadow:none; width:100%; padding:0; }
+  .fi, .fi-inline, .fi-sign { border-bottom:none !important; background:transparent !important; }
+  .stamp-zone::after { display:none !important; }
+  @page { size:A4; margin:12mm 18mm 15mm 20mm; }
+}
+</style>
+</head>
+<body>
+
+<!-- ===== 사이드바 ===== -->
+<div id="sidebar">
+
+  <div class="sb-title">🏭 위임사업장</div>
+
+  <div class="sr">
+    <span class="sr-lbl">사업장 구분</span>
+    <label><input type="radio" name="biz_type" value="personal" checked onchange="onBizTypeChange()"> 개인</label>
+    <label><input type="radio" name="biz_type" value="corp" onchange="onBizTypeChange()"> 법인</label>
+  </div>
+
+  <div class="sf"><label>사업장관리번호</label>
+    <input type="text" id="qb1" placeholder="00-00000000-0" oninput="syncUnit(); saveLocal()"></div>
+  <div class="sf"><label>단위사업장기호</label>
+    <input type="text" id="qb2" placeholder="(없으면 생략)" oninput="syncUnit(); saveLocal()"></div>
+  <div class="sf"><label>사업장명 (법인 선택 시 법인 도장에 사용)</label>
+    <input type="text" id="qb3" placeholder="○○주식회사" oninput="sync('qb3','fb3'); autoStamp(); saveLocal()"></div>
+  <div class="sf"><label>소재지</label>
+    <input type="text" id="qb4" placeholder="서울시 강남구..." oninput="sync('qb4','fb4'); saveLocal()"></div>
+  <div class="sf"><label>대표자 성명 (도장에 사용)</label>
+    <input type="text" id="qb5" placeholder="홍길동" oninput="sync('qb5','fb5'); syncSign(); autoStamp(); saveLocal()"></div>
+  <div class="sf"><label>주민번호 (생년월일-성별)</label>
+    <input type="text" id="qb6" placeholder="000000-0000000" maxlength="14" oninput="fmtRrn(this,'fb6')"></div>
+  <div class="sf"><label>사업자등록번호</label>
+    <input type="text" id="qb7" placeholder="000-00-00000" maxlength="12" oninput="fmtBiz(this,'fb7')"></div>
+
+  <div class="divider"></div>
+
+  <div class="sb-title">📅 신청 날짜</div>
+  <div class="date-row">
+    <input class="date-inp" style="width:44px;" id="qy" oninput="syncDate()">
+    <span>년</span>
+    <input class="date-inp" style="width:28px;" id="qmo" oninput="syncDate()">
+    <span>월</span>
+    <input class="date-inp" style="width:28px;" id="qd" oninput="syncDate()">
+    <span>일</span>
+  </div>
+
+  <div class="divider"></div>
+
+  <div class="sb-title">🏛 지사명</div>
+  <div class="sf"><label>지사 이름</label>
+    <input type="text" id="qjisa" placeholder="분당" oninput="syncJisa(); saveLocal()"></div>
+
+  <div class="sb-btn-row">
+    <button class="sb-btn sb-btn-print" onclick="savePDF()">📄 PDF 저장</button>
+    <button class="sb-btn sb-btn-clear" onclick="clearForm()">🗑 초기화</button>
+  </div>
+
+</div>
+
+<!-- ===== 콘텐츠 ===== -->
+<div id="content">
+<div class="sheet">
+
+  <div style="font-size:8pt; margin-bottom:1mm;">[별지 제6호서식]</div>
+  <div style="text-align:center; font-size:14pt; font-weight:700; letter-spacing:2px; margin:2mm 0 4mm;">건강보험 EDI 업무대행 위임장</div>
+
+  <table class="ft">
+    <colgroup>
+      <col class="c1"><col class="c2"><col class="c3"><col class="c4">
+    </colgroup>
+    <tbody>
+
+    <!-- 업무대행기관 (고정값) -->
+    <tr>
+      <td rowspan="4" class="sec-lbl" style="height:34mm;">업무대행<br>기관</td>
+      <td class="lbl" style="height:7.5mm;">사업장관리번호</td>
+      <td colspan="2" style="height:7.5mm;"><div class="fi-ro">129-81-68431-0</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:7.5mm;">기&nbsp;&nbsp;관&nbsp;&nbsp;명</td>
+      <td colspan="2" style="height:7.5mm;"><div class="fi-ro">대한세무법인</div></td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:7.5mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="2" style="height:7.5mm; overflow:visible;">
+        <div class="fi-ro" style="border-bottom:none !important;">경기도 성남시 분당구 야탑동 367-1 BYC빌딩 515호&nbsp;&nbsp;(전화번호 : 031-783-8877 )</div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:7.5mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</td>
+      <td style="height:7.5mm;"><div class="fi-ro">이 석 제</div></td>
+      <td style="height:7.5mm; font-size:8.5pt; vertical-align:middle;">
+        주 민 번 호 :&nbsp;<span style="display:inline-flex; align-items:flex-end; min-width:30mm; border-bottom:1px solid #ccc; font-size:9pt;">720106 – 1******</span>
+      </td>
+    </tr>
+
+    <tr><td colspan="4" class="spacer"></td></tr>
+
+    <!-- 위임사업장 -->
+    <tr>
+      <td rowspan="5" class="sec-lbl" style="height:44mm;">위임<br>사업장</td>
+      <td class="lbl" style="height:8mm; font-size:7.5pt; line-height:1.4;">사업장관리번호<br>(단위사업장기호)</td>
+      <td colspan="2" style="height:8mm; overflow:visible;">
+        <span id="fb1_disp" style="font-size:9pt; display:flex; align-items:flex-end; min-height:3mm; border-bottom:1px dashed #bbb; width:100%;"></span>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:8mm;">사&nbsp;&nbsp;업&nbsp;&nbsp;장&nbsp;&nbsp;명</td>
+      <td colspan="2" style="height:8mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="fb3"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:8mm;">소&nbsp;&nbsp;재&nbsp;&nbsp;지</td>
+      <td colspan="2" style="height:8mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="fb4"></div>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:8mm;">대&nbsp;&nbsp;표&nbsp;&nbsp;자</td>
+      <td style="height:8mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="fb5"></div>
+      </td>
+      <td style="height:8mm; font-size:8.5pt; vertical-align:middle; overflow:visible;">
+        주 민 번 호 :&nbsp;<span id="fb6" style="display:inline-flex; align-items:flex-end; min-width:28mm; border-bottom:1px dashed #bbb; font-size:9pt;"></span>
+      </td>
+    </tr>
+    <tr>
+      <td class="lbl" style="height:8mm;">사업자등록번호</td>
+      <td colspan="2" style="height:8mm;">
+        <div class="fi-wrap"><input class="fi" type="text" id="fb7" maxlength="12"></div>
+      </td>
+    </tr>
+
+    <tr><td colspan="4" class="spacer"></td></tr>
+
+    <!-- 위임 -->
+    <tr>
+      <td class="sec-lbl" style="height:8mm;">위&nbsp;&nbsp;&nbsp;임</td>
+      <td class="lbl" style="height:8mm;">업&nbsp;무&nbsp;범&nbsp;위</td>
+      <td colspan="2" style="height:8mm;"><div class="fi-ro" style="border-bottom:none !important;">공단 웹 EDI 서비스 업무</div></td>
+    </tr>
+
+    </tbody>
+  </table>
+
+  <!-- 작성방법 -->
+  <div style="font-size:7.5pt; color:#333; margin:2mm 0 1mm; padding-left:1mm;">
+    &lt;작성방법&gt; - 주민번호 : 생년월일 + 성별까지 기재
+  </div>
+
+  <!-- 본문 -->
+  <div style="font-size:8.5pt; line-height:2; padding:3mm 1mm 2mm; text-align:justify;">
+    &nbsp;&nbsp;&nbsp;&nbsp;민법 제114조(대리행위의 효력)의 규정에 의하여 위와 같이 건강보험 EDI 업무대행 대리인 위임을 신청합니다.
+  </div>
+
+  <!-- 날짜 -->
+  <div style="text-align:right; font-size:8.5pt; padding-right:6mm; margin-bottom:2mm;">
+    <span id="fy"></span>&nbsp;년&nbsp;&nbsp;<span id="fmo"></span>&nbsp;월&nbsp;&nbsp;<span id="fd"></span>&nbsp;일
+  </div>
+
+  <!-- 서명 (v6 방식: 도장이 "(서명 또는 인)" 위로 겹침) -->
+  <div class="sign-row" style="justify-content:flex-end; padding-right:6mm; margin-top:1mm;">
+    위&nbsp;임&nbsp;자&nbsp;:&nbsp;<input class="fi-sign" type="text" id="fsign">&nbsp;<span style="font-size:7.5pt; white-space:nowrap;">(서명 또는 인)</span><span class="stamp-zones-row">
+      <span class="stamp-zone" id="sz_sign" onclick="toggleStamp('sz_sign')" title="대표자 도장"><canvas id="sc_sign" width="100" height="100"></canvas></span>
+      <span class="stamp-zone stamp-corp-zone" id="sz_sign_corp" onclick="toggleStamp('sz_sign_corp')" title="법인 도장"><canvas id="sc_sign_corp" width="100" height="100"></canvas></span>
+    </span>
+  </div>
+
+  <!-- 수신 -->
+  <div style="text-align:right; font-size:8.5pt; padding-right:6mm; margin-top:4mm;">
+    국민건강보험공단&nbsp;<span id="fjisa"></span>지사장&nbsp;귀하
+  </div>
+
+</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script>
+
+const _shrinkCanvas = document.createElement('canvas');
+const _shrinkCtx = _shrinkCanvas.getContext('2d');
+function autoShrink(input, maxPt) {
+  maxPt = maxPt || 10.5;
+  const val = input.value;
+  if (!val) { input.style.fontSize = maxPt + 'pt'; return; }
+  const rect = input.getBoundingClientRect();
+  const limit = rect.width - 8;
+  if (limit <= 0) return;
+  const cs = getComputedStyle(input);
+  let pt = maxPt;
+  input.style.fontSize = pt + 'pt';
+  while (pt > 6) {
+    _shrinkCtx.font = (cs.fontWeight||'400') + ' ' + pt + 'pt ' + cs.fontFamily;
+    if (_shrinkCtx.measureText(val).width <= limit) break;
+    pt -= 0.5;
+    input.style.fontSize = pt + 'pt';
+  }
+}
+function initAutoShrink() {
+  document.querySelectorAll('.sheet input[type=text]').forEach(function(el) {
+    const maxPt = el.classList.contains('fi-sign') ? 11 : 10.5;
+    el.addEventListener('input', function() { autoShrink(el, maxPt); });
+  });
+}
+
+// ===== 동기화 =====
+function sync(qId, fId) {
+  const val = document.getElementById(qId)?.value || '';
+  const t   = document.getElementById(fId);
+  if (!t) return;
+  if (t.tagName==='INPUT'||t.tagName==='TEXTAREA') {
+    t.value = val;
+    if (t.type === 'text') autoShrink(t, t.classList.contains('fi-sign') ? 11 : 10.5);
+  } else t.textContent = val;
+}
+function syncUnit() {
+  const num  = document.getElementById('qb1').value.trim();
+  const unit = document.getElementById('qb2').value.trim();
+  const disp = document.getElementById('fb1_disp');
+  if (disp) disp.textContent = num + (unit ? ' (' + unit + ')' : '');
+}
+function syncDate() {
+  document.getElementById('fy').textContent  = document.getElementById('qy').value;
+  document.getElementById('fmo').textContent = document.getElementById('qmo').value;
+  document.getElementById('fd').textContent  = document.getElementById('qd').value;
+}
+function syncJisa() {
+  document.getElementById('fjisa').textContent = document.getElementById('qjisa').value;
+}
+function syncSign() {
+  const el = document.getElementById('fsign');
+  if (el) el.value = document.getElementById('qb5').value; autoShrink(el, 11); }
+
+// ===== 서식 =====
+function fmtRrn(src, fId) {
+  let v = src.value.replace(/\D/g,'');
+  if (v.length > 6) v = v.slice(0,6) + '-' + v.slice(6,13);
+  src.value = v;
+  const t = document.getElementById(fId);
+  if (t) {
+    const raw = v.replace('-','');
+    const masked = raw.length >= 7 ? raw.slice(0,6) + ' – ' + raw[6] + '******' : v;
+    if (t.tagName==='INPUT') t.value = masked; else t.textContent = masked;
+  }
+  saveLocal();
+}
+function fmtBiz(src, fId) {
+  let v = src.value.replace(/\D/g,'');
+  if (v.length > 3) v = v.slice(0,3)+'-'+v.slice(3);
+  if (v.length > 6) v = v.slice(0,6)+'-'+v.slice(6,11);
+  src.value = v;
+  const t = document.getElementById(fId);
+  if (t && t !== src) { if(t.tagName==='INPUT') t.value=v; else t.textContent=v; }
+  saveLocal();
+}
+
+// ===== 개인/법인 =====
+function isCorp() {
+  return document.querySelector('input[name=biz_type]:checked')?.value === 'corp';
+}
+function onBizTypeChange() { autoStamp(); }
+
+// ===== 도장 그리기 (v6 동일) =====
+function drawCorpStamp(ctx, cx, cy, coName, s, r) {
+  ctx.save();
+  const scx=cx*s, scy=cy*s, sr=r*s;
+  ctx.fillStyle='rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.arc(scx,scy,sr,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=1.8*s;
+  ctx.beginPath(); ctx.arc(scx,scy,sr,0,Math.PI*2); ctx.stroke();
+  const innerR=sr*0.55;
+  ctx.lineWidth=1.2*s;
+  ctx.beginPath(); ctx.arc(scx,scy,innerR,0,Math.PI*2); ctx.stroke();
+  const chars=[...coName.replace(/\(주\)/gi,'㈜')];
+  const total=chars.length+1;
+  const textR=(sr+innerR)/2;
+  const ringGap=sr-innerR;
+  const perA=(Math.PI*2)/total;
+  const fz=Math.min(textR*perA*0.88, ringGap*0.82);
+  const dotA=-Math.PI/2;
+  ctx.fillStyle='#cc0000';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  ctx.save();
+  ctx.translate(scx+textR*Math.cos(dotA), scy+textR*Math.sin(dotA));
+  ctx.rotate(dotA+Math.PI/2);
+  ctx.font=`${fz*0.55}px sans-serif`; ctx.fillText('●',0,0);
+  ctx.restore();
+  ctx.font=`bold ${fz}px 'Malgun Gothic','맑은 고딕',sans-serif`;
+  chars.forEach((c,i) => {
+    const a=dotA+perA*(i+1);
+    ctx.save();
+    ctx.translate(scx+textR*Math.cos(a), scy+textR*Math.sin(a));
+    ctx.rotate(a+Math.PI/2); ctx.fillText(c,0,0); ctx.restore();
+  });
+  const hanjaRows=[['代','表'],['理','事']];
+  const hjFz=innerR*0.74, hjRowH=hjFz*1.02, hjColW=hjFz*1.02, totalHJ=hjRowH*hanjaRows.length;
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=hjFz*0.10; ctx.lineJoin='round';
+  ctx.font=`bold ${hjFz}px 'Batang','바탕체','Malgun Gothic',serif`;
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  hanjaRows.forEach((row,ri) => {
+    const ry=scy-totalHJ/2+hjRowH*(ri+0.5);
+    if(row.length===2){
+      [[row[0],scx-hjColW/2],[row[1],scx+hjColW/2]].forEach(([c,rx])=>{ ctx.strokeText(c,rx,ry); ctx.fillText(c,rx,ry); });
+    } else { ctx.strokeText(row[0],scx,ry); ctx.fillText(row[0],scx,ry); }
+  });
+  ctx.restore();
+}
+
+function drawStamp(ctx, cx, cy, name, s, rx, ry) {
+  ctx.save();
+  const scx=cx*s, scy=cy*s, srx=rx*s, sry=ry*s;
+  ctx.fillStyle='rgba(200,0,0,0.05)';
+  ctx.beginPath(); ctx.ellipse(scx,scy,srx,sry,0,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=1.8*s;
+  ctx.beginPath(); ctx.ellipse(scx,scy,srx,sry,0,0,Math.PI*2); ctx.stroke();
+  ctx.fillStyle='#cc0000';
+  ctx.textAlign='center'; ctx.textBaseline='middle';
+  const chars=[...name].slice(0,4);
+  const fz=Math.round(sry*1.8/chars.length);
+  ctx.font=`bold ${fz}px 'Batang','바탕체','Malgun Gothic','맑은 고딕',serif`;
+  ctx.strokeStyle='#cc0000'; ctx.lineWidth=fz*0.12; ctx.lineJoin='round';
+  const totalH=fz*chars.length;
+  chars.forEach((c,i) => {
+    const cy2=scy-totalH/2+fz*(i+0.5);
+    ctx.strokeText(c,scx,cy2); ctx.fillText(c,scx,cy2);
+  });
+  ctx.restore();
+}
+
+function drawPersonalStampOnCanvas(canvas, name) {
+  const S=canvas.width; const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,S,S); if(!name) return;
+  drawStamp(ctx, S/2, S/2, name, 1, S*0.27, S*0.43);
+}
+function drawCorpStampOnCanvas(canvas, name) {
+  const S=canvas.width; const ctx=canvas.getContext('2d');
+  ctx.clearRect(0,0,S,S); if(!name) return;
+  drawCorpStamp(ctx, S/2, S/2, name, 1, S/2-3);
+}
+
+// ===== 도장 자동 반영 =====
+function autoStamp() {
+  const personalName = document.getElementById('qb5').value.trim();
+  const corpName     = document.getElementById('qb3').value.trim();
+  const corp = isCorp();
+
+  // 개인(대표자) 도장
+  const c = document.getElementById('sc_sign');
+  if (c && personalName) {
+    drawPersonalStampOnCanvas(c, personalName);
+    c.closest('.stamp-zone').classList.add('has-stamp');
+    c.style.opacity = '1';
+  }
+
+  // 법인 도장
+  const corpZone   = document.getElementById('sz_sign_corp');
+  const corpCanvas = document.getElementById('sc_sign_corp');
+  if (corpZone && corpCanvas) {
+    if (corp && corpName) {
+      drawCorpStampOnCanvas(corpCanvas, corpName);
+      corpZone.classList.add('has-stamp');
+      corpCanvas.style.opacity = '1';
+      corpZone.style.display = 'inline-block';
+    } else {
+      corpZone.style.display = 'none';
+      corpZone.classList.remove('has-stamp');
+      corpCanvas.style.opacity = '0';
+    }
+  }
+}
+
+function getStampNameForZone(zoneId) {
+  if (zoneId.endsWith('_corp')) return document.getElementById('qb3')?.value.trim() || '';
+  return document.getElementById('qb5')?.value.trim() || '';
+}
+
+function toggleStamp(zoneId) {
+  const zone   = document.getElementById(zoneId);
+  const canvas = zone.querySelector('canvas');
+  if (zone.classList.contains('has-stamp')) {
+    zone.classList.remove('has-stamp'); canvas.style.opacity = '0';
+  } else {
+    const name = getStampNameForZone(zoneId);
+    if (!name) {
+      alert(zoneId.endsWith('_corp') ? '사업장명을 먼저 입력해 주세요.' : '대표자 성명을 먼저 입력해 주세요.');
+      return;
+    }
+    if (zoneId.endsWith('_corp')) drawCorpStampOnCanvas(canvas, name);
+    else drawPersonalStampOnCanvas(canvas, name);
+    zone.classList.add('has-stamp'); canvas.style.opacity = '1';
+  }
+}
+
+function clearStamp() {
+  ['sc_sign','sc_sign_corp'].forEach(id => {
+    const c = document.getElementById(id);
+    if (c) { c.getContext('2d').clearRect(0,0,c.width,c.height); c.style.opacity='0'; }
+  });
+  document.getElementById('sz_sign').classList.remove('has-stamp');
+  const corp = document.getElementById('sz_sign_corp');
+  if (corp) { corp.classList.remove('has-stamp'); corp.style.display='none'; }
+}
+
+// ===== 오늘 날짜 =====
+function setToday() {
+  const d = new Date();
+  document.getElementById('qy').value  = d.getFullYear();
+  document.getElementById('qmo').value = d.getMonth()+1;
+  document.getElementById('qd').value  = d.getDate();
+  syncDate();
+}
+
+// ===== localStorage =====
+function saveLocal() {
+  try {
+    const d = {};
+    ['qb1','qb2','qb3','qb4','qb5','qb6','qb7','qjisa'].forEach(id => {
+      const el = document.getElementById(id); if(el) d[id] = el.value;
+    });
+    const bt = document.querySelector('input[name=biz_type]:checked');
+    if (bt) d.biz_type = bt.value;
+    localStorage.setItem('edi_delegate_v2', JSON.stringify(d));
+  } catch(e) {}
+}
+function loadLocal() {
+  try {
+    const saved = localStorage.getItem('edi_delegate_v2');
+    if (!saved) return;
+    const d = JSON.parse(saved);
+    if (d.biz_type) {
+      const r = document.querySelector(`input[name=biz_type][value="${d.biz_type}"]`);
+      if (r) r.checked = true;
+    }
+    ['qb1','qb2','qb3','qb4','qb5','qb7','qjisa'].forEach(id => {
+      const el = document.getElementById(id); if(el && d[id]) el.value = d[id];
+    });
+    if (d.qb1||d.qb2) syncUnit();
+    if (d.qb3) sync('qb3','fb3');
+    if (d.qb4) sync('qb4','fb4');
+    if (d.qb5) { sync('qb5','fb5'); syncSign(); }
+    if (d.qb6) { document.getElementById('qb6').value = d.qb6; fmtRrn(document.getElementById('qb6'),'fb6'); }
+    if (d.qb7) fmtBiz(document.getElementById('qb7'),'fb7');
+    if (d.qjisa) syncJisa();
+    autoStamp();
+  } catch(e) {}
+}
+
+// ===== 초기화 =====
+function clearForm() {
+  try { localStorage.removeItem('edi_delegate_v2'); } catch(e) {}
+  ['qb1','qb2','qb3','qb4','qb5','qb6','qb7','qjisa'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  ['fb3','fb4','fb5','fsign'].forEach(id => {
+    const el = document.getElementById(id); if(el) el.value='';
+  });
+  const disp = document.getElementById('fb1_disp'); if(disp) disp.textContent='';
+  document.getElementById('fb6').textContent = '';
+  document.getElementById('fb7').textContent = '';
+  document.getElementById('fjisa').textContent = '';
+  ['fy','fmo','fd'].forEach(id => { const el=document.getElementById(id); if(el) el.textContent=''; });
+  document.querySelector('input[name=biz_type][value=personal]').checked = true;
+  clearStamp();
+  setToday();
+  initAutoShrink();
+  document.getElementById('qb1').focus();
+}
+
+// ===== PDF 저장 =====
+async function savePDF() {
+  const btn = document.querySelector('.sb-btn-print');
+  const origText = btn.textContent;
+  btn.textContent = '⏳ 생성 중...';
+  btn.disabled = true;
+
+  const sheet = document.querySelector('.sheet');
+  const replaced = [];
+
+  try {
+    document.activeElement?.blur();
+
+    sheet.querySelectorAll('input:not([type=checkbox]):not([type=radio]), textarea').forEach(inp => {
+      const val = inp.value || '';
+      const cs  = getComputedStyle(inp);
+      const span = document.createElement('span');
+      span.style.fontFamily    = cs.fontFamily;
+      span.style.fontSize      = cs.fontSize;
+      span.style.fontWeight    = cs.fontWeight;
+      span.style.color         = cs.color;
+      span.style.background    = 'transparent';
+      span.style.borderBottom  = cs.borderBottom || '1px dashed #bbb';
+      span.style.verticalAlign = 'bottom';
+      span.style.padding       = '0';
+      span.style.boxSizing     = 'border-box';
+      span.style.whiteSpace    = 'pre';
+      span.textContent         = val;
+      if (inp.classList.contains('fi')) {
+        span.style.flex = '1'; span.style.width = '100%';
+        span.style.display = 'flex'; span.style.alignItems = 'flex-end';
+      } else {
+        span.style.display = 'inline-block'; span.style.width = cs.width;
+      }
+      inp.parentNode.insertBefore(span, inp);
+      inp.style.display = 'none';
+      replaced.push({ span, inp });
+    });
+
+    const canvas = await html2canvas(sheet, { scale:2, useCORS:true, logging:false, allowTaint:true });
+    replaced.forEach(({ span, inp }) => { inp.style.display=''; span.remove(); });
+
+    const { jsPDF } = window.jspdf;
+    const pdf = new jsPDF({ orientation:'portrait', unit:'mm', format:'a4' });
+    const pageW = pdf.internal.pageSize.getWidth();
+    const pageH = pdf.internal.pageSize.getHeight();
+    const ratio = Math.min(pageW / canvas.width, pageH / canvas.height);
+    pdf.addImage(canvas.toDataURL('image/jpeg',0.95), 'JPEG', 0, 0, canvas.width*ratio, canvas.height*ratio);
+    const name = document.getElementById('qb3').value.trim() || '신청서';
+    pdf.save(`건강보험_EDI_업무대행_위임장_${name}.pdf`);
+
+  } catch(e) {
+    replaced.forEach(({ span, inp }) => { inp.style.display=''; try{span.remove();}catch(_){} });
+    alert('저장 중 오류가 발생했습니다.');
+    console.error(e);
+  }
+  btn.textContent = origText;
+  btn.disabled = false;
+}
+
+// ===== 로드 =====
+window.addEventListener('load', () => {
+  setToday();
+
+  const saved = (() => { try { return localStorage.getItem('edi_delegate_v2'); } catch(e) { return null; } })();
+  if (saved) loadLocal();
+
+  // Enter → 다음 필드
+  const inputs = Array.from(document.querySelectorAll('#sidebar input[type=text], #sidebar .date-inp'));
+  inputs.forEach((inp, i) => {
+    inp.addEventListener('keydown', e => {
+      if (e.key === 'Enter') { e.preventDefault(); const next = inputs[i+1]; if(next) next.focus(); }
+    });
+  });
+
+  document.getElementById('qb1').focus();
+});
+</script>
+</body>
+</html>
