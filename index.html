@@ -177,7 +177,7 @@ footer {
   padding-top: 22px;
   border-top: 1px solid var(--border);
   color: var(--muted);
-  font-size: 13px;
+  font-size: 10px;
   font-weight: 500;
 }
 
@@ -198,46 +198,16 @@ footer {
   </header>
 
   <div class="list">
-  
-    <!-- ===== 업무데스크 ===== -->
-    <a class="item" href="업무데스크/index.html">
-      <div class="icon-box tone-green">🖥️</div>
-      <div class="body">
-        <h2>업무데스크</h2>
-        <div class="desc">세무 업무의 흐름을 한 화면에서 관리해요</div>
-     </div>
-     <span class="arrow">→</span>
-    </a> 
 
-    <!-- ===== 휴가관리 ===== -->
-    <a class="item" href="휴가관리/index.html">
-      <div class="icon-box tone-green">🏖️</div>
+    <!-- ===== 종소세 표지 ===== -->
+    <a class="item" href="tax-cover/">
+      <div class="icon-box tone-blue">🧾</div>
       <div class="body">
-        <h2>휴가관리</h2>
-        <div class="desc">연차·워라밸 관리부터 휴가신청서 작성까지, 한 곳에서 끝내요</div>
-     </div>
-     <span class="arrow">→</span>
-    </a> 
-
-    <!-- ===== 문자 뚝딱 보내기 ===== -->
-    <a class="item" href="문자 뚝딱 보내기/index.html">
-     <div class="icon-box tone-blue">💬</div>
-     <div class="body">
-       <h2>문자 뚝딱 보내기</h2>
-       <div class="desc">세금 안내 문자를 간편하게 작성해요</div>
-     </div>
-     <span class="arrow">→</span>
+        <h2>종소세 표지</h2>
+        <div class="desc">종합소득세 신고 표지 도구</div>
+      </div>
+      <span class="arrow">→</span>
     </a>
-
-      <!-- ===== 수임등록_및_EDI_가입_신청 ===== -->
-    <a class="item" href="수임등록_및_EDI_가입_신청/index.html">
-      <div class="icon-box tone-green">📃</div>
-      <div class="body">
-        <h2>수임등록_및_EDI_가입_신청</h2>
-        <div class="desc">공통 정보 한 번 입력으로 4개 신청서를 자동 완성하고, 바로 PDF로 저장해요</div>
-     </div>
-     <span class="arrow">→</span>
-    </a>   
 
     <!-- ===== 점심조 뽑기 ===== -->
     <a class="item" href="lunch-squad/">
@@ -249,14 +219,24 @@ footer {
       <span class="arrow">→</span>
     </a>
 
-    <!-- ===== 종소세 표지 ===== -->
-    <a class="item" href="tax-cover/">
-      <div class="icon-box tone-blue">🧾</div>
+    <!-- ===== 휴가 신청서 ===== -->
+    <a class="item" href="휴가신청서/">
+      <div class="icon-box tone-mint">🏖️</div>
       <div class="body">
-        <h2>종소세 표지</h2>
-        <div class="desc">종합소득세 신고 표지 도구</div>
+        <h2>휴가 신청서</h2>
+        <div class="desc">휴가 신청서를 간편하게 작성해요</div>
       </div>
       <span class="arrow">→</span>
+    </a>
+
+    <!-- ===== 문자 뚝딱 보내기 ===== -->
+    <a class="item" href="문자 뚝딱 보내기/index.html">
+     <div class="icon-box tone-blue">💬</div>
+     <div class="body">
+       <h2>문자 뚝딱 보내기</h2>
+       <div class="desc">세금 안내 문자를 간편하게 작성해요</div>
+     </div>
+     <span class="arrow">→</span>
     </a>
 
     <!-- ===== 준비 중 칸 ===== -->
@@ -275,5 +255,28 @@ footer {
     Made with ☕ · Hosted on GitHub Pages
   </footer>
 </div>
+
+<!-- 보안: 우클릭 비활성화 + 로고 -->
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@700&display=swap" rel="stylesheet">
+<style>
+#wm {
+  position: fixed;
+  bottom: 14px;
+  right: 16px;
+  z-index: 9999;
+  font-family: 'Nunito', sans-serif;
+  font-size: 10px;
+  font-weight: 700;
+  color: rgba(168, 152, 140, 0.4);
+  letter-spacing: 0.5px;
+  user-select: none;
+  pointer-events: none;
+}
+</style>
+<!-- 워터마크 -->
+<div id="wm">709._.b</div>
+<script>
+document.addEventListener('contextmenu', e => e.preventDefault());
+</script>
 </body>
 </html>
