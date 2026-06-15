@@ -1,0 +1,1323 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>거래처 자료 자동 분류</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+:root {
+  --bg:       #eae5dd;
+  --surface:  #faf8f5;
+  --surface2: #f3efe9;
+  --border:   #ddd5c8;
+  --border2:  #c8beb0;
+  --text:     #2a221a;
+  --text2:    #5e5448;
+  --text3:    #a89888;
+  --accent:   #7a6e60;
+  --accent2:  #a0928a;
+  --success:  #607c68;
+  --warn:     #a8885a;
+  --error:    #a06050;
+  --radius:   12px;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Apple SD Gothic Neo','Pretendard','Noto Sans KR',sans-serif;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  padding: 2cm 2cm 1cm 2cm;
+  box-sizing: border-box;
+}
+
+/* ── 헤더 ── */
+.header {
+  height: 58px;
+  background: var(--surface);
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 20px;
+  flex-shrink: 0;
+  border-radius: 12px 12px 0 0;
+}
+.header-left { display: flex; align-items: center; gap: 10px; }
+.header-title { font-size: 15px; font-weight: 600; letter-spacing: -.2px; color: var(--text); }
+.header-sub { font-size: 11px; color: var(--text3); margin-left: 2px; }
+.auth-btn {
+  display: flex; align-items: center; gap: 7px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 6px 15px; font-size: 11px; color: var(--text2);
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.auth-btn:hover { border-color: var(--accent); color: var(--accent); }
+.auth-btn.connected { color: var(--success); border-color: var(--success); }
+.auth-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--border2); flex-shrink: 0; }
+.auth-btn.connected .auth-dot { background: var(--success); }
+
+/* ── 메인 레이아웃 ── */
+.main { flex: 1; display: grid; grid-template-columns: 1fr 340px; gap: 20px; padding: 20px 0 0 0; }
+
+/* ── 좌측 ── */
+.upload-section { display: flex; flex-direction: column; gap: 14px; }
+
+/* 드롭존 */
+.dropzone {
+  flex: 1; min-height: 140px;
+  border: 1.5px dashed var(--border2); border-radius: 16px;
+  background: var(--surface); display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px;
+  cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
+}
+.dropzone.drag-over { border-color: var(--accent); background: #f5f1ec; box-shadow: 0 0 0 4px rgba(122,110,96,.08); }
+.dropzone.has-files { justify-content: flex-start; padding: 14px; align-items: stretch; cursor: default; }
+.drop-icon { font-size: 26px; opacity: .35; pointer-events: none; }
+.drop-title { font-size: 14px; font-weight: 600; color: var(--text2); pointer-events: none; letter-spacing: -.2px; }
+.drop-sub { font-size: 11.5px; color: var(--text3); pointer-events: none; }
+.drop-scan-btn {
+  display: flex; align-items: center; gap: 6px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 8px; padding: 7px 16px; font-size: 11px; color: var(--text2);
+  cursor: pointer; transition: all .15s; font-family: inherit; pointer-events: auto;
+}
+.drop-scan-btn:hover { border-color: var(--accent); color: var(--accent); }
+.drop-divider { font-size: 11px; color: var(--border2); pointer-events: none; }
+.dropzone-empty-btns { display: flex; gap: 10px; align-items: center; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
+
+/* 파일 목록 */
+.file-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
+.file-card {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px;
+  transition: border-color .15s;
+}
+.file-card.resolved  { border-color: #b0c8b8; }
+.file-card.unresolved { border-color: #c8b890; }
+.file-card.selected  { border-color: var(--accent) !important; background: #f5f0e8; }
+.file-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
+.file-check { width: 15px; height: 15px; accent-color: var(--accent); cursor: pointer; flex-shrink: 0; margin-top: 3px; }
+.file-info { flex: 1; min-width: 0; }
+.file-name { font-size: 12px; font-weight: 600; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-meta { font-size: 10px; color: var(--text3); margin-top: 2px; }
+.file-path { font-size: 10px; color: var(--accent2); margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-actions { display: flex; flex-direction: column; gap: 5px; flex-shrink: 0; align-items: flex-end; }
+.file-actions-row { display: flex; gap: 5px; align-items: center; }
+.file-sel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 6px; color: var(--text2); font-size: 10px; padding: 3px 6px;
+  outline: none; cursor: pointer; font-family: inherit;
+}
+.file-sel:focus { border-color: var(--accent); }
+.file-sel.sel-client { max-width: 100px; }
+.file-sel.sel-small  { width: 58px; }
+.file-del { background: none; border: none; font-size: 13px; color: var(--text3); cursor: pointer; opacity: .45; transition: opacity .12s; padding: 0 2px; }
+.file-del:hover { opacity: 1; color: var(--error); }
+
+/* ── A 스타일: 컴팩트 단일 행 ── */
+.file-row-a {
+  display: flex; align-items: center; gap: 8px;
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 8px; padding: 8px 12px; transition: border-color .15s;
+}
+.file-row-a.resolved   { border-color: #b0c8b8; }
+.file-row-a.unresolved { border-color: #c8b890; }
+.file-row-a.selected   { border-color: var(--accent) !important; background: #f5f0e8; }
+.row-a-icon { font-size: 15px; flex-shrink: 0; }
+.row-a-name { flex: 1; font-size: 12px; font-weight: 500; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.row-a-size { font-size: 10px; color: var(--text3); white-space: nowrap; flex-shrink: 0; }
+
+/* ── C 스타일: 거래처 그룹 카드 ── */
+.group-card {
+  background: var(--surface); border: 0.5px solid var(--border);
+  border-radius: 10px; overflow: hidden; transition: border-color .15s;
+}
+.group-card.resolved { border-color: #b0c8b8; }
+.group-card.partial  { border-color: #c8b890; }
+.group-header {
+  display: flex; align-items: center; gap: 8px;
+  padding: 8px 12px; background: var(--surface2);
+  border-bottom: 0.5px solid var(--border);
+}
+.group-client-name { font-size: 12px; font-weight: 600; color: var(--text); }
+.group-count { font-size: 10px; color: var(--text3); margin-left: auto; }
+.group-rows { padding: 2px 0; }
+.group-row {
+  display: flex; align-items: center; gap: 8px;
+  padding: 6px 12px; transition: background .1s;
+}
+.group-row + .group-row { border-top: 0.5px solid #f0ece5; }
+.group-row.selected { background: #f5f0e8; }
+.group-row-name { flex: 1; font-size: 11px; color: var(--text); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; min-width: 0; }
+.group-row-icon { font-size: 14px; flex-shrink: 0; }
+
+/* ── 일괄 분류 바 ── */
+.batch-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: #f0ebe2; border: 1px solid #c8b890;
+  border-radius: 10px; padding: 10px 14px; flex-wrap: wrap;
+}
+.batch-label { font-size: 11.5px; font-weight: 600; color: var(--warn); white-space: nowrap; }
+.batch-sel {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 7px; color: var(--text2); font-size: 11px; padding: 5px 8px;
+  outline: none; cursor: pointer; font-family: inherit;
+}
+.batch-sel:focus { border-color: var(--accent); }
+.batch-apply {
+  background: var(--accent); color: #fff; border: none; border-radius: 7px;
+  padding: 5px 14px; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; transition: opacity .15s;
+}
+.batch-apply:hover { opacity: .82; }
+.batch-clear {
+  background: none; border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text3); font-size: 11px; padding: 5px 10px;
+  cursor: pointer; font-family: inherit; transition: all .15s;
+}
+.batch-clear:hover { border-color: var(--error); color: var(--error); }
+
+/* ── 업로드 바 ── */
+.upload-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 16px; flex-wrap: wrap;
+}
+.upload-count { font-size: 12px; color: var(--text2); flex: 1; min-width: 120px; }
+.upload-count strong { color: var(--text); }
+.progress-wrap { display: none; flex-direction: column; gap: 4px; flex: 1; min-width: 100px; }
+.progress-wrap.show { display: flex; }
+.progress-bar { height: 3px; background: var(--border); border-radius: 3px; overflow: hidden; }
+.progress-fill { height: 100%; background: var(--accent); border-radius: 3px; transition: width .3s; width: 0%; }
+.progress-label { font-size: 10px; color: var(--text3); text-align: right; }
+.clear-btn {
+  background: none; border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text3); font-size: 11px; padding: 5px 12px;
+  cursor: pointer; transition: all .15s; font-family: inherit;
+}
+.clear-btn:hover { border-color: var(--error); color: var(--error); }
+.cancel-btn {
+  background: none; border: 1px solid #c8b890; border-radius: 7px;
+  color: var(--warn); font-size: 11px; padding: 5px 12px;
+  cursor: pointer; transition: all .15s; font-family: inherit; display: none;
+}
+.cancel-btn.show { display: block; }
+.cancel-btn:hover { background: #f0ebe2; }
+.go-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 8px;
+  padding: 8px 20px; font-size: 12px; font-weight: 600;
+  cursor: pointer; transition: opacity .15s; font-family: inherit;
+  display: flex; align-items: center; gap: 6px; letter-spacing: -.1px;
+}
+.go-btn:hover { opacity: .85; }
+.go-btn:disabled { opacity: .4; cursor: not-allowed; }
+
+/* ── 우측 패널 ── */
+.right-panel { display: flex; flex-direction: column; gap: 14px; }
+.panel-card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.panel-head {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 11px 16px; border-bottom: 1px solid var(--border);
+}
+.panel-title { font-size: 11.5px; font-weight: 600; color: var(--text2); display: flex; align-items: center; gap: 6px; letter-spacing: .1px; }
+.panel-body { padding: 12px 14px; }
+
+/* 거래처 검색 */
+.client-search {
+  width: 100%; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 7px; padding: 6px 10px; font-size: 11px; color: var(--text);
+  outline: none; font-family: inherit; margin-bottom: 10px;
+}
+.client-search::placeholder { color: var(--text3); }
+.client-search:focus { border-color: var(--accent2); }
+
+/* 거래처 직접 추가 폼 */
+.add-client-form {
+  display: flex; gap: 5px; align-items: center; flex-wrap: wrap;
+  padding: 10px 0 6px 0; border-top: 1px solid var(--border); margin-top: 8px;
+}
+.add-input {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 8px; font-size: 11px; color: var(--text);
+  outline: none; font-family: inherit; flex: 1; min-width: 70px;
+}
+.add-input::placeholder { color: var(--text3); }
+.add-input:focus { border-color: var(--accent); }
+.add-type-sel {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 6px; font-size: 11px; color: var(--text2);
+  outline: none; font-family: inherit; width: 60px;
+}
+.add-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 6px;
+  padding: 5px 12px; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.add-btn:hover { opacity: .85; }
+
+/* 엑셀 업로드 */
+.xl-upload-area {
+  border: 1.5px dashed var(--border2); border-radius: 9px;
+  padding: 16px; text-align: center; cursor: pointer; transition: all .15s;
+}
+.xl-upload-area:hover { border-color: var(--accent); background: var(--surface2); }
+.xl-upload-icon { font-size: 20px; margin-bottom: 5px; }
+.xl-upload-txt { font-size: 10.5px; color: var(--text3); line-height: 1.7; }
+.xl-upload-txt strong { color: var(--text2); }
+
+/* 거래처 테이블 */
+.client-table { width: 100%; border-collapse: collapse; font-size: 11px; }
+.client-table th { color: var(--text3); font-weight: 600; padding: 4px 6px; text-align: left; border-bottom: 1px solid var(--border); font-size: 10px; letter-spacing: .3px; }
+.client-table td { padding: 5px 6px; color: var(--text2); border-bottom: 1px solid var(--border); }
+.client-table tr:last-child td { border-bottom: none; }
+.type-badge { font-size: 9px; padding: 1px 6px; border-radius: 4px; font-weight: 600; }
+.type-법인 { background: #ece7de; color: #5e5448; }
+.type-개인 { background: #e2ece4; color: #4e6054; }
+.type-신고 { background: #f0e8d8; color: #7a5e38; }
+.client-del { background: none; border: none; color: var(--text3); cursor: pointer; opacity: .4; font-size: 11px; transition: opacity .12s; }
+.client-del:hover { opacity: 1; color: var(--error); }
+
+/* 분류 키워드 */
+.kw-결산 { color: var(--success); font-weight: 600; }
+.kw-부가  { color: var(--accent2); font-weight: 600; }
+.kw-원천  { color: var(--warn);    font-weight: 600; }
+
+/* 로그 */
+.log-scroll { max-height: 200px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
+.log-item { display: flex; align-items: flex-start; gap: 8px; padding: 5px 0; font-size: 11px; border-bottom: 1px solid var(--border); }
+.log-item:last-child { border-bottom: none; }
+.log-dot { width: 6px; height: 6px; border-radius: 50%; flex-shrink: 0; margin-top: 3px; }
+.log-dot.ok   { background: var(--success); }
+.log-dot.fail { background: var(--error); }
+.log-dot.info { background: var(--accent2); }
+.log-txt { color: var(--text2); line-height: 1.5; flex: 1; word-break: break-all; }
+.log-link { color: var(--accent); text-decoration: none; font-size: 10px; display: inline-block; margin-top: 2px; }
+.log-link:hover { text-decoration: underline; }
+.log-time { font-size: 10px; color: var(--text3); flex-shrink: 0; }
+.log-empty { font-size: 11px; color: var(--text3); text-align: center; padding: 18px 0; }
+
+/* 토스트 */
+#toast-c { position: fixed; bottom: 24px; right: 24px; display: flex; flex-direction: column; gap: 8px; z-index: 9999; pointer-events: none; }
+.toast {
+  background: var(--surface); border: 1px solid var(--border);
+  border-left: 3px solid var(--accent); border-radius: 9px;
+  padding: 10px 16px; font-size: 11px; color: var(--text);
+  box-shadow: 0 4px 18px rgba(60,40,20,.1);
+  opacity: 0; transform: translateY(8px); transition: opacity .25s, transform .25s;
+  max-width: 280px; line-height: 1.5;
+}
+.toast.show { opacity: 1; transform: translateY(0); }
+
+/* ── 폴더 연결 바 ── */
+.folder-bar {
+  display: flex; align-items: center; gap: 10px;
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 16px;
+}
+.folder-dot-connected { width: 7px; height: 7px; border-radius: 50%; background: var(--success); flex-shrink: 0; }
+.folder-dot-warn      { width: 7px; height: 7px; border-radius: 50%; background: var(--warn);    flex-shrink: 0; }
+.folder-name { font-size: 12px; font-weight: 500; color: var(--text2); flex: 1; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.folder-action {
+  background: none; border: 1px solid var(--border); border-radius: 7px;
+  color: var(--text2); font-size: 11px; padding: 4px 11px;
+  cursor: pointer; transition: all .15s; font-family: inherit; white-space: nowrap;
+}
+.folder-action:hover { border-color: var(--accent); color: var(--accent); }
+.folder-action.warn  { border-color: #c8b890; color: var(--warn); }
+.folder-action.warn:hover { background: #f0ebe2; }
+.folder-connect-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 7px;
+  padding: 5px 14px; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.folder-connect-btn:hover { opacity: .85; }
+
+/* hidden */
+#file-input, #xl-input { display: none; }
+::-webkit-scrollbar { width: 4px; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+</style>
+</head>
+<body>
+
+<header class="header">
+  <div class="header-left">
+    <span style="font-size:17px;opacity:.6;">📁</span>
+    <span class="header-title">거래처 자료 자동 분류</span>
+    <span class="header-sub">kbkim@taxdh.net</span>
+  </div>
+  <button class="auth-btn" id="auth-btn" onclick="authClick()">
+    <span class="auth-dot" id="auth-dot"></span>
+    <span id="auth-txt">Google 로그인</span>
+  </button>
+</header>
+
+<div class="main">
+
+  <!-- ── 좌측 ── -->
+  <div class="upload-section">
+
+    <!-- 폴더 연결 상태 바 -->
+    <div class="folder-bar" id="folder-bar">
+      <span id="folder-bar-dot" class="folder-dot-warn"></span>
+      <span class="folder-name" id="folder-bar-name">폴더 미연결</span>
+      <button class="folder-action" id="folder-rescan-btn" style="display:none;" onclick="rescanFolder()">↻ 새로고침</button>
+      <button class="folder-action" id="folder-disconnect-btn" style="display:none;" onclick="disconnectFolder()">연결 해제</button>
+      <button class="folder-connect-btn" id="folder-connect-btn" onclick="openFolderPicker()">📂 폴더 연결</button>
+    </div>
+
+    <div class="dropzone" id="dropzone">
+      <div id="drop-empty" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">파일을 여기에 드래그 &amp; 드롭</div>
+        <div class="drop-sub">또는 아래에서 선택</div>
+        <div class="dropzone-empty-btns">
+          <button class="drop-scan-btn" onclick="openFolderPicker()">📂 폴더 전체 스캔</button>
+          <span class="drop-divider">·</span>
+          <button class="drop-scan-btn" onclick="document.getElementById('file-input').click()">🗂 파일 직접 선택</button>
+        </div>
+      </div>
+      <div class="file-list" id="file-list" style="display:none;"></div>
+    </div>
+
+    <!-- 일괄 분류 바 -->
+    <div class="batch-bar" id="batch-bar" style="display:none;">
+      <span class="batch-label" id="batch-count-label">0개 선택됨</span>
+      <select class="batch-sel" id="batch-client-sel"><option value="">거래처 선택</option></select>
+      <select class="batch-sel" id="batch-type-sel">
+        <option value="">종류 선택</option>
+        <option value="결산">결산</option>
+        <option value="부가">부가</option>
+        <option value="원천">원천</option>
+      </select>
+      <button class="batch-apply" onclick="applyBatch()">일괄 적용</button>
+      <button class="batch-clear" onclick="clearSelection()">선택 해제</button>
+    </div>
+
+    <!-- 업로드 바 -->
+    <div class="upload-bar" id="upload-bar" style="display:none;">
+      <div class="upload-count" id="upload-count"></div>
+      <div class="progress-wrap" id="progress-wrap">
+        <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
+        <div class="progress-label" id="progress-label"></div>
+      </div>
+      <button class="clear-btn"   onclick="clearFiles()">초기화</button>
+      <button class="cancel-btn"  id="cancel-btn" onclick="cancelUpload()">취소</button>
+      <button class="go-btn" id="go-btn" onclick="startUpload()">📤 Drive로 저장</button>
+    </div>
+
+  </div>
+
+  <!-- ── 우측 패널 ── -->
+  <div class="right-panel">
+
+    <!-- 거래처 목록 -->
+    <div class="panel-card">
+      <div class="panel-head">
+        <div class="panel-title">
+          👥 거래처 목록
+          <span id="client-count" style="font-size:10px;color:var(--text3);font-weight:400;"></span>
+        </div>
+        <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="document.getElementById('xl-input').click()">📊 엑셀 업로드</button>
+      </div>
+      <div class="panel-body" style="max-height:300px;overflow-y:auto;">
+        <div id="client-area"></div>
+        <!-- 직접 추가 폼 -->
+        <div class="add-client-form">
+          <input class="add-input" id="add-name" placeholder="거래처명" maxlength="40">
+          <input class="add-input" id="add-rep"  placeholder="대표자" maxlength="20" style="max-width:80px;">
+          <select class="add-type-sel" id="add-type">
+            <option value="법인">법인</option>
+            <option value="개인">개인</option>
+            <option value="신고">신고</option>
+          </select>
+          <button class="add-btn" onclick="addClientManual()">+ 추가</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- 자동 분류 키워드 -->
+    <div class="panel-card">
+      <div class="panel-head">
+        <div class="panel-title">🏷 자동 분류 키워드</div>
+      </div>
+      <div class="panel-body" style="font-size:11px;color:var(--text2);line-height:2;">
+        <div style="margin-bottom:5px;"><span class="kw-결산">결산</span> &nbsp;결산 · 법인세 · 종합소득 · 소득세 · 통장 · 은행 · 명세서 · 통신비 · 지방세세목별과세</div>
+        <div style="margin-bottom:5px;"><span class="kw-부가">부가</span> &nbsp;부가세 · 부가 · 매입 · 매출 · 판매대행 · 신용카드 · 세금계산서</div>
+        <div><span class="kw-원천">원천</span> &nbsp;원천세 · 원천 · 급여 · 인건비 · 지급명세 · 근로내용확인신고서 · 상실신고서 · 취득신고서 · 성립신고서 · 건강 · 연금 · 고용</div>
+      </div>
+    </div>
+
+    <!-- 업로드 로그 -->
+    <div class="panel-card" style="flex:1;">
+      <div class="panel-head">
+        <div class="panel-title">📋 결과 로그</div>
+        <button class="client-del" style="font-size:10px;opacity:.45;" onclick="clearLog()">지우기</button>
+      </div>
+      <div class="panel-body log-scroll" id="log-area">
+        <div class="log-empty">업로드 결과가 여기에 표시됩니다</div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<input type="file" id="file-input" multiple>
+<input type="file" id="xl-input" accept=".xlsx,.xls">
+<div id="toast-c"></div>
+<div style="position:fixed;bottom:14px;right:20px;font-size:11px;color:var(--border2);letter-spacing:.5px;pointer-events:none;user-select:none;font-family:'Apple SD Gothic Neo','Pretendard',sans-serif;">709._.b</div>
+
+<script>
+/* ══════════════════════════════════════════════
+   설정
+══════════════════════════════════════════════ */
+const CLIENT_ID      = '14747227159-7n3jucu2rb9dt8ubj6pcspncj4vlaum8.apps.googleusercontent.com';
+const DRIVE_SCOPE    = 'https://www.googleapis.com/auth/drive';
+const BASE_FOLDER_ID = '1KEspiY8RYWvvK-MbA47IW_5FtlawA-nc';
+const LOGIN_HINT     = 'kbkim@taxdh.net';
+const CLIENTS_KEY    = 'drive-clients-v2';
+const LOG_KEY        = 'drive-upload-log-v1';
+
+const TYPE_KEYWORDS = {
+  결산: ['결산','법인세','종합소득','소득세','통장','은행','명세서','통신비','지방세세목별과세'],
+  부가: ['부가세','부가','매입','매출','판매대행','신용카드','세금계산서'],
+  원천: ['원천세','원천','급여','인건비','지급명세','근로내용확인신고서','상실신고서','취득신고서','성립신고서','건강','연금','고용'],
+};
+
+/* ══════════════════════════════════════════════
+   거래처 관리
+══════════════════════════════════════════════ */
+function getClients() { return JSON.parse(localStorage.getItem(CLIENTS_KEY) || '[]'); }
+function saveClients(arr) { localStorage.setItem(CLIENTS_KEY, JSON.stringify(arr)); renderClientTable(); }
+
+/* 엑셀 업로드 */
+document.getElementById('xl-input').addEventListener('change', function() {
+  const file = this.files[0]; if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    try {
+      const wb = XLSX.read(e.target.result, { type:'array' });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header:1 });
+      const clients = [];
+      rows.forEach(row => {
+        const name = String(row[0] || '').trim();
+        const rep  = String(row[1] || '').trim();
+        const type = String(row[2] || '').trim();
+        if (name && name !== '거래처명') {
+          const validType = ['법인','개인','신고'].includes(type) ? type : '신고';
+          clients.push({ name, rep, type: validType });
+        }
+      });
+      saveClients(clients);
+      toast(`✅ ${clients.length}개 거래처 불러옴`, 'ok');
+      reprocessFiles();
+    } catch(e) { toast('엑셀 읽기 실패: ' + e.message, 'fail'); }
+  };
+  reader.readAsArrayBuffer(file);
+  this.value = '';
+});
+
+/* 직접 추가 */
+function addClientManual() {
+  const name = document.getElementById('add-name').value.trim();
+  const rep  = document.getElementById('add-rep').value.trim();
+  const type = document.getElementById('add-type').value;
+  if (!name) { toast('거래처명을 입력해주세요', 'warn'); return; }
+  const clients = getClients();
+  if (clients.some(c => c.name === name)) { toast('이미 있는 거래처예요', 'warn'); return; }
+  clients.push({ name, rep, type });
+  saveClients(clients);
+  document.getElementById('add-name').value = '';
+  document.getElementById('add-rep').value  = '';
+  toast(`✅ ${name} 추가됨`, 'ok');
+  reprocessFiles();
+}
+document.getElementById('add-name').addEventListener('keydown', e => { if (e.key === 'Enter') addClientManual(); });
+
+/* 거래처 테이블 렌더 */
+function renderClientTable() {
+  const clients = getClients();
+  const area    = document.getElementById('client-area');
+  const search  = (document.getElementById('client-search') || {value:''}).value.toLowerCase();
+  document.getElementById('client-count').textContent = clients.length ? `(${clients.length}개)` : '';
+
+  if (!clients.length) {
+    area.innerHTML = `
+      <div class="xl-upload-area" onclick="document.getElementById('xl-input').click()">
+        <div class="xl-upload-icon">📊</div>
+        <div class="xl-upload-txt"><strong>엑셀 파일 업로드</strong><br>A열: 거래처명 · B열: 대표자 · C열: 분류(법인/개인/신고)</div>
+      </div>`;
+    return;
+  }
+
+  const filtered = clients.filter(c =>
+    !search || c.name.toLowerCase().includes(search) || (c.rep||'').toLowerCase().includes(search)
+  );
+
+  let html = `<input class="client-search" id="client-search" placeholder="거래처 검색..." oninput="renderClientTable()" value="${esc(search)}">`;
+  if (!filtered.length) {
+    html += `<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px 0;">검색 결과 없음</div>`;
+  } else {
+    html += '<table class="client-table"><tr><th>거래처명</th><th>대표자</th><th>분류</th><th></th></tr>';
+    filtered.forEach((c) => {
+      const i = clients.indexOf(c);
+      html += `<tr>
+        <td>${esc(c.name)}</td>
+        <td style="color:var(--text3)">${esc(c.rep||'—')}</td>
+        <td><span class="type-badge type-${c.type}">${c.type}</span></td>
+        <td><button class="client-del" onclick="deleteClient(${i})">✕</button></td>
+      </tr>`;
+    });
+    html += '</table>';
+  }
+  area.innerHTML = html;
+}
+
+function deleteClient(i) {
+  const c = getClients(); c.splice(i,1); saveClients(c); reprocessFiles();
+}
+
+/* ══════════════════════════════════════════════
+   파일 분류 로직
+══════════════════════════════════════════════ */
+function matchClient(filename) {
+  const lower = filename.toLowerCase();
+  return getClients().find(c =>
+    lower.includes(c.name.toLowerCase()) ||
+    (c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase()))
+  ) || null;
+}
+
+function detectTaxType(filename) {
+  const lower = filename.toLowerCase();
+  for (const [type, kws] of Object.entries(TYPE_KEYWORDS)) {
+    if (kws.some(k => lower.includes(k.toLowerCase()))) return type;
+  }
+  return null;
+}
+
+function detectMonth(filename) {
+  const m = filename.match(/(\d{1,2})월/);
+  if (m) { const n = parseInt(m[1]); if (n >= 1 && n <= 12) return n; }
+  return null;
+}
+
+function getYear()         { return new Date().getFullYear(); }
+function getCurrentMonth() { return new Date().getMonth() + 1; }
+
+function buildDrivePath(client, taxType, month, year) {
+  const y  = year  || getYear();
+  const mo = month || getCurrentMonth();
+  return `${client.type} / ${y} / ${taxType} / ${mo}월`;
+}
+
+/* ══════════════════════════════════════════════
+   파일 상태 관리
+══════════════════════════════════════════════ */
+let fileItems       = [];
+let selectedIndices = new Set();
+
+function processFiles(rawItems) {
+  const existingNames = new Set(fileItems.map(i => i.file.name));
+  let dupes = 0;
+  rawItems.forEach(item => {
+    if (existingNames.has(item.file.name)) { dupes++; return; }
+    const client  = matchClient(item.file.name);
+    const taxType = detectTaxType(item.file.name);
+    const month   = detectMonth(item.file.name);
+    fileItems.push({ ...item, client, taxType, month: month||null, year: getYear(), skip: false });
+    existingNames.add(item.file.name);
+  });
+  if (dupes) toast(`중복 파일 ${dupes}개 제외됨`, 'warn');
+  renderFileList();
+}
+
+function reprocessFiles() {
+  fileItems = fileItems.map(item => ({
+    ...item,
+    client:  matchClient(item.file.name),
+    taxType: detectTaxType(item.file.name),
+  }));
+  renderFileList();
+}
+
+/* 파일 아이콘 & 크기 헬퍼 */
+function fileIcon(ext) {
+  return {PDF:'📄',XLSX:'📊',XLS:'📊',PNG:'🖼',JPG:'🖼',JPEG:'🖼',HWP:'📝',DOCX:'📝'}[ext] || '📎';
+}
+function fileSize(bytes) {
+  return bytes < 1024*1024 ? (bytes/1024).toFixed(0)+'KB' : (bytes/1024/1024).toFixed(1)+'MB';
+}
+function makeSelects(item, idx, clients, includeClient) {
+  const taxTypes = ['결산','부가','원천'];
+  const years    = [getYear()-1, getYear(), getYear()+1];
+  const months   = Array.from({length:12},(_,k)=>k+1);
+  const els = [];
+
+  if (includeClient) {
+    const cSel = document.createElement('select');
+    cSel.className = 'file-sel sel-client'; cSel.title = '거래처';
+    cSel.innerHTML = '<option value="">거래처 선택</option>' +
+      clients.map(c=>`<option value="${esc(c.name)}" ${item.client&&item.client.name===c.name?'selected':''}>${esc(c.name)}</option>`).join('');
+    cSel.onchange = () => { fileItems[idx].client = clients.find(c=>c.name===cSel.value)||null; renderFileList(); };
+    els.push(cSel);
+  }
+
+  const tSel = document.createElement('select');
+  tSel.className = 'file-sel sel-small'; tSel.title = '종류';
+  tSel.innerHTML = '<option value="">종류</option>' +
+    taxTypes.map(t=>`<option value="${t}" ${item.taxType===t?'selected':''}>${t}</option>`).join('');
+  tSel.onchange = () => { fileItems[idx].taxType = tSel.value||null; renderFileList(); };
+
+  const ySel = document.createElement('select');
+  ySel.className = 'file-sel sel-small'; ySel.title = '연도';
+  ySel.innerHTML = years.map(y=>`<option value="${y}" ${item.year===y?'selected':''}>${y}</option>`).join('');
+  ySel.onchange = () => { fileItems[idx].year = parseInt(ySel.value); renderFileList(); };
+
+  const mo = item.month || getCurrentMonth();
+  const mSel = document.createElement('select');
+  mSel.className = 'file-sel sel-small'; mSel.title = '월';
+  mSel.innerHTML = months.map(m=>`<option value="${m}" ${mo===m?'selected':''}>${m}월</option>`).join('');
+  mSel.onchange = () => { fileItems[idx].month = parseInt(mSel.value); renderFileList(); };
+
+  return [...els, tSel, ySel, mSel];
+}
+
+/* ── A 스타일: 컴팩트 단일 행 ── */
+function buildRowA(item, idx, clients) {
+  const resolved = item.client && item.taxType;
+  const row = document.createElement('div');
+  row.className = 'file-row-a ' + (resolved ? 'resolved' : 'unresolved') +
+    (selectedIndices.has(idx) ? ' selected' : '');
+  row.dataset.idx = idx;
+
+  const cb = document.createElement('input');
+  cb.type = 'checkbox'; cb.className = 'file-check'; cb.checked = selectedIndices.has(idx);
+  cb.onclick = (e) => { e.stopPropagation(); toggleSelect(idx); };
+
+  const iconEl = document.createElement('span');
+  iconEl.className = 'row-a-icon';
+  iconEl.textContent = fileIcon(item.file.name.split('.').pop().toUpperCase());
+
+  const nameEl = document.createElement('span');
+  nameEl.className = 'row-a-name'; nameEl.title = item.file.name;
+  nameEl.textContent = item.file.name;
+
+  const sizeEl = document.createElement('span');
+  sizeEl.className = 'row-a-size';
+  sizeEl.textContent = fileSize(item.file.size);
+
+  const del = document.createElement('button');
+  del.className = 'file-del'; del.title = '제거'; del.textContent = '✕';
+  del.onclick = (e) => { e.stopPropagation(); fileItems.splice(idx,1); selectedIndices.delete(idx); renderFileList(); };
+
+  row.append(cb, iconEl, nameEl, sizeEl, ...makeSelects(item, idx, clients, true), del);
+  return row;
+}
+
+/* ── C 스타일: 거래처 그룹 카드 ── */
+function buildGroupCard(entries, clients) {
+  const {item: first} = entries[0];
+  const clientName = first.client.name;
+  const clientType = first.client.type;
+  const allOk = entries.every(({item}) => item.taxType);
+
+  const card = document.createElement('div');
+  card.className = 'group-card ' + (allOk ? 'resolved' : 'partial');
+
+  const header = document.createElement('div');
+  header.className = 'group-header';
+  header.innerHTML =
+    `<span class="group-client-name">${esc(clientName)}</span>` +
+    `<span class="type-badge type-${clientType}">${clientType}</span>` +
+    `<span class="group-count">${entries.length}개 파일</span>`;
+  card.appendChild(header);
+
+  const rowsWrap = document.createElement('div');
+  rowsWrap.className = 'group-rows';
+
+  entries.forEach(({item, idx}) => {
+    const row = document.createElement('div');
+    row.className = 'group-row' + (selectedIndices.has(idx) ? ' selected' : '');
+    row.dataset.idx = idx;
+
+    const cb = document.createElement('input');
+    cb.type = 'checkbox'; cb.className = 'file-check'; cb.checked = selectedIndices.has(idx);
+    cb.onclick = (e) => { e.stopPropagation(); toggleSelect(idx); };
+
+    const iconEl = document.createElement('span');
+    iconEl.className = 'group-row-icon';
+    iconEl.textContent = fileIcon(item.file.name.split('.').pop().toUpperCase());
+
+    const nameEl = document.createElement('span');
+    nameEl.className = 'group-row-name'; nameEl.title = item.file.name;
+    nameEl.textContent = item.file.name;
+
+    const del = document.createElement('button');
+    del.className = 'file-del'; del.title = '제거'; del.textContent = '✕';
+    del.onclick = (e) => { e.stopPropagation(); fileItems.splice(idx,1); selectedIndices.delete(idx); renderFileList(); };
+
+    // 그룹 내 행: 거래처는 이미 알고 있으니 종류·연도·월만
+    row.append(cb, iconEl, nameEl, ...makeSelects(item, idx, clients, false), del);
+    rowsWrap.appendChild(row);
+  });
+
+  card.appendChild(rowsWrap);
+  return card;
+}
+
+function renderFileList() {
+  const list  = document.getElementById('file-list');
+  const empty = document.getElementById('drop-empty');
+  const bar   = document.getElementById('upload-bar');
+  const visible = fileItems.filter(i => !i.skip);
+
+  if (!visible.length) {
+    list.style.display  = 'none';
+    empty.style.display = 'flex';
+    bar.style.display   = 'none';
+    return;
+  }
+  list.style.display  = 'flex';
+  empty.style.display = 'none';
+  bar.style.display   = 'flex';
+  list.innerHTML = '';
+
+  const clients = getClients();
+
+  // 거래처별 그룹핑
+  const groups   = new Map(); // clientName → [{item, idx}]
+  const noClient = [];        // 미매칭 [{item, idx}]
+  fileItems.forEach((item, idx) => {
+    if (item.skip) return;
+    if (item.client) {
+      if (!groups.has(item.client.name)) groups.set(item.client.name, []);
+      groups.get(item.client.name).push({item, idx});
+    } else {
+      noClient.push({item, idx});
+    }
+  });
+
+  // 거래처별: 2개 이상 → C 그룹, 1개 → A 행
+  groups.forEach((entries) => {
+    if (entries.length >= 2) list.appendChild(buildGroupCard(entries, clients));
+    else                     list.appendChild(buildRowA(entries[0].item, entries[0].idx, clients));
+  });
+
+  // 미매칭 → A 행
+  noClient.forEach(({item, idx}) => list.appendChild(buildRowA(item, idx, clients)));
+
+  const total      = visible.length;
+  const ready      = visible.filter(i => i.client && i.taxType).length;
+  const unresolved = total - ready;
+  document.getElementById('upload-count').innerHTML =
+    `<strong>${total}개</strong> 파일 · <span style="color:var(--success)">매칭 ${ready}개</span>` +
+    (unresolved ? ` · <span style="color:var(--warn)">미확인 ${unresolved}개</span>` : '');
+  document.getElementById('go-btn').disabled = ready === 0;
+  updateBatchBar();
+}
+
+function clearFiles() { fileItems = []; selectedIndices.clear(); renderFileList(); }
+
+/* ── 일괄 분류 ── */
+function updateBatchBar() {
+  const bar  = document.getElementById('batch-bar');
+  const cnt  = document.getElementById('batch-count-label');
+  const cSel = document.getElementById('batch-client-sel');
+  const clients = getClients();
+  const prev = cSel.value;
+  cSel.innerHTML = '<option value="">거래처 선택</option>' +
+    clients.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
+  if (prev) cSel.value = prev;
+  if (selectedIndices.size === 0) { bar.style.display = 'none'; }
+  else { bar.style.display = 'flex'; cnt.textContent = `${selectedIndices.size}개 선택됨`; }
+}
+
+function toggleSelect(idx) {
+  if (selectedIndices.has(idx)) selectedIndices.delete(idx); else selectedIndices.add(idx);
+  updateBatchBar();
+  document.querySelectorAll('[data-idx]').forEach(el => {
+    if (parseInt(el.dataset.idx) !== idx) return;
+    el.classList.toggle('selected', selectedIndices.has(idx));
+    const cb = el.querySelector('.file-check');
+    if (cb) cb.checked = selectedIndices.has(idx);
+  });
+}
+
+function clearSelection() {
+  selectedIndices.clear(); updateBatchBar();
+  document.querySelectorAll('[data-idx].selected').forEach(el => {
+    el.classList.remove('selected');
+    const cb = el.querySelector('.file-check'); if (cb) cb.checked = false;
+  });
+}
+
+function applyBatch() {
+  const clientName = document.getElementById('batch-client-sel').value;
+  const taxType    = document.getElementById('batch-type-sel').value;
+  if (!clientName && !taxType) { toast('거래처 또는 종류를 선택해주세요', 'warn'); return; }
+  const clients = getClients();
+  const count   = selectedIndices.size;
+  selectedIndices.forEach(i => {
+    if (clientName) fileItems[i].client  = clients.find(c=>c.name===clientName)||fileItems[i].client;
+    if (taxType)    fileItems[i].taxType = taxType;
+  });
+  selectedIndices.clear();
+  renderFileList();
+  toast(`✅ ${count}개 파일 분류 적용 완료`, 'ok');
+}
+
+/* ══════════════════════════════════════════════
+   드롭존 & 파일 선택
+══════════════════════════════════════════════ */
+const dropzone = document.getElementById('dropzone');
+dropzone.addEventListener('dragover', e => { e.preventDefault(); if (!fileItems.length) dropzone.classList.add('drag-over'); });
+dropzone.addEventListener('dragleave', () => dropzone.classList.remove('drag-over'));
+dropzone.addEventListener('drop', e => {
+  e.preventDefault(); dropzone.classList.remove('drag-over');
+  const files = Array.from(e.dataTransfer.files);
+  if (files.length) processFiles(files.map(f => ({ file:f, handle:null, canDelete:false })));
+});
+dropzone.addEventListener('click', e => { if (!fileItems.length) document.getElementById('file-input').click(); });
+document.getElementById('file-input').addEventListener('change', function() {
+  if (!this.files.length) return;
+  processFiles(Array.from(this.files).map(f => ({ file:f, handle:null, canDelete:false })));
+  this.value = '';
+});
+
+/* ══════════════════════════════════════════════
+   폴더 연결 (IndexedDB 지속)
+══════════════════════════════════════════════ */
+let folderHandle = null;
+
+/* IndexedDB 열기 */
+function openHandleDB() {
+  return new Promise((resolve, reject) => {
+    const req = indexedDB.open('drive-upload-handles', 1);
+    req.onupgradeneeded = () => req.result.createObjectStore('handles');
+    req.onsuccess = () => resolve(req.result);
+    req.onerror   = () => reject(req.error);
+  });
+}
+async function saveHandle(handle) {
+  const db = await openHandleDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').put(handle, 'folder');
+    tx.oncomplete = resolve; tx.onerror = reject;
+  });
+}
+async function loadHandle() {
+  const db = await openHandleDB();
+  return new Promise((resolve, reject) => {
+    const tx  = db.transaction('handles', 'readonly');
+    const req = tx.objectStore('handles').get('folder');
+    req.onsuccess = () => resolve(req.result || null);
+    req.onerror   = reject;
+  });
+}
+async function clearHandle() {
+  const db = await openHandleDB();
+  return new Promise((resolve, reject) => {
+    const tx = db.transaction('handles', 'readwrite');
+    tx.objectStore('handles').delete('folder');
+    tx.oncomplete = resolve; tx.onerror = reject;
+  });
+}
+
+/* 폴더 바 UI 업데이트 */
+function setFolderBarConnected(name) {
+  document.getElementById('folder-bar-dot').className  = 'folder-dot-connected';
+  document.getElementById('folder-bar-name').textContent = '📂 ' + name + ' 연결됨';
+  document.getElementById('folder-rescan-btn').style.display    = '';
+  document.getElementById('folder-disconnect-btn').style.display = '';
+  document.getElementById('folder-connect-btn').style.display   = 'none';
+}
+function setFolderBarNeedsPermission(name) {
+  document.getElementById('folder-bar-dot').className  = 'folder-dot-warn';
+  document.getElementById('folder-bar-name').textContent = '📂 ' + name + ' (재연결 필요)';
+  document.getElementById('folder-rescan-btn').style.display    = 'none';
+  document.getElementById('folder-disconnect-btn').style.display = '';
+  document.getElementById('folder-connect-btn').textContent = '↻ 재연결';
+  document.getElementById('folder-connect-btn').style.display   = '';
+}
+function setFolderBarDisconnected() {
+  document.getElementById('folder-bar-dot').className  = 'folder-dot-warn';
+  document.getElementById('folder-bar-name').textContent = '폴더 미연결';
+  document.getElementById('folder-rescan-btn').style.display    = 'none';
+  document.getElementById('folder-disconnect-btn').style.display = 'none';
+  document.getElementById('folder-connect-btn').textContent = '📂 폴더 연결';
+  document.getElementById('folder-connect-btn').style.display   = '';
+}
+
+/* 폴더 스캔 실행 */
+async function scanFolder(handle) {
+  const raw = [];
+  for await (const [name, fh] of handle.entries()) {
+    if (fh.kind === 'file' && !name.startsWith('.')) {
+      const file = await fh.getFile();
+      raw.push({ file, handle:fh, canDelete:true });
+    }
+  }
+  if (!raw.length) { toast('폴더에 파일이 없어요', 'warn'); return; }
+  clearFiles();
+  processFiles(raw);
+  toast(`${raw.length}개 파일 스캔 완료`, 'info');
+}
+
+/* 폴더 선택 (최초 or 재연결) */
+async function openFolderPicker() {
+  if (!window.showDirectoryPicker) { toast('폴더 스캔은 크롬에서만 지원돼요', 'warn'); return; }
+  try {
+    const handle = await window.showDirectoryPicker({ mode:'readwrite' });
+    folderHandle = handle;
+    await saveHandle(handle);
+    setFolderBarConnected(handle.name);
+    toast('📂 스캔 중...', 'info');
+    await scanFolder(handle);
+  } catch(e) { if (e.name !== 'AbortError') toast('폴더 접근 실패: '+e.message, 'fail'); }
+}
+
+/* 새로고침 */
+async function rescanFolder() {
+  if (!folderHandle) { toast('연결된 폴더가 없어요', 'warn'); return; }
+  const perm = await folderHandle.queryPermission({ mode:'readwrite' });
+  if (perm !== 'granted') {
+    const req = await folderHandle.requestPermission({ mode:'readwrite' });
+    if (req !== 'granted') { toast('폴더 접근 권한이 필요해요', 'warn'); return; }
+  }
+  toast('📂 새로고침 중...', 'info');
+  await scanFolder(folderHandle);
+}
+
+/* 연결 해제 */
+async function disconnectFolder() {
+  folderHandle = null;
+  await clearHandle();
+  setFolderBarDisconnected();
+  toast('폴더 연결 해제됨', 'info');
+}
+
+/* 페이지 로드 시 자동 연결 시도 */
+async function initFolderConnection() {
+  if (!window.showDirectoryPicker) return; // 크롬 외 브라우저는 스킵
+  try {
+    const handle = await loadHandle();
+    if (!handle) return; // 저장된 폴더 없음
+    folderHandle = handle;
+    const perm = await handle.queryPermission({ mode:'readwrite' });
+    if (perm === 'granted') {
+      // 권한 이미 있음 → 자동 스캔
+      setFolderBarConnected(handle.name);
+      await scanFolder(handle);
+    } else {
+      // 권한 재요청 필요 → 버튼으로 안내
+      setFolderBarNeedsPermission(handle.name);
+    }
+  } catch(e) {
+    // 저장된 핸들이 있어도 오류 시 무시
+  }
+}
+
+/* ══════════════════════════════════════════════
+   Google OAuth
+══════════════════════════════════════════════ */
+let tokenClient    = null;
+let accessToken    = localStorage.getItem('drive-token-v2') || null;
+let gisReady       = false;
+let authPending    = false;
+let tokenResolve   = null;
+
+function gisLoaded() {
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: DRIVE_SCOPE,
+    hint: LOGIN_HINT,
+    callback: (resp) => {
+      if (resp.error) {
+        toast('인증 실패: ' + (resp.error_description||resp.error), 'fail');
+        if (tokenResolve) { tokenResolve(null); tokenResolve = null; }
+        authPending = false; return;
+      }
+      accessToken = resp.access_token;
+      localStorage.setItem('drive-token-v2', accessToken);
+      updateAuthBtn(true);
+      if (tokenResolve) { tokenResolve(accessToken); tokenResolve = null; }
+      if (authPending)  { authPending = false; doUpload(); }
+    }
+  });
+  gisReady = true;
+  if (accessToken) updateAuthBtn(true);
+}
+
+function authClick() {
+  if (accessToken) {
+    fetch('https://oauth2.googleapis.com/revoke?token='+accessToken, {method:'POST'}).catch(()=>{});
+    accessToken = null; localStorage.removeItem('drive-token-v2');
+    updateAuthBtn(false); return;
+  }
+  if (!gisReady) { toast('인증 로딩 중... 잠시 후 다시 시도해주세요', 'warn'); return; }
+  tokenClient.requestAccessToken({ prompt:'' });
+}
+
+function updateAuthBtn(on) {
+  document.getElementById('auth-dot').style.background = on ? 'var(--success)' : 'var(--border2)';
+  document.getElementById('auth-txt').textContent = on ? '연결됨 (클릭 시 해제)' : 'Google 로그인';
+  document.getElementById('auth-btn').className = 'auth-btn' + (on ? ' connected' : '');
+}
+
+/* 토큰 보장 (만료 시 자동 재인증) */
+function ensureValidToken() {
+  if (accessToken) return Promise.resolve(accessToken);
+  return new Promise((resolve) => {
+    tokenResolve = resolve;
+    tokenClient.requestAccessToken({ prompt:'' });
+  });
+}
+
+/* ══════════════════════════════════════════════
+   Drive API
+══════════════════════════════════════════════ */
+async function driveReq(method, path, body, params='') {
+  const token = await ensureValidToken();
+  if (!token) throw new Error('인증 필요');
+  const base = path.startsWith('/upload')
+    ? 'https://www.googleapis.com/upload/drive/v3'
+    : 'https://www.googleapis.com/drive/v3';
+  const url  = base + path + (params ? '?'+params : '');
+  const opts = { method, headers:{ 'Authorization':'Bearer '+token } };
+  if (body && typeof body === 'object' && !(body instanceof Uint8Array)) {
+    opts.headers['Content-Type'] = 'application/json';
+    opts.body = JSON.stringify(body);
+  } else if (body) { opts.body = body; }
+
+  let r = await fetch(url, opts);
+
+  // 토큰 만료 시 한 번 재시도
+  if (r.status === 401) {
+    accessToken = null; localStorage.removeItem('drive-token-v2'); updateAuthBtn(false);
+    const newToken = await ensureValidToken();
+    if (!newToken) throw new Error('재인증 실패');
+    opts.headers['Authorization'] = 'Bearer ' + newToken;
+    r = await fetch(url, opts);
+  }
+
+  if (r.status === 204) return {};
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message || `HTTP ${r.status}`); }
+  return r.json();
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+async function driveReqRetry(method, path, body, params='', retries=2) {
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    try { return await driveReq(method, path, body, params); }
+    catch(e) {
+      if (attempt === retries) throw e;
+      await sleep(1200 * (attempt + 1));
+    }
+  }
+}
+
+const DRIVE_PARAMS = 'supportsAllDrives=true&includeItemsFromAllDrives=true';
+
+async function findOrCreateSubfolder(parentId, name) {
+  const q   = encodeURIComponent(`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
+  const res = await driveReqRetry('GET', `/files`, null, `q=${q}&fields=files(id,name)&${DRIVE_PARAMS}`);
+  if (res?.files?.length) return res.files[0].id;
+  const f = await driveReqRetry('POST', '/files', { name, mimeType:'application/vnd.google-apps.folder', parents:[parentId] }, DRIVE_PARAMS);
+  return f?.id || null;
+}
+
+async function resolveTargetFolder(clientName, taxType, month, year) {
+  const client = getClients().find(c => c.name === clientName);
+  if (!client) throw new Error('거래처 정보 없음');
+  const mo = month || getCurrentMonth();
+  const y  = year  || getYear();
+  let fid  = BASE_FOLDER_ID;
+  fid = await findOrCreateSubfolder(fid, clientName);       if (!fid) throw new Error('거래처 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, client.type);      if (!fid) throw new Error('분류 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, String(y));        if (!fid) throw new Error('연도 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, taxType);          if (!fid) throw new Error('세금종류 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, `${mo}월`);        if (!fid) throw new Error('월 폴더 생성 실패');
+  return fid;
+}
+
+async function uploadFile(file, folderId, filename) {
+  const boundary = 'drb' + Date.now();
+  const meta     = JSON.stringify({ name: filename, parents:[folderId] });
+  const enc      = new TextEncoder();
+  const mPart    = enc.encode(`--${boundary}\r\nContent-Type: application/json; charset=UTF-8\r\n\r\n${meta}\r\n--${boundary}\r\nContent-Type: ${file.type||'application/octet-stream'}\r\n\r\n`);
+  const fBytes   = new Uint8Array(await file.arrayBuffer());
+  const ePart    = enc.encode(`\r\n--${boundary}--`);
+  const body     = new Uint8Array(mPart.length + fBytes.length + ePart.length);
+  let off = 0; body.set(mPart,off); off+=mPart.length; body.set(fBytes,off); off+=fBytes.length; body.set(ePart,off);
+
+  const token = await ensureValidToken();
+  const r = await fetch(`https://www.googleapis.com/upload/drive/v3/files?uploadType=multipart&${DRIVE_PARAMS}`, {
+    method: 'POST',
+    headers: { 'Authorization':'Bearer '+token, 'Content-Type':`multipart/related; boundary=${boundary}` },
+    body
+  });
+  if (!r.ok) { const e = await r.json().catch(()=>({})); throw new Error(e.error?.message||'업로드 실패'); }
+  return r.json();
+}
+
+function makeSafeName(file) {
+  const parts = file.name.lastIndexOf('.');
+  const base  = parts>0 ? file.name.slice(0,parts) : file.name;
+  const ext   = parts>0 ? file.name.slice(parts) : '';
+  const today = new Date();
+  const stamp = `${today.getFullYear()}${String(today.getMonth()+1).padStart(2,'0')}${String(today.getDate()).padStart(2,'0')}`;
+  return `${base}_${stamp}${ext}`;
+}
+
+/* ══════════════════════════════════════════════
+   업로드 실행
+══════════════════════════════════════════════ */
+let uploadCancelled = false;
+
+function cancelUpload() {
+  uploadCancelled = true;
+  toast('업로드 취소 중...', 'warn');
+}
+
+function startUpload() {
+  if (!accessToken) {
+    if (!gisReady) { toast('Google 인증 로딩 중...', 'warn'); return; }
+    authPending = true;
+    tokenClient.requestAccessToken({ prompt:'' });
+    return;
+  }
+  doUpload();
+}
+
+async function doUpload() {
+  const toUpload = fileItems.filter(i => !i.skip && i.client && i.taxType);
+  if (!toUpload.length) { toast('업로드할 파일이 없어요', 'warn'); return; }
+
+  uploadCancelled = false;
+  const btn    = document.getElementById('go-btn');
+  const canBtn = document.getElementById('cancel-btn');
+  const pw     = document.getElementById('progress-wrap');
+  const pf     = document.getElementById('progress-fill');
+  const pl     = document.getElementById('progress-label');
+
+  btn.disabled = true; btn.textContent = '업로드 중...';
+  canBtn.classList.add('show');
+  pw.classList.add('show');
+
+  let ok=0, fail=0;
+  const successNames = new Set();
+
+  for (let i=0; i<toUpload.length; i++) {
+    if (uploadCancelled) { addLog('업로드가 취소되었습니다', 'info'); break; }
+    const item = toUpload[i];
+    pf.style.width  = Math.round(i/toUpload.length*100)+'%';
+    pl.textContent  = `${i+1} / ${toUpload.length}`;
+    try {
+      const fid      = await resolveTargetFolder(item.client.name, item.taxType, item.month, item.year);
+      const filename = makeSafeName(item.file);
+      await uploadFile(item.file, fid, filename);
+      const path    = buildDrivePath(item.client, item.taxType, item.month, item.year);
+      const driveUrl = `https://drive.google.com/drive/folders/${fid}`;
+      addLog(`${item.file.name} → ${path}`, 'ok', driveUrl);
+      if (item.canDelete && item.handle) try { await item.handle.remove(); } catch(e) {}
+      successNames.add(item.file.name);
+      ok++;
+    } catch(e) {
+      addLog(`${item.file.name} 실패: ${e.message}`, 'fail');
+      fail++;
+    }
+  }
+
+  pf.style.width = '100%'; pl.textContent = '완료';
+  setTimeout(() => { pw.classList.remove('show'); pf.style.width='0%'; }, 2000);
+
+  btn.disabled = false; btn.innerHTML = '📤 Drive로 저장';
+  canBtn.classList.remove('show');
+
+  if (ok)   toast(`✅ ${ok}개 저장 완료`, 'ok');
+  if (fail) toast(`⚠️ ${fail}개 실패`, 'fail');
+
+  if (!fail && !uploadCancelled) fileItems = fileItems.filter(i => !successNames.has(i.file.name));
+  else fileItems = fileItems.filter(i => i.skip || !successNames.has(i.file.name));
+  selectedIndices.clear();
+  renderFileList();
+}
+
+/* ══════════════════════════════════════════════
+   로그 (localStorage 지속)
+══════════════════════════════════════════════ */
+function loadLog() {
+  const saved = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+  if (!saved.length) return;
+  const area = document.getElementById('log-area');
+  const empty = area.querySelector('.log-empty');
+  if (empty) empty.remove();
+  saved.forEach(entry => {
+    const div = document.createElement('div');
+    div.className = 'log-item';
+    div.innerHTML = `<div class="log-dot ${entry.type}"></div>
+      <div class="log-txt">${esc(entry.msg)}${entry.url ? `<br><a class="log-link" href="${esc(entry.url)}" target="_blank">📂 Drive 폴더 열기</a>` : ''}</div>
+      <div class="log-time">${esc(entry.time)}</div>`;
+    area.appendChild(div);
+  });
+}
+
+function addLog(msg, type, driveUrl) {
+  const area  = document.getElementById('log-area');
+  const empty = area.querySelector('.log-empty');
+  if (empty) empty.remove();
+  const now  = new Date();
+  const time = `${now.getMonth()+1}/${now.getDate()} ${String(now.getHours()).padStart(2,'0')}:${String(now.getMinutes()).padStart(2,'0')}`;
+  const div  = document.createElement('div');
+  div.className = 'log-item';
+  div.innerHTML = `<div class="log-dot ${type}"></div>
+    <div class="log-txt">${esc(msg)}${driveUrl ? `<br><a class="log-link" href="${esc(driveUrl)}" target="_blank">📂 Drive 폴더 열기</a>` : ''}</div>
+    <div class="log-time">${time}</div>`;
+  area.insertBefore(div, area.firstChild);
+
+  // localStorage 저장 (최대 50개)
+  const saved = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+  saved.unshift({ msg, type, time, url: driveUrl||'' });
+  localStorage.setItem(LOG_KEY, JSON.stringify(saved.slice(0, 50)));
+}
+
+function clearLog() {
+  document.getElementById('log-area').innerHTML = '<div class="log-empty">업로드 결과가 여기에 표시됩니다</div>';
+  localStorage.removeItem(LOG_KEY);
+}
+
+/* ══════════════════════════════════════════════
+   유틸
+══════════════════════════════════════════════ */
+function toast(msg, type) {
+  const c = document.getElementById('toast-c');
+  const t = document.createElement('div');
+  t.className = 'toast'; t.textContent = msg;
+  const colors = { ok:'var(--success)', fail:'var(--error)', warn:'var(--warn)', info:'var(--accent2)' };
+  t.style.borderLeftColor = colors[type] || colors.info;
+  c.appendChild(t);
+  requestAnimationFrame(()=>requestAnimationFrame(()=>t.classList.add('show')));
+  setTimeout(()=>{ t.classList.remove('show'); setTimeout(()=>t.remove(),300); }, 3500);
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* 초기 실행 */
+renderClientTable();
+loadLog();
+initFolderConnection();
+</script>
+</body>
+</html>
