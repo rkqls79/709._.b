@@ -404,9 +404,6 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
 }
 .fallback-btn:hover { opacity:.8; }
 </style>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
-<script async defer src="https://accounts.google.com/gsi/client" onload="gisLoaded()"></script>
 </head>
 <body>
 
@@ -417,18 +414,12 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
     <span class="header-title">업무데스크</span>
     <span class="header-date" id="today"></span>
   </div>
-  <div style="display:flex;align-items:center;gap:8px;">
-    <div id="fs-status" style="display:flex;align-items:center;gap:4px;font-size:10px;color:var(--text2);padding:3px 8px;border:1px solid var(--border);border-radius:6px;background:var(--surface);" title="Firebase 동기화 상태">
-      <span id="fs-dot" style="width:6px;height:6px;border-radius:50%;background:#9ca3af;flex-shrink:0;transition:background .3s;"></span>
-      <span id="fs-txt">연결 중</span>
-    </div>
   <div class="palette-wrap">
     <div class="palette-btn" id="palette-btn" onclick="togglePalette()">🎨</div>
     <div class="theme-popup" id="theme-popup">
       <div class="theme-popup-title">테마</div>
       <div class="theme-dots" id="theme-dots"></div>
     </div>
-  </div>
   </div>
 </header>
 
@@ -573,13 +564,21 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
         </div>
         <div class="panel-body">
           <iframe
-            src="https://calendar.google.com/calendar/embed?src=rkqls070914%40gmail.com&ctz=Asia%2FSeoul&hl=ko&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0"
+            src="https://calendar.google.com/calendar/embed?src=kbkim%40taxdh.net&ctz=Asia%2FSeoul&hl=ko&showTitle=0&showNav=1&showPrint=0&showTabs=1&showCalendars=0"
             title="구글 캘린더"
             id="cal-iframe"
             style="border:0;"
             allowfullscreen>
           </iframe>
-
+          <div class="fallback" id="cal-fallback">
+            <div class="fallback-icon">📅</div>
+            <div class="fallback-text">
+              구글 캘린더 임베드를 사용하려면<br>
+              구글 캘린더 설정 → 캘린더 통합 →<br>
+              <b>공개 URL</b>을 복사해서 알려주세요
+            </div>
+            <a class="fallback-btn" href="https://calendar.google.com/calendar/r" target="_blank">캘린더 열기</a>
+          </div>
         </div>
       </div>
 
@@ -591,10 +590,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
           <div class="split-half">
             <div class="sub-panel-header">
               <span>✅ 할 일</span>
-              <div style="display:flex;align-items:center;gap:6px;">
-                <button id="gcal-btn" onclick="gcalAuthClick()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;padding:2px 8px;cursor:pointer;transition:all .15s;" title="구글 캘린더 연동">🔗 구글 연동</button>
-                <span id="todo-count" style="font-size:10px;font-weight:400;"></span>
-              </div>
+              <span id="todo-count" style="font-size:10px;font-weight:400;"></span>
             </div>
             <div class="todo-body">
               <ul class="todo-list" id="todo-list">
@@ -637,10 +633,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
             ID 메모
           </div>
           <div style="display:flex;align-items:center;gap:6px;">
-            <div style="position:relative;">
-              <input class="memo-search" id="id-memo-search" type="text" placeholder="🔍 검색" autocomplete="off">
-              <div id="id-search-result" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:220px;max-width:320px;background:var(--bg);border:1px solid var(--border);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:999;max-height:260px;overflow-y:auto;padding:4px 0;-webkit-user-select:text;user-select:text;"></div>
-            </div>
+            <input class="memo-search" id="id-memo-search" type="text" placeholder="🔍 검색">
             <button id="id-memo-insert-btn" title="구분선 삽입" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:8px;padding:1px 5px;cursor:pointer;transition:background .15s;line-height:1.4;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">▸</button>
             <span style="font-size:9px; color:var(--text2); opacity:.6;">자동저장</span>
           </div>
@@ -649,37 +642,8 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
           <textarea
             class="id-memo-area"
             id="id-memo-area"
-            placeholder="내용을 입력하세요">▸ 대한세무법인 대표번호 : 1566-4845 / 129-81-68431
-▸ 국세청 홈택스 : U16004 / idol9967*
-▸ 건강보험edi : dlsj9880^^/ dol9967
-▸ 국민연금edi : idol9967 / dlsj9880^^
-▸ 더존 세금계산서 발행
- 아이디 idol9967 / 비밀번호 dlsj9880^^
-▸ DH_5G 와이파이: 비밀번호 1298168431
-▸ 주차권발행
-http://bdbyc.iptime.org
-아이디 : 501byc 비밀번호 1234
-▸ 더존 클라우드 팩스
-회사아이디 idol9967
-직원아이디 담당자이름
-비밀번호 dlsj9880
-▸ 비즈플러스 (케이티통화메니저)
-www.ktpcp.com
-아이디 : 직통번호(0317838877)@kt.com
-비밀번호 dlsj9880^^
-▸ 모두싸인
-https://app.modusign.co.kr
-아이디 : tax@taxdh.net
-비밀번호 : idol9967*
-▸ 계좌번호
-341-057820-01-014 기업은행_대한세무법인
-비밀번호: 0701
-▸ 위하고 송이사님 아이디: dh89111451@wehago.com
-▸ 알리고
-아이디 : tuzaga /비번 : idol9967
-▸ 현금영수증 발행
-http://taxadmin.uplus.co.kr
-daehantaxc/ idol9967*</textarea>
+            placeholder="홈택스 ID: &#10;홈택스 PW: &#10;&#10;위하고 ID: &#10;위하고 PW: &#10;&#10;위택스 ID: &#10;위택스 PW: &#10;&#10;...">
+          </textarea>
         </div>
       </div>
 
@@ -1118,7 +1082,7 @@ function pomoToggle() {
         clearInterval(pomoInterval); pomoRunning = false;
         pomoIsWork = !pomoIsWork;
         pomoTotal = pomoLeft = pomoIsWork ? POMO_WORK : POMO_BREAK;
-        if (typeof Notification !== "undefined") Notification.requestPermission().catch(()=>{});
+        new Notification && Notification.requestPermission();
       }
       pomoRender();
     }, 1000);
@@ -1165,22 +1129,17 @@ function addTodo() {
   const inp = document.getElementById('todo-input');
   const txt = inp.value.trim();
   if (!txt) return;
-  const todo = { text: txt, done: false, id: Date.now() };
-  todos.unshift(todo);
+  todos.unshift({ text: txt, done: false, id: Date.now() });
   saveTodos(); renderTodos();
   inp.value = '';
-  gcalCreateEvent(todo);
 }
 function toggleTodo(i) {
   todos[i].done = !todos[i].done;
   saveTodos(); renderTodos();
-  gcalUpdateEvent(todos[i]);
 }
 function deleteTodo(i) {
-  const tid = todos[i].id;
   todos.splice(i, 1);
   saveTodos(); renderTodos();
-  gcalDeleteEvent(tid);
 }
 document.getElementById('todo-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addTodo();
@@ -1211,7 +1170,7 @@ if (memoNotes.length === 0) {
   const old = localStorage.getItem('dash-memo');
   if (old && old.trim()) { memoNotes = [{id:Date.now(), name:'MEMO 1', text:old.trim(), checks:[]}]; saveMemoNotes(); }
 }
-function saveMemoNotes() { localStorage.setItem('dash-memos', JSON.stringify(memoNotes)); fsSaveMemos(); }
+function saveMemoNotes() { localStorage.setItem('dash-memos', JSON.stringify(memoNotes)); }
 function saveMemoOpenStates() { localStorage.setItem('dash-memos-open', JSON.stringify(memoOpenStates)); }
 function toggleMemoOpen(i) {
   while (memoOpenStates.length <= i) memoOpenStates.push(false);
@@ -1625,9 +1584,8 @@ updateCompletion();
 /* ── ID 메모 자동저장 + 검색 ── */
 const idMemoEl = document.getElementById('id-memo-area');
 if (idMemoEl) {
-  const _idDefault = "\u25b8 \ub300\ud55c\uc138\ubb34\ubc95\uc778 \ub300\ud45c\ubc88\ud638 : 1566-4845 / 129-81-68431\n\u25b8 \uad6d\uc138\uccad \ud648\ud0dd\uc2a4 : U16004 / idol9967*\n\u25b8 \uac74\uac15\ubcf4\ud5d8edi : dlsj9880^^/ dol9967\n\u25b8 \uad6d\ubbfc\uc5f0\uae08edi : idol9967 / dlsj9880^^\n\u25b8 \ub354\uc874 \uc138\uae08\uacc4\uc0b0\uc11c \ubc1c\ud589\n \uc544\uc774\ub514 idol9967 / \ube44\ubc00\ubc88\ud638 dlsj9880^^\n\u25b8 DH_5G \uc640\uc774\ud30c\uc774: \ube44\ubc00\ubc88\ud638 1298168431\n\u25b8 \uc8fc\ucc28\uad8c\ubc1c\ud589\nhttp://bdbyc.iptime.org\n\uc544\uc774\ub514 : 501byc \ube44\ubc00\ubc88\ud638 1234\n\u25b8 \ub354\uc874 \ud074\ub77c\uc6b0\ub4dc \ud329\uc2a4\n\ud68c\uc0ac\uc544\uc774\ub514 idol9967\n\uc9c1\uc6d0\uc544\uc774\ub514 \ub2f4\ub2f9\uc790\uc774\ub984\n\ube44\ubc00\ubc88\ud638 dlsj9880\n\u25b8 \ube44\uc988\ud50c\ub7ec\uc2a4 (\ucf00\uc774\ud2f0\ud1b5\ud654\uba54\ub2c8\uc800)\nwww.ktpcp.com\n\uc544\uc774\ub514 : \uc9c1\ud1b5\ubc88\ud638(0317838877)@kt.com\n\ube44\ubc00\ubc88\ud638 dlsj9880^^\n\u25b8 \ubaa8\ub450\uc2f8\uc778\nhttps://app.modusign.co.kr\n\uc544\uc774\ub514 : tax@taxdh.net\n\ube44\ubc00\ubc88\ud638 : idol9967*\n\u25b8 \uacc4\uc88c\ubc88\ud638\n341-057820-01-014 \uae30\uc5c5\uc740\ud589_\ub300\ud55c\uc138\ubb34\ubc95\uc778\n\ube44\ubc00\ubc88\ud638: 0701\n\u25b8 \uc704\ud558\uace0 \uc1a1\uc774\uc0ac\ub2d8 \uc544\uc774\ub514: dh89111451@wehago.com\n\u25b8 \uc54c\ub9ac\uace0\n\uc544\uc774\ub514 : tuzaga /\ube44\ubc88 : idol9967\n\u25b8 \ud604\uae08\uc601\uc218\uc99d \ubc1c\ud589\nhttp://taxadmin.uplus.co.kr\ndaehantaxc/ idol9967*";
-  idMemoEl.value = localStorage.getItem('dash-id-memo') || idMemoEl.value || _idDefault;
-  idMemoEl.addEventListener('input', () => { localStorage.setItem('dash-id-memo', idMemoEl.value); fsSaveIdMemo(idMemoEl.value); });
+  idMemoEl.value = localStorage.getItem('dash-id-memo') || '';
+  idMemoEl.addEventListener('input', () => localStorage.setItem('dash-id-memo', idMemoEl.value));
 }
 const idMemoInsertBtn = document.getElementById('id-memo-insert-btn');
 if (idMemoInsertBtn) {
@@ -1646,217 +1604,24 @@ if (idMemoInsertBtn) {
   });
 }
 const idMemoSearchEl = document.getElementById('id-memo-search');
-const idSearchResult = document.getElementById('id-search-result');
 if (idMemoSearchEl) {
   idMemoSearchEl.addEventListener('input', function() {
     const q = this.value.trim();
     const ta = document.getElementById('id-memo-area');
-    if (!q) { idSearchResult.style.display = 'none'; return; }
-    const lines = ta.value.split('\n');
-    const ql = q.toLowerCase();
-    // 매칭 라인 찾기: 현재 줄 + 관련 연속 줄 묶음
-    const groups = [];
-    let i = 0;
-    while (i < lines.length) {
-      if (lines[i].toLowerCase().includes(ql)) {
-        // 이 줄이 포함된 항목 블록 수집 (▸ 기준으로 묶기)
-        let start = i;
-        while (start > 0 && !lines[start].startsWith('▸')) start--;
-        let end = i + 1;
-        while (end < lines.length && !lines[end].startsWith('▸')) end++;
-        groups.push(lines.slice(start, end).join('\n'));
-        i = end;
-      } else { i++; }
-    }
-    if (groups.length === 0) {
-      idSearchResult.innerHTML = '<div style="padding:10px 14px;font-size:11px;color:var(--text2);">결과 없음</div>';
-      idSearchResult.style.display = 'block';
-      return;
-    }
-    idSearchResult.innerHTML = groups.map(g => {
-      const hi = g.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'),
-        m => `<mark style="background:#fde047;color:#111;border-radius:2px;padding:0 1px;">${m}</mark>`);
-      return `<div style="padding:8px 14px;font-size:11px;color:var(--text);line-height:1.7;border-bottom:1px solid var(--border);white-space:pre-wrap;-webkit-user-select:text;user-select:text;cursor:text;">${hi}</div>`;
-    }).join('');
-    idSearchResult.style.display = 'block';
-  });
-  // 바깥 클릭 시만 닫기
-  idSearchResult.addEventListener('mousedown', e => e.stopPropagation());
-  idSearchResult.addEventListener('click', e => e.stopPropagation());
-  document.addEventListener('mousedown', e => {
-    if (!idMemoSearchEl.closest('div').contains(e.target))
-      idSearchResult.style.display = 'none';
-  });
-  idMemoSearchEl.addEventListener('focus', () => {
-    if (idMemoSearchEl.value.trim()) idMemoSearchEl.dispatchEvent(new Event('input'));
-  });
-}
-
-/* ── Firebase Firestore 연동 ── */
-const firebaseConfig = {
-  apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
-  authDomain: "project-709b.firebaseapp.com",
-  projectId: "project-709b",
-  storageBucket: "project-709b.firebasestorage.app",
-  messagingSenderId: "446139391233",
-  appId: "1:446139391233:web:a229fbb157b15566204f00",
-  measurementId: "G-J4Z46HBH27"
-};
-let db, fsDoc;
-try {
-  firebase.initializeApp(firebaseConfig);
-  db = firebase.firestore();
-  fsDoc = db.collection('dashboard').doc('data');
-} catch(e) { console.warn('Firebase 초기화 실패:', e); }
-
-function fsSetStatus(state) {
-  const dot = document.getElementById('fs-dot');
-  const txt = document.getElementById('fs-txt');
-  if (!dot || !txt) return;
-  const states = {
-    loading:  { color: '#9ca3af', label: '연결 중' },
-    syncing:  { color: '#f59e0b', label: '저장 중' },
-    synced:   { color: '#22c55e', label: '동기화됨' },
-    error:    { color: '#ef4444', label: '오류' },
-  };
-  const s = states[state] || states.loading;
-  dot.style.background = s.color;
-  txt.textContent = s.label;
-}
-
-async function fsLoad() {
-  fsSetStatus('loading');
-  try {
-    const snap = await fsDoc.get();
-    if (!snap.exists) { fsSetStatus('synced'); return; }
-    const d = snap.data();
-    if (d.memos) {
-      memoNotes = d.memos;
-      memoNotes = memoNotes.map((n,i) => ({ name: n.name || 'MEMO '+(i+1), checks: n.checks || [], ...n }));
-      renderMemoNotes();
-    }
-    if (d.idmemo !== undefined && d.idmemo !== '') {
-      document.getElementById('id-memo-area').value = d.idmemo;
-      localStorage.setItem('dash-id-memo', d.idmemo);
-    }
-    fsSetStatus('synced');
-  } catch(e) { console.warn('Firestore 불러오기 실패:', e); fsSetStatus('error'); }
-}
-
-async function fsSaveMemos() {
-  fsSetStatus('syncing');
-  try { await fsDoc.set({ memos: memoNotes }, { merge: true }); fsSetStatus('synced'); }
-  catch(e) { console.warn('Firestore 메모 저장 실패:', e); fsSetStatus('error'); }
-}
-
-async function fsSaveIdMemo(text) {
-  fsSetStatus('syncing');
-  try { await fsDoc.set({ idmemo: text }, { merge: true }); fsSetStatus('synced'); }
-  catch(e) { console.warn('Firestore ID메모 저장 실패:', e); fsSetStatus('error'); }
-}
-
-/* ── Google Calendar 연동 ── */
-const GCAL_CLIENT_ID = '14747227159-7n3jucu2rb9dt8ubj6pcspncj4vlaum8.apps.googleusercontent.com';
-const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
-let gcalAccessToken = localStorage.getItem('gcal-token') || null;
-let gcalTokenClient = null;
-let gcalGisReady = false;
-const todoEventMap = JSON.parse(localStorage.getItem('todo-event-map') || '{}');
-function saveTodoEventMap() { localStorage.setItem('todo-event-map', JSON.stringify(todoEventMap)); }
-
-function gapiLoaded() {} // gapi 미사용
-
-function gisLoaded() {
-  gcalTokenClient = google.accounts.oauth2.initTokenClient({
-    client_id: GCAL_CLIENT_ID,
-    scope: GCAL_SCOPE,
-    callback: (resp) => {
-      if (resp.error) { console.error('GIS error:', resp); return; }
-      gcalAccessToken = resp.access_token;
-      localStorage.setItem('gcal-token', gcalAccessToken);
-      updateGcalBtn(true);
+    if (!q) { ta.style.outline = ''; return; }
+    const text = ta.value;
+    const idx = text.toLowerCase().indexOf(q.toLowerCase());
+    if (idx !== -1) {
+      ta.focus();
+      ta.setSelectionRange(idx, idx + q.length);
+      const linesBefore = text.substring(0, idx).split('\n').length - 1;
+      ta.scrollTop = linesBefore * 19;
+    } else {
+      ta.style.outline = '1px solid var(--urgent)';
+      setTimeout(() => { ta.style.outline = ''; }, 800);
     }
   });
-  gcalGisReady = true;
-  if (gcalAccessToken) updateGcalBtn(true);
 }
-
-function gcalAuthClick() {
-  if (gcalAccessToken) {
-    fetch('https://oauth2.googleapis.com/revoke?token=' + gcalAccessToken, { method: 'POST' }).catch(() => {});
-    gcalAccessToken = null;
-    localStorage.removeItem('gcal-token');
-    updateGcalBtn(false);
-    return;
-  }
-  if (!gcalGisReady) {
-    const btn = document.getElementById('gcal-btn');
-    if (btn) btn.textContent = '⏳ 로딩중...';
-    setTimeout(gcalAuthClick, 1500);
-    return;
-  }
-  gcalTokenClient.requestAccessToken({ prompt: 'consent' });
-}
-
-function updateGcalBtn(connected) {
-  const btn = document.getElementById('gcal-btn');
-  if (!btn) return;
-  if (connected) {
-    btn.textContent = '🔗 연동됨';
-    btn.title = '클릭하면 연동 해제';
-    btn.style.color = '#43a047';
-    btn.style.borderColor = '#43a047';
-  } else {
-    btn.textContent = '🔗 구글 연동';
-    btn.title = '구글 캘린더 연동';
-    btn.style.color = 'var(--text2)';
-    btn.style.borderColor = 'var(--border)';
-  }
-}
-
-async function gcalFetch(method, path, body) {
-  if (!gcalAccessToken) return null;
-  const url = 'https://www.googleapis.com/calendar/v3' + path;
-  const opts = {
-    method,
-    headers: { 'Authorization': 'Bearer ' + gcalAccessToken, 'Content-Type': 'application/json' }
-  };
-  if (body) opts.body = JSON.stringify(body);
-  const r = await fetch(url, opts);
-  if (r.status === 401) {
-    gcalAccessToken = null; localStorage.removeItem('gcal-token'); updateGcalBtn(false);
-    return null;
-  }
-  if (r.status === 204) return {};
-  return r.json();
-}
-
-async function gcalCreateEvent(todo) {
-  if (!gcalAccessToken) return;
-  const ds = new Date().toISOString().split('T')[0];
-  const data = await gcalFetch('POST', '/calendars/primary/events', {
-    summary: '📋 ' + todo.text, start: { date: ds }, end: { date: ds }
-  });
-  if (data && data.id) { todoEventMap[todo.id] = data.id; saveTodoEventMap(); }
-}
-
-async function gcalUpdateEvent(todo) {
-  const eid = todoEventMap[todo.id];
-  if (!eid || !gcalAccessToken) return;
-  await gcalFetch('PATCH', '/calendars/primary/events/' + eid, {
-    summary: (todo.done ? '✅ ' : '📋 ') + todo.text
-  });
-}
-
-async function gcalDeleteEvent(todoId) {
-  const eid = todoEventMap[todoId];
-  if (!eid || !gcalAccessToken) return;
-  await gcalFetch('DELETE', '/calendars/primary/events/' + eid);
-  delete todoEventMap[todoId]; saveTodoEventMap();
-}
-
-/* ── Firestore 초기 로드 ── */
-fsLoad();
 
 /* ── iframe 폴백 ── */
 setTimeout(() => {
@@ -1892,4 +1657,3 @@ document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
 </body>
 </html>
-                                                                                             
