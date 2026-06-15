@@ -77,7 +77,7 @@ body {
   cursor: pointer; transition: all .2s; position: relative; overflow: hidden;
 }
 .dropzone.drag-over { border-color: var(--accent); background: #f5f1ec; box-shadow: 0 0 0 4px rgba(122,110,96,.08); }
-.dropzone.has-files { justify-content: flex-start; padding: 14px; align-items: stretch; cursor: default; }
+.dropzone.has-files { justify-content: flex-start; align-items: stretch; padding: 14px; cursor: default; }
 .drop-icon { font-size: 26px; opacity: .35; pointer-events: none; }
 .drop-title { font-size: 14px; font-weight: 600; color: var(--text2); pointer-events: none; letter-spacing: -.2px; }
 .drop-sub { font-size: 11.5px; color: var(--text3); pointer-events: none; }
@@ -92,7 +92,7 @@ body {
 .dropzone-empty-btns { display: flex; gap: 10px; align-items: center; pointer-events: auto; flex-wrap: wrap; justify-content: center; }
 
 /* 파일 목록 */
-.file-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; }
+.file-list { display: flex; flex-direction: column; gap: 8px; overflow-y: auto; flex: 1; width: 100%; align-self: flex-start; }
 .file-card {
   background: var(--surface2); border: 1px solid var(--border);
   border-radius: 10px; padding: 11px 14px; display: flex; align-items: flex-start; gap: 10px;
@@ -444,10 +444,11 @@ body {
 
     <!-- 자동 분류 키워드 -->
     <div class="panel-card">
-      <div class="panel-head">
+      <div class="panel-head" style="cursor:pointer;" onclick="toggleKwPanel()">
         <div class="panel-title">🏷 자동 분류 키워드</div>
+        <span id="kw-toggle" style="font-size:14px;color:var(--text3);">▾</span>
       </div>
-      <div class="panel-body" style="font-size:11px;color:var(--text2);line-height:2;">
+      <div class="panel-body" id="kw-body" style="font-size:11px;color:var(--text2);line-height:2;display:none;">
         <div style="margin-bottom:5px;"><span class="kw-결산">결산</span> &nbsp;결산 · 법인세 · 종합소득 · 소득세 · 통장 · 은행 · 명세서 · 통신비 · 지방세세목별과세</div>
         <div style="margin-bottom:5px;"><span class="kw-부가">부가</span> &nbsp;부가세 · 부가 · 매입 · 매출 · 판매대행 · 신용카드 · 세금계산서</div>
         <div><span class="kw-원천">원천</span> &nbsp;원천세 · 원천 · 급여 · 인건비 · 지급명세 · 근로내용확인신고서 · 상실신고서 · 취득신고서 · 성립신고서 · 건강 · 연금 · 고용</div>
@@ -1276,8 +1277,21 @@ async function doUpload() {
 /* ══════════════════════════════════════════════
    로그 (localStorage 지속)
 ══════════════════════════════════════════════ */
+function toggleKwPanel() {
+  const body = document.getElementById('kw-body');
+  const icon = document.getElementById('kw-toggle');
+  const open = body.style.display === 'none';
+  body.style.display = open ? '' : 'none';
+  icon.textContent = open ? '▴' : '▾';
+}
+
 function loadLog() {
-  const saved = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+  const now   = Date.now();
+  const oneDay = 24 * 60 * 60 * 1000;
+  let saved = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
+  // 하루 지난 항목 자동 삭제
+  saved = saved.filter(e => e.ts && (now - e.ts) < oneDay);
+  localStorage.setItem(LOG_KEY, JSON.stringify(saved));
   if (!saved.length) return;
   const area = document.getElementById('log-area');
   const empty = area.querySelector('.log-empty');
@@ -1307,7 +1321,7 @@ function addLog(msg, type, driveUrl) {
 
   // localStorage 저장 (최대 50개)
   const saved = JSON.parse(localStorage.getItem(LOG_KEY) || '[]');
-  saved.unshift({ msg, type, time, url: driveUrl||'' });
+  saved.unshift({ msg, type, time, url: driveUrl||'', ts: Date.now() });
   localStorage.setItem(LOG_KEY, JSON.stringify(saved.slice(0, 50)));
 }
 
