@@ -338,6 +338,10 @@ body {
 }
 .folder-connect-btn:hover { opacity: .85; }
 
+/* 경로 미리보기 */
+.file-path-preview { font-size:9.5px; color:var(--text3); margin-top:2px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.file-path-preview.ready { color:var(--success); }
+
 /* hidden */
 #file-input, #xl-input { display: none; }
 ::-webkit-scrollbar { width: 4px; }
@@ -407,6 +411,9 @@ body {
         <div class="progress-bar"><div class="progress-fill" id="progress-fill"></div></div>
         <div class="progress-label" id="progress-label"></div>
       </div>
+      <label style="display:flex;align-items:center;gap:5px;font-size:11px;color:var(--text2);cursor:pointer;white-space:nowrap;">
+        <input type="checkbox" id="select-all-cb" onchange="toggleSelectAll(this.checked)" style="accent-color:var(--accent);">전체선택
+      </label>
       <button class="clear-btn"   onclick="clearFiles()">초기화</button>
       <button class="cancel-btn"  id="cancel-btn" onclick="cancelUpload()">취소</button>
       <button class="go-btn" id="go-btn" onclick="startUpload()">📤 Drive로 저장</button>
@@ -424,7 +431,11 @@ body {
           👥 거래처 목록
           <span id="client-count" style="font-size:10px;color:var(--text3);font-weight:400;"></span>
         </div>
-        <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="document.getElementById('xl-input').click()">📊 엑셀 업로드</button>
+        <div style="display:flex;gap:5px;">
+          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="document.getElementById('xl-input').click()">📊 업로드</button>
+          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="exportClientsExcel()">⬇ 내보내기</button>
+          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;color:var(--error);border-color:var(--error);" onclick="clearAllClients()">🗑 전체삭제</button>
+        </div>
       </div>
       <div class="panel-body" style="max-height:300px;overflow-y:auto;">
         <div id="client-area"></div>
@@ -585,6 +596,24 @@ function deleteClient(i) {
   const c = getClients(); c.splice(i,1); saveClients(c); reprocessFiles();
 }
 
+function clearAllClients() {
+  if (!confirm('거래처 목록을 전체 삭제할까요?')) return;
+  saveClients([]);
+  reprocessFiles();
+  toast('거래처 목록이 초기화됐어요', 'info');
+}
+
+function exportClientsExcel() {
+  const clients = getClients();
+  if (!clients.length) { toast('거래처 목록이 없어요', 'warn'); return; }
+  const rows = [['거래처명','대표자','분류'], ...clients.map(c => [c.name, c.rep||'', c.type])];
+  const ws = XLSX.utils.aoa_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, '거래처');
+  XLSX.writeFile(wb, '거래처목록.xlsx');
+  toast('엑셀 파일 저장됐어요', 'ok');
+}
+
 /* ══════════════════════════════════════════════
    파일 분류 로직
 ══════════════════════════════════════════════ */
@@ -714,9 +743,18 @@ function buildRowA(item, idx, clients) {
   iconEl.className = 'row-a-icon';
   iconEl.textContent = fileIcon(item.file.name.split('.').pop().toUpperCase());
 
+  const nameWrap = document.createElement('div');
+  nameWrap.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;';
+
   const nameEl = document.createElement('span');
   nameEl.className = 'row-a-name'; nameEl.title = item.file.name;
   nameEl.textContent = item.file.name;
+
+  const pathEl = document.createElement('span');
+  const pathStr = item.client && item.taxType ? buildDrivePath(item.client, item.taxType, item.month, item.year) : '';
+  pathEl.className = 'file-path-preview' + (pathStr ? ' ready' : '');
+  pathEl.textContent = pathStr ? '→ ' + pathStr : '경로 미지정';
+  nameWrap.append(nameEl, pathEl);
 
   const sizeEl = document.createElement('span');
   sizeEl.className = 'row-a-size';
@@ -726,7 +764,7 @@ function buildRowA(item, idx, clients) {
   del.className = 'file-del'; del.title = '제거'; del.textContent = '✕';
   del.onclick = (e) => { e.stopPropagation(); fileItems.splice(idx,1); selectedIndices.delete(idx); renderFileList(); };
 
-  row.append(cb, iconEl, nameEl, sizeEl, ...makeSelects(item, idx, clients, true), del);
+  row.append(cb, iconEl, nameWrap, sizeEl, ...makeSelects(item, idx, clients, true), del);
   return row;
 }
 
@@ -764,16 +802,23 @@ function buildGroupCard(entries, clients) {
     iconEl.className = 'group-row-icon';
     iconEl.textContent = fileIcon(item.file.name.split('.').pop().toUpperCase());
 
+    const nameWrap = document.createElement('div');
+    nameWrap.style.cssText = 'flex:1;min-width:0;display:flex;flex-direction:column;';
     const nameEl = document.createElement('span');
     nameEl.className = 'group-row-name'; nameEl.title = item.file.name;
     nameEl.textContent = item.file.name;
+    const pathEl = document.createElement('span');
+    const pathStr = item.taxType ? buildDrivePath(first.client, item.taxType, item.month, item.year) : '';
+    pathEl.className = 'file-path-preview' + (pathStr ? ' ready' : '');
+    pathEl.textContent = pathStr ? '→ ' + pathStr : '종류 미지정';
+    nameWrap.append(nameEl, pathEl);
 
     const del = document.createElement('button');
     del.className = 'file-del'; del.title = '제거'; del.textContent = '✕';
     del.onclick = (e) => { e.stopPropagation(); fileItems.splice(idx,1); selectedIndices.delete(idx); renderFileList(); };
 
     // 그룹 내 행: 거래처는 이미 알고 있으니 종류·연도·월만
-    row.append(cb, iconEl, nameEl, ...makeSelects(item, idx, clients, false), del);
+    row.append(cb, iconEl, nameWrap, ...makeSelects(item, idx, clients, false), del);
     rowsWrap.appendChild(row);
   });
 
@@ -833,6 +878,22 @@ function renderFileList() {
 }
 
 function clearFiles() { fileItems = []; selectedIndices.clear(); renderFileList(); }
+
+/* ── 전체 선택 ── */
+function toggleSelectAll(checked) {
+  if (checked) {
+    fileItems.forEach((_, idx) => selectedIndices.add(idx));
+  } else {
+    selectedIndices.clear();
+  }
+  updateBatchBar();
+  document.querySelectorAll('[data-idx]').forEach(el => {
+    const idx = parseInt(el.dataset.idx);
+    el.classList.toggle('selected', selectedIndices.has(idx));
+    const cb = el.querySelector('.file-check');
+    if (cb) cb.checked = selectedIndices.has(idx);
+  });
+}
 
 /* ── 일괄 분류 ── */
 function updateBatchBar() {
@@ -1246,6 +1307,14 @@ async function doUpload() {
     try {
       const fid      = await resolveTargetFolder(item.client.name, item.taxType, item.month, item.year);
       const filename = makeSafeName(item.file);
+      // 중복 파일 체크
+      const dupQ = encodeURIComponent(`name='${filename.replace(/'/g,"\\'")}' and '${fid}' in parents and trashed=false`);
+      const dupRes = await driveReqRetry('GET', '/files', null, `q=${dupQ}&fields=files(id)&${DRIVE_PARAMS}`);
+      if (dupRes?.files?.length) {
+        addLog(`⚠️ 중복: ${item.file.name} — 이미 같은 파일이 있어요`, 'info');
+        toast(`중복 파일 건너뜀: ${item.file.name}`, 'warn');
+        fail++; continue;
+      }
       await uploadFile(item.file, fid, filename);
       const path    = buildDrivePath(item.client, item.taxType, item.month, item.year);
       const driveUrl = `https://drive.google.com/drive/folders/${fid}`;
@@ -1267,6 +1336,14 @@ async function doUpload() {
 
   if (ok)   toast(`✅ ${ok}개 저장 완료`, 'ok');
   if (fail) toast(`⚠️ ${fail}개 실패`, 'fail');
+
+  // 브라우저 알림
+  if (ok > 0 && Notification.permission === 'granted') {
+    new Notification('거래처 자료 자동 분류', {
+      body: `${ok}개 파일이 Drive에 저장됐어요` + (fail ? ` (${fail}개 실패)` : ''),
+      icon: 'https://ssl.gstatic.com/docs/doclist/images/drive_2022q3_32dp.png'
+    });
+  }
 
   if (!fail && !uploadCancelled) fileItems = fileItems.filter(i => !successNames.has(i.file.name));
   else fileItems = fileItems.filter(i => i.skip || !successNames.has(i.file.name));
@@ -1352,6 +1429,7 @@ function esc(s) {
 renderClientTable();
 loadLog();
 initFolderConnection();
+if (Notification.permission === 'default') Notification.requestPermission();
 </script>
 </body>
 </html>
