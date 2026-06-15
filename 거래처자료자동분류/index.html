@@ -477,7 +477,7 @@ body {
 /* ══════════════════════════════════════════════
    설정
 ══════════════════════════════════════════════ */
-const CLIENT_ID      = '204917340853-ooacgv1n725g6k9jga3jjhks0pm82ece.apps.googleusercontent.com';
+const CLIENT_ID      = '14747227159-7n3jucu2rb9dt8ubj6pcspncj4vlaum8.apps.googleusercontent.com';
 const DRIVE_SCOPE    = 'https://www.googleapis.com/auth/drive';
 const BASE_FOLDER_ID = '1KEspiY8RYWvvK-MbA47IW_5FtlawA-nc';
 const LOGIN_HINT     = 'kbkim@taxdh.net';
@@ -613,9 +613,16 @@ function getYear()         { return new Date().getFullYear(); }
 function getCurrentMonth() { return new Date().getMonth() + 1; }
 
 function buildDrivePath(client, taxType, month, year) {
-  const y  = year  || getYear();
   const mo = month || getCurrentMonth();
-  return `${client.type} / ${y} / ${taxType} / ${mo}월`;
+  const y  = year  || getYear();
+  const base = `${client.type} / ${client.name} / ${y} / ${taxType}`;
+  if (taxType === '결산') return base;
+  if (taxType === '원천') return `${base} / ${mo}월`;
+  if (taxType === '부가') {
+    if (client.type === '법인') return `${base} / ${Math.ceil(mo/3)}분기`;
+    return `${base} / ${mo <= 6 ? 1 : 2}기`;
+  }
+  return base;
 }
 
 /* ══════════════════════════════════════════════
@@ -1142,11 +1149,24 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   const mo = month || getCurrentMonth();
   const y  = year  || getYear();
   let fid  = BASE_FOLDER_ID;
-  fid = await findOrCreateSubfolder(fid, clientName);       if (!fid) throw new Error('거래처 폴더 생성 실패');
-  fid = await findOrCreateSubfolder(fid, client.type);      if (!fid) throw new Error('분류 폴더 생성 실패');
-  fid = await findOrCreateSubfolder(fid, String(y));        if (!fid) throw new Error('연도 폴더 생성 실패');
-  fid = await findOrCreateSubfolder(fid, taxType);          if (!fid) throw new Error('세금종류 폴더 생성 실패');
-  fid = await findOrCreateSubfolder(fid, `${mo}월`);        if (!fid) throw new Error('월 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, client.type);  if (!fid) throw new Error('분류 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, clientName);   if (!fid) throw new Error('거래처 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, String(y));    if (!fid) throw new Error('연도 폴더 생성 실패');
+  fid = await findOrCreateSubfolder(fid, taxType);      if (!fid) throw new Error('세금종류 폴더 생성 실패');
+
+  if (taxType === '결산') {
+    return fid; // 결산은 바로 저장
+  } else if (taxType === '원천') {
+    fid = await findOrCreateSubfolder(fid, `${mo}월`);  if (!fid) throw new Error('월 폴더 생성 실패');
+  } else if (taxType === '부가') {
+    if (client.type === '법인') {
+      const q = Math.ceil(mo / 3);
+      fid = await findOrCreateSubfolder(fid, `${q}분기`); if (!fid) throw new Error('분기 폴더 생성 실패');
+    } else {
+      const ki = mo <= 6 ? 1 : 2;
+      fid = await findOrCreateSubfolder(fid, `${ki}기`);  if (!fid) throw new Error('기 폴더 생성 실패');
+    }
+  }
   return fid;
 }
 
