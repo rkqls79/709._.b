@@ -21,7 +21,6 @@ body {
   overflow-y:auto;
   display:flex; flex-direction:column;
   transition:background .3s, color .3s;
-  zoom: 1.1;
 }
 
 /* ── 헤더 ── */
@@ -69,7 +68,7 @@ body {
   display:flex; align-items:stretch;
   background:var(--bg); border:1px solid var(--border);
   border-radius:10px; overflow:hidden;
-  height:52px; margin-bottom:8px;
+  height:54px; margin-bottom:10px;
 }
 .info-cell {
   flex:0 0 auto; display:flex; flex-direction:column; justify-content:center; gap:2px;
@@ -105,7 +104,7 @@ body {
 
 /* ── 3단 레이아웃 ── */
 .layout {
-  height:calc((100vh - 51px) / 1.1); flex-shrink:0;
+  height:calc(100vh - 51px); flex-shrink:0;
   display:grid;
   grid-template-columns:68px 1fr 68px;
   gap:12px;
@@ -142,7 +141,7 @@ body {
 
 /* ── 신고 마감 업무 스트립 ── */
 .filing-strip {
-  flex-shrink:0; height:200px; margin-top:8px;
+  flex-shrink:0; height:190px; margin-top:10px;
   background:var(--surface); border:1px solid var(--border);
   border-radius:var(--radius); overflow:hidden;
   display:flex; flex-direction:column;
@@ -155,7 +154,7 @@ body {
   font-size:12px; font-weight:700; color:var(--text);
 }
 .filing-strip-hd span:last-child { font-size:10px; font-weight:400; color:var(--text2); opacity:.6; }
-.filing-card { flex:0 0 auto; width:210px; background:var(--bg); border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; overflow:hidden; max-height:200px; }
+.filing-card { flex:0 0 auto; width:210px; background:var(--bg); border:1px solid var(--border); border-radius:10px; display:flex; flex-direction:column; overflow:hidden; max-height:165px; }
 .fc-accent { height:3px; flex-shrink:0; }
 .fc-inner { padding:8px 11px; display:flex; flex-direction:column; flex:1; overflow:hidden; }
 .fc-header { display:flex; align-items:center; justify-content:space-between; margin-bottom:7px; flex-shrink:0; }
@@ -199,7 +198,7 @@ body {
   display:flex; align-items:center; justify-content:space-between;
   padding:6px 12px; border-bottom:1px solid var(--border);
   background:var(--bg); flex-shrink:0;
-  font-size:12px; font-weight:600; color:var(--text2); letter-spacing:.3px;
+  font-size:11px; font-weight:600; color:var(--text2); letter-spacing:.3px;
 }
 .sub-panel-header span { display:flex; align-items:center; gap:5px; }
 
@@ -279,18 +278,11 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
 .memo-search:focus { border-color:var(--border2); width:120px; }
 .memo-search::placeholder { color:var(--text2); opacity:.5; }
 .memo-style-btn {
-  width:14px; height:14px; border-radius:50%;
-  border:1.5px solid var(--border2);
-  background:var(--surface2);
-  cursor:pointer; padding:0; flex-shrink:0;
-  transition:background .15s, border-color .15s, transform .15s;
-  display:inline-flex; align-items:center; justify-content:center;
-  font-size:0;
+  background:none; border:1px solid var(--border); border-radius:6px;
+  color:var(--text2); font-size:9px; cursor:pointer;
+  padding:2px 7px; transition:background .15s; letter-spacing:.3px; font-weight:600;
 }
-.memo-style-btn:hover { transform:scale(1.3); }
-.memo-style-btn.s-text { background:transparent; border-color:var(--border2); }
-.memo-style-btn.s-check { background:var(--accent); border-color:var(--accent); }
-.memo-style-btn.s-dot { background:var(--text2); border-color:var(--text2); }
+.memo-style-btn:hover { background:var(--surface2); color:var(--text); }
 /* 메모 스타일 1: 체크리스트 */
 .memo-check-list { padding:6px 10px 4px; display:flex; flex-direction:column; gap:4px; }
 .memo-check-item { display:flex; align-items:flex-start; gap:7px; font-size:12px; color:var(--text); line-height:1.5; cursor:pointer; }
@@ -375,7 +367,6 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
   border-radius:var(--radius); overflow:hidden;
   display:flex; flex-direction:column; min-height:0;
 }
-#cal-panel { zoom: 0.9091; }
 .panel-header {
   display:flex; align-items:center; justify-content:space-between;
   padding:8px 14px; border-bottom:1px solid var(--border);
@@ -538,7 +529,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
           <div class="pomo-mode-txt" id="pomo-mode">집중 시간</div>
         </div>
         <div style="display:flex;gap:4px;">
-          <div class="pomo-btn" id="pomo-play" onclick="pomoToggle()">▸</div>
+          <div class="pomo-btn" id="pomo-play" onclick="pomoToggle()">▶</div>
           <div class="pomo-btn" onclick="pomoReset()">↺</div>
         </div>
       </div>
@@ -547,7 +538,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
     <div class="center-panels">
 
       <!-- 캘린더 -->
-      <div class="panel" id="cal-panel" style="flex:1.55;">
+      <div class="panel" style="flex:1.55;">
         <div class="panel-header">
           <div class="panel-title">
             <div class="panel-icon" style="background:#e8f0fe;">
@@ -632,11 +623,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
             <div class="panel-icon" style="background:#f5f0ff; font-size:11px;">🔑</div>
             ID 메모
           </div>
-          <div style="display:flex;align-items:center;gap:6px;">
-            <input class="memo-search" id="id-memo-search" type="text" placeholder="🔍 검색">
-            <button id="id-memo-insert-btn" title="구분선 삽입" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:8px;padding:1px 5px;cursor:pointer;transition:background .15s;line-height:1.4;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">▸</button>
-            <span style="font-size:9px; color:var(--text2); opacity:.6;">자동저장</span>
-          </div>
+          <span style="font-size:9px; color:var(--text2); opacity:.6;">자동저장</span>
         </div>
         <div class="panel-body" style="display:flex; flex-direction:column;">
           <textarea
@@ -929,7 +916,7 @@ const ddItems = [
   { name:'간이지급명세서', diff:gjDiff,  date:toStr(gjDate),  color:DD_COLORS_MAP['간이지급명세서'], always:true  },
   { name:'종합소득세',   diff:itDiff,  date:toStr(itDate),  color:DD_COLORS_MAP['종합소득세'],   always:false },
   { name:'법인세',      diff:ctDiff,  date:toStr(ctDate),  color:DD_COLORS_MAP['법인세'],      always:false },
-].filter(d => d.always || d.diff <= 400)
+].filter(d => d.always || d.diff <= 100)
  .sort((a, b) => a.diff - b.diff);
 
 const ddCont = document.getElementById('dday-container');
@@ -1216,7 +1203,7 @@ function renderMemoNotes() {
         <input class="memo-note-num" value="${escHtml(note.name || 'MEMO '+(ni+1))}" maxlength="20" title="클릭하여 이름 수정">
       </div>
       <div class="memo-note-toolbar-right">
-        <button class="memo-style-btn ${noteStyle==='4'?'s-text':noteStyle==='1'?'s-check':'s-dot'}" title="스타일 전환 (${MEMO_STYLE_TITLES[noteStyle]})"></button>
+        <button class="memo-style-btn" title="스타일 전환 (${MEMO_STYLE_TITLES[noteStyle]})">${MEMO_STYLE_LABELS[noteStyle]}</button>
         <span class="memo-note-chevron ${isOpen ? 'open' : ''}">▼</span>
         <button class="memo-note-del" title="삭제">✕</button>
       </div>`;
@@ -1399,11 +1386,11 @@ renderMemoNotes();
 
 /* ── 신고 마감 업무 체크리스트 ── */
 const FILING_TASKS_MAP = {
-  '원천세':       ['인건비 자료 요청','홈택스 전자신고','원천세 납부서 전달','전자신고 구글 업로드'],
-  '부가세':       ['자료 요청','홈택스 전자신고','부가세 납부서 전달','전자신고 구글 업로드'],
-  '간이지급명세서': ['홈택스 전자신고','전자신고 구글 업로드'],
-  '종합소득세':   ['자료 요청','홈택스 전자신고','납부서 전달 및 조정료 청구','전자신고 구글 업로드'],
-  '법인세':       ['자료 요청','홈택스 전자신고','납부서 전달 및 조정료 청구','전자신고 구글 업로드'],
+  '원천세':       ['인건비 자료 요청','원천세 전자신고','원천세 납부서 전달','전자신고 구글 업로드'],
+  '부가세':       ['자료 요청','부가세 전자신고','부가세 납부서 전달','전자신고 구글 업로드'],
+  '간이지급명세서': ['간이지급명세서 전자신고','전자신고 구글 업로드'],
+  '종합소득세':   ['소득 자료 수집 및 검토','소득·세액공제 증빙 서류 확인','종합소득세 신고서 작성 및 검토','홈택스 전자신고 제출','세액 납부 (분납 여부 확인)'],
+  '법인세':       ['재무제표 확정 및 검토','세무조정 계산서 작성','법인세 신고서 작성 및 검토','홈택스 전자신고 제출','법인세액 납부 처리'],
 };
 const FILING_COLORS = {
   '원천세':'rgba(210,198,148,0.6)','부가세':'rgba(205,168,170,0.6)',
@@ -1581,46 +1568,11 @@ function updateCompletion() {
 }
 updateCompletion();
 
-/* ── ID 메모 자동저장 + 검색 ── */
+/* ── ID 메모 자동저장 ── */
 const idMemoEl = document.getElementById('id-memo-area');
 if (idMemoEl) {
   idMemoEl.value = localStorage.getItem('dash-id-memo') || '';
   idMemoEl.addEventListener('input', () => localStorage.setItem('dash-id-memo', idMemoEl.value));
-}
-const idMemoInsertBtn = document.getElementById('id-memo-insert-btn');
-if (idMemoInsertBtn) {
-  idMemoInsertBtn.addEventListener('click', () => {
-    const ta = document.getElementById('id-memo-area');
-    const start = ta.selectionStart;
-    const end = ta.selectionEnd;
-    const before = ta.value.substring(0, start);
-    const after  = ta.value.substring(end);
-    const insert = (before.length > 0 && !before.endsWith('\n') ? '\n' : '') + '▸ ';
-    ta.value = before + insert + after;
-    const newPos = start + insert.length;
-    ta.setSelectionRange(newPos, newPos);
-    ta.focus();
-    localStorage.setItem('dash-id-memo', ta.value);
-  });
-}
-const idMemoSearchEl = document.getElementById('id-memo-search');
-if (idMemoSearchEl) {
-  idMemoSearchEl.addEventListener('input', function() {
-    const q = this.value.trim();
-    const ta = document.getElementById('id-memo-area');
-    if (!q) { ta.style.outline = ''; return; }
-    const text = ta.value;
-    const idx = text.toLowerCase().indexOf(q.toLowerCase());
-    if (idx !== -1) {
-      ta.focus();
-      ta.setSelectionRange(idx, idx + q.length);
-      const linesBefore = text.substring(0, idx).split('\n').length - 1;
-      ta.scrollTop = linesBefore * 19;
-    } else {
-      ta.style.outline = '1px solid var(--urgent)';
-      setTimeout(() => { ta.style.outline = ''; }, 800);
-    }
-  });
 }
 
 /* ── iframe 폴백 ── */
