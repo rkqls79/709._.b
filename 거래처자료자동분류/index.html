@@ -2009,8 +2009,8 @@ function cancelUpload() {
 }
 
 function startUpload() {
-  if (!gisReady) { toast('Google 인증 로딩 중... 잠시 후 다시 시도해주세요', 'warn'); return; }
   if (!accessToken) {
+    if (!gisReady) { toast('Google 인증 로딩 중... 잠시 후 다시 시도해주세요', 'warn'); return; }
     authPending = true;
     tokenClient.requestAccessToken({ prompt:'' });
     return;
