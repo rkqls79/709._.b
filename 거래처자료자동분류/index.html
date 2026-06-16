@@ -788,7 +788,6 @@ function renderClientTable() {
   }
 
   if (searchEl) searchEl.style.display = '';
-
   const filtered = clients.filter(c =>
     !search || c.name.toLowerCase().includes(search) || (c.rep||'').toLowerCase().includes(search)
   );
@@ -866,7 +865,7 @@ function matchClient(filename) {
   const lower = filename.toLowerCase().replace(/_/g, ' ');
   const clients = getClients();
 
-  // 1차: 상호명 정확 매칭 — 긴 이름 우선으로 구체적인 거래처 우선 선택
+  // 1차: 상호명 정확 매칭 — 긴 이름 우선
   const byNameLen = [...clients].sort((a, b) => b.name.length - a.name.length);
   const exactName = byNameLen.find(c => lower.includes(c.name.toLowerCase()));
   if (exactName) return { client: exactName, fuzzy: false };
@@ -877,13 +876,10 @@ function matchClient(filename) {
   );
   if (exactRep) return { client: exactRep, fuzzy: false };
 
-  // 3차: 구별 단어(공통 단어 제외) 중 하나 이상이 파일명에 있어야 후보로 인정
-  // → "PC방"만 공통이고 "리얼"이 없으면 "리얼PC방"은 탈락
-  // → 파일명에 "리얼"만 있어도 "리얼PC방"은 통과 (PC방 생략 허용)
+  // 3차: 구별 단어 중 하나 이상 포함 + 유사도 50% 이상
   let best = null, bestScore = 0;
   clients.forEach(c => {
     const distinct = getDistinctWords(c.name);
-    // 구별 단어가 아예 없는 이름은 유사도만으로 판단
     if (distinct.length > 0 && !distinct.some(w => lower.includes(w))) return;
     const score = nameSimilarity(c.name, lower);
     if (score >= 0.5 && score > bestScore) { best = c; bestScore = score; }
@@ -1336,7 +1332,7 @@ function updateBatchBar() {
 
 function toggleSelect(idx, shiftKey) {
   if (shiftKey && lastClickedIdx !== null) {
-    // DOM 화면 순서 기준으로 범위 선택 (그룹 카드 등 시각적 순서 반영)
+    // DOM 화면 순서 기준으로 범위 선택
     const allRows = [...document.querySelectorAll('[data-idx]')];
     const idxList = allRows.map(el => parseInt(el.dataset.idx));
     const posA = idxList.indexOf(lastClickedIdx);
@@ -1344,7 +1340,7 @@ function toggleSelect(idx, shiftKey) {
     if (posA !== -1 && posB !== -1) {
       const from = Math.min(posA, posB);
       const to   = Math.max(posA, posB);
-      const addMode = selectedIndices.has(lastClickedIdx); // 기준 항목이 선택 상태면 범위도 선택
+      const addMode = selectedIndices.has(lastClickedIdx);
       for (let p = from; p <= to; p++) {
         if (addMode) selectedIndices.add(idxList[p]);
         else selectedIndices.delete(idxList[p]);
@@ -1599,15 +1595,6 @@ let accessToken    = localStorage.getItem('drive-token-v2') || null;
 let gisReady       = false;
 let authPending    = false;
 let tokenResolve   = null;
-
-// GIS 스크립트가 5초 안에 안 로드되면 오류 표시
-setTimeout(() => {
-  if (!gisReady) {
-    console.warn('[GIS] 5초 내 로드 실패 — 인터넷 연결 또는 방화벽 확인 필요');
-    const authTxt = document.getElementById('auth-txt');
-    if (authTxt && !accessToken) authTxt.textContent = 'Google 연결 실패 (새로고침)';
-  }
-}, 5000);
 
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -1970,7 +1957,6 @@ function updateSyncStatus() {
    Drive 중복 사전 검사
 ══════════════════════════════════════════════ */
 async function checkDuplicates() {
-  // 체크된 파일이 있으면 체크된 것만, 없으면 전체
   const toCheck = fileItems.filter((i, idx) =>
     !i.skip && i.client && i.taxType &&
     (selectedIndices.size === 0 || selectedIndices.has(idx))
@@ -2019,7 +2005,7 @@ function cancelUpload() {
 
 function startUpload() {
   if (!accessToken) {
-    if (!gisReady) { toast('Google 인증 로딩 중... 잠시 후 다시 시도해주세요', 'warn'); return; }
+    if (!gisReady) { toast('Google 인증 로딩 중...', 'warn'); return; }
     authPending = true;
     tokenClient.requestAccessToken({ prompt:'' });
     return;
