@@ -854,22 +854,26 @@ function nameSimilarity(clientName, filename) {
 }
 
 function matchClient(filename) {
-  // 밑줄→공백 정규화 (파일명이 "주식회사_에스티아트_..." 형태여도 정확 매칭)
+  // 밑줄→공백 정규화
   const lower = filename.toLowerCase().replace(/_/g, ' ');
   const clients = getClients();
-  // 1) 정확 매칭 — 이름 긴 순 정렬로 구체적인 거래처 우선
-  const sorted = [...clients].sort((a, b) => b.name.length - a.name.length);
-  const exact = sorted.find(c =>
-    lower.includes(c.name.toLowerCase()) ||
-    (c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase()))
-  );
-  if (exact) return { client: exact, fuzzy: false };
 
-  // 2) 퍼지 매칭 (30% 이상)
+  // 1차: 상호명 정확 매칭 — 긴 이름 우선으로 구체적인 거래처 우선 선택
+  const byNameLen = [...clients].sort((a, b) => b.name.length - a.name.length);
+  const exactName = byNameLen.find(c => lower.includes(c.name.toLowerCase()));
+  if (exactName) return { client: exactName, fuzzy: false };
+
+  // 2차: 대표자명 매칭
+  const exactRep = clients.find(c =>
+    c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase())
+  );
+  if (exactRep) return { client: exactRep, fuzzy: false };
+
+  // 3차: 상호명 유사도 50% 이상
   let best = null, bestScore = 0;
   clients.forEach(c => {
     const score = nameSimilarity(c.name, lower);
-    if (score >= 0.3 && score > bestScore) { best = c; bestScore = score; }
+    if (score >= 0.5 && score > bestScore) { best = c; bestScore = score; }
   });
   if (best) return { client: best, fuzzy: true, score: Math.round(bestScore * 100) };
   return null;
