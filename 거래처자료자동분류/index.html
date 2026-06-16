@@ -861,7 +861,6 @@ function getDistinctWords(name) {
 }
 
 function matchClient(filename) {
-  // 밑줄→공백 정규화
   const lower = filename.toLowerCase().replace(/_/g, ' ');
   const clients = getClients();
 
@@ -876,7 +875,7 @@ function matchClient(filename) {
   );
   if (exactRep) return { client: exactRep, fuzzy: false };
 
-  // 3차: 구별 단어 중 하나 이상 포함 + 유사도 50% 이상
+  // 3차: 구별 단어 포함 + 유사도 50% 이상
   let best = null, bestScore = 0;
   clients.forEach(c => {
     const distinct = getDistinctWords(c.name);
@@ -898,8 +897,25 @@ function detectTaxType(filename) {
 }
 
 function detectMonth(filename) {
-  const m = filename.match(/(\d{1,2})월/);
+  // "3월", "03월" 패턴
+  let m = filename.match(/(\d{1,2})월/);
   if (m) { const n = parseInt(m[1]); if (n >= 1 && n <= 12) return n; }
+  // "25.01", "2025.01" 패턴 — 앞이 연도, 뒤가 월
+  m = filename.match(/\b(?:20\d{2}|\d{2})[.\-_](\d{2})\b/);
+  if (m) { const n = parseInt(m[1]); if (n >= 1 && n <= 12) return n; }
+  return null;
+}
+
+function detectYear(filename) {
+  // "2025년" 패턴
+  let m = filename.match(/\b(20\d{2})년/);
+  if (m) return parseInt(m[1]);
+  // "2025.01" 패턴
+  m = filename.match(/\b(20\d{2})[.\-_]\d{2}\b/);
+  if (m) return parseInt(m[1]);
+  // "25.01" 패턴 (20~35 범위)
+  m = filename.match(/\b(\d{2})[.\-_]\d{2}\b/);
+  if (m) { const y = parseInt(m[1]); if (y >= 20 && y <= 35) return 2000 + y; }
   return null;
 }
 
@@ -907,19 +923,18 @@ function getYear()         { return new Date().getFullYear(); }
 function getCurrentMonth() { return new Date().getMonth() + 1; }
 
 function buildDrivePath(client, taxType, month, year) {
-  const mo = month || getCurrentMonth();
+  const mo = month || null;
   const y  = year  || getYear();
-  // 종소: ★종합소득세 신고대리 / [거래처명] / [연도]
   if (client.type === '종소') {
     return `★종합소득세 신고대리 / ${client.name} / ${y}`;
   }
-  // 일반: [거래처명] / [연도] / [세금종류] (/ 월 or 분기)
   const base = `${client.name} / ${y} / ${taxType}`;
   if (taxType === '결산') return base;
-  if (taxType === '원천') return `${base} / ${mo}월`;
+  if (taxType === '원천') return mo ? `${base} / ${mo}월` : base;
   if (taxType === '부가') {
-    if (client.type === '법인') return `${base} / ${Math.ceil(mo/3)}분기`;
-    return `${base} / ${mo <= 6 ? 1 : 2}기`;
+    const m = mo || getCurrentMonth();
+    if (client.type === '법인') return `${base} / ${Math.ceil(m/3)}분기`;
+    return `${base} / ${m <= 6 ? 1 : 2}기`;
   }
   return base;
 }
@@ -944,7 +959,7 @@ function processFiles(rawItems) {
       client:      match ? match.client : null,
       fuzzy:       match ? match.fuzzy  : false,
       fuzzyScore:  match ? (match.score || 0) : 0,
-      taxType, month: month||null, year: getYear(), skip: false, keepName: false, isDuplicate: false
+      taxType, month: month||null, year: detectYear(item.file.name)||getYear(), skip: false, keepName: false, isDuplicate: false
     });
     existingNames.add(item.file.name);
   });
@@ -1050,11 +1065,11 @@ function makeSelects(item, idx, clients, includeClient) {
   ySel.innerHTML = years.map(y=>`<option value="${y}" ${item.year===y?'selected':''}>${y}</option>`).join('');
   ySel.onchange = () => { fileItems[idx].year = parseInt(ySel.value); renderFileList(); };
 
-  const mo = item.month || getCurrentMonth();
   const mSel = document.createElement('select');
   mSel.className = 'file-sel sel-small'; mSel.title = '월';
-  mSel.innerHTML = months.map(m=>`<option value="${m}" ${mo===m?'selected':''}>${m}월</option>`).join('');
-  mSel.onchange = () => { fileItems[idx].month = parseInt(mSel.value); renderFileList(); };
+  mSel.innerHTML = '<option value="" ' + (!item.month ? 'selected' : '') + '>X월</option>' +
+    months.map(m=>`<option value="${m}" ${item.month===m?'selected':''}>${m}월</option>`).join('');
+  mSel.onchange = () => { fileItems[idx].month = mSel.value ? parseInt(mSel.value) : null; renderFileList(); };
 
   return [...els, tSel, ySel, mSel];
 }
@@ -1332,7 +1347,6 @@ function updateBatchBar() {
 
 function toggleSelect(idx, shiftKey) {
   if (shiftKey && lastClickedIdx !== null) {
-    // DOM 화면 순서 기준으로 범위 선택
     const allRows = [...document.querySelectorAll('[data-idx]')];
     const idxList = allRows.map(el => parseInt(el.dataset.idx));
     const posA = idxList.indexOf(lastClickedIdx);
@@ -1700,7 +1714,7 @@ async function findOrCreateSubfolder(parentId, name) {
 async function resolveTargetFolder(clientName, taxType, month, year) {
   const client = getClients().find(c => c.name === clientName);
   if (!client) throw new Error('거래처 정보 없음');
-  const mo = month || getCurrentMonth();
+  const mo = month || null;
   const y  = year  || getYear();
   let fid  = BASE_FOLDER_ID;
 
@@ -1720,12 +1734,13 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   if (taxType === '결산') {
     return fid;
   } else if (taxType === '원천') {
-    fid = await findOrCreateSubfolder(fid, `${mo}월`); if (!fid) throw new Error('월 폴더 생성 실패');
+    if (mo) { fid = await findOrCreateSubfolder(fid, `${mo}월`); if (!fid) throw new Error('월 폴더 생성 실패'); }
   } else if (taxType === '부가') {
+    const bm = mo || getCurrentMonth();
     if (client.type === '법인') {
-      fid = await findOrCreateSubfolder(fid, `${Math.ceil(mo/3)}분기`); if (!fid) throw new Error('분기 폴더 생성 실패');
+      fid = await findOrCreateSubfolder(fid, `${Math.ceil(bm/3)}분기`); if (!fid) throw new Error('분기 폴더 생성 실패');
     } else {
-      fid = await findOrCreateSubfolder(fid, `${mo <= 6 ? 1 : 2}기`);  if (!fid) throw new Error('기 폴더 생성 실패');
+      fid = await findOrCreateSubfolder(fid, `${bm <= 6 ? 1 : 2}기`);  if (!fid) throw new Error('기 폴더 생성 실패');
     }
   }
   return fid;
@@ -1775,16 +1790,18 @@ function makeSafeName(file, item) {
   }
 
   // 연도_월 prefix
-  const y  = item ? (item.year  || getYear())        : getYear();
-  const mo = item ? (item.month || getCurrentMonth()) : getCurrentMonth();
+  const y  = item ? (item.year || getYear()) : getYear();
+  const mo = item ? item.month : null;
   const tt = item ? item.taxType : null;
   const isJongso = item && item.client && item.client.type === '종소';
 
   let prefix;
   if (!tt || tt === '결산' || isJongso) {
     prefix = `${y}_`;
-  } else {
+  } else if (mo) {
     prefix = `${y}_${String(mo).padStart(2,'0')}_`;
+  } else {
+    prefix = `${y}_`;
   }
 
   return `${prefix}${cleanBase}${ext}`;
@@ -1878,7 +1895,7 @@ async function autoSyncCycle() {
       client:     match ? match.client : null,
       fuzzy:      match ? match.fuzzy  : false,
       fuzzyScore: match ? (match.score || 0) : 0,
-      taxType, month: month || null, year: getYear(), skip: false, keepName: false, isDuplicate: false
+      taxType, month: month || null, year: detectYear(item.file.name)||getYear(), skip: false, keepName: false, isDuplicate: false
     };
     processedNames.add(item.file.name); // 이번 사이클에서 처리됨으로 표시
     if (fi.client && !fi.fuzzy && fi.taxType) autoUpload.push(fi);
@@ -2014,7 +2031,6 @@ function startUpload() {
 }
 
 async function doUpload() {
-  // 체크된 파일이 있으면 체크된 것만, 없으면 전체 업로드
   const toUpload = fileItems.filter((i, idx) =>
     !i.skip && i.client && i.taxType &&
     (selectedIndices.size === 0 || selectedIndices.has(idx))
