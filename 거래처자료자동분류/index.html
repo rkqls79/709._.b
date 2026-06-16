@@ -548,8 +548,11 @@ body {
           <button class="drop-scan-btn" style="font-size:13px;padding:3px 7px;color:var(--error);border-color:var(--error);" title="전체삭제" onclick="clearAllClients()">🗑</button>
         </div>
       </div>
-      <div class="panel-body" style="max-height:300px;overflow-y:auto;">
-        <div id="client-area"></div>
+      <div class="panel-body" style="padding-bottom:0;">
+        <input class="client-search" id="client-search" placeholder="거래처 검색..." oninput="renderClientTable()" style="display:none;margin-bottom:6px;">
+        <div style="max-height:250px;overflow-y:auto;">
+          <div id="client-area"></div>
+        </div>
         <!-- 직접 추가 폼 -->
         <div class="add-client-form">
           <input class="add-input" id="add-name" placeholder="거래처명" maxlength="40">
@@ -767,12 +770,15 @@ document.getElementById('add-name').addEventListener('keydown', e => { if (e.key
 
 /* 거래처 테이블 렌더 */
 function renderClientTable() {
-  const clients = getClients();
-  const area    = document.getElementById('client-area');
-  const search  = (document.getElementById('client-search') || {value:''}).value.toLowerCase();
+  const clients  = getClients();
+  const area     = document.getElementById('client-area');
+  const searchEl = document.getElementById('client-search');
+  const searchFocused = searchEl && document.activeElement === searchEl;
+  const search   = (searchEl || {value:''}).value.toLowerCase();
   document.getElementById('client-count').textContent = clients.length ? `(${clients.length}개)` : '';
 
   if (!clients.length) {
+    if (searchEl) searchEl.style.display = 'none';
     area.innerHTML = `
       <div class="xl-upload-area" onclick="document.getElementById('xl-input').click()">
         <div class="xl-upload-icon">📊</div>
@@ -781,11 +787,13 @@ function renderClientTable() {
     return;
   }
 
+  if (searchEl) searchEl.style.display = '';
+
   const filtered = clients.filter(c =>
     !search || c.name.toLowerCase().includes(search) || (c.rep||'').toLowerCase().includes(search)
   );
 
-  let html = `<input class="client-search" id="client-search" placeholder="거래처 검색..." oninput="renderClientTable()" value="${esc(search)}">`;
+  let html = '';
   if (!filtered.length) {
     html += `<div style="font-size:11px;color:var(--text3);text-align:center;padding:12px 0;">검색 결과 없음</div>`;
   } else {
@@ -802,6 +810,10 @@ function renderClientTable() {
     html += '</table>';
   }
   area.innerHTML = html;
+  if (searchFocused && searchEl) {
+    searchEl.focus();
+    searchEl.setSelectionRange(searchEl.value.length, searchEl.value.length);
+  }
 }
 
 function deleteClient(i) {
@@ -842,10 +854,12 @@ function nameSimilarity(clientName, filename) {
 }
 
 function matchClient(filename) {
-  const lower = filename.toLowerCase();
+  // 밑줄→공백 정규화 (파일명이 "주식회사_에스티아트_..." 형태여도 정확 매칭)
+  const lower = filename.toLowerCase().replace(/_/g, ' ');
   const clients = getClients();
-  // 1) 정확 매칭
-  const exact = clients.find(c =>
+  // 1) 정확 매칭 — 이름 긴 순 정렬로 구체적인 거래처 우선
+  const sorted = [...clients].sort((a, b) => b.name.length - a.name.length);
+  const exact = sorted.find(c =>
     lower.includes(c.name.toLowerCase()) ||
     (c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase()))
   );
@@ -854,7 +868,7 @@ function matchClient(filename) {
   // 2) 퍼지 매칭 (30% 이상)
   let best = null, bestScore = 0;
   clients.forEach(c => {
-    const score = nameSimilarity(c.name, filename);
+    const score = nameSimilarity(c.name, lower);
     if (score >= 0.3 && score > bestScore) { best = c; bestScore = score; }
   });
   if (best) return { client: best, fuzzy: true, score: Math.round(bestScore * 100) };
