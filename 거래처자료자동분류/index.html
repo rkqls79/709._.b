@@ -280,13 +280,51 @@ body {
 .type-법인 { background: #ece7de; color: #5e5448; }
 .type-개인 { background: #e2ece4; color: #4e6054; }
 .type-신고 { background: #f0e8d8; color: #7a5e38; }
+.type-종소 { background: #e8e0f0; color: #5a4878; }
 .client-del { background: none; border: none; color: var(--text3); cursor: pointer; opacity: .4; font-size: 11px; transition: opacity .12s; }
 .client-del:hover { opacity: 1; color: var(--error); }
+
+/* 퍼지 매칭 */
+.file-row-a.fuzzy   { border-color: #b0a0d0 !important; border-style: dashed !important; }
+.group-card.fuzzy   { border-color: #b0a0d0 !important; border-style: dashed !important; }
+.fuzzy-badge {
+  font-size: 9px; padding: 1px 5px; border-radius: 4px;
+  background: #e8e0f0; color: #5a4878; font-weight: 600; white-space: nowrap;
+}
 
 /* 분류 키워드 */
 .kw-결산 { color: var(--success); font-weight: 600; }
 .kw-부가  { color: var(--accent2); font-weight: 600; }
 .kw-원천  { color: var(--warn);    font-weight: 600; }
+
+/* 키워드 태그 */
+.kw-tag {
+  display: inline-flex; align-items: center; gap: 3px;
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 5px; padding: 1px 6px; font-size: 10px; color: var(--text2);
+  margin: 2px 2px 2px 0;
+}
+.kw-tag.custom { border-style: dashed; }
+.kw-tag-del { background: none; border: none; cursor: pointer; font-size: 10px; color: var(--text3); padding: 0; line-height: 1; }
+.kw-tag-del:hover { color: var(--error); }
+.kw-add-row { display: flex; gap: 5px; align-items: center; margin-top: 8px; border-top: 1px solid var(--border); padding-top: 8px; }
+.kw-add-input {
+  flex: 1; background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 8px; font-size: 11px; color: var(--text);
+  outline: none; font-family: inherit;
+}
+.kw-add-input:focus { border-color: var(--accent); }
+.kw-add-type {
+  background: var(--surface2); border: 1px solid var(--border);
+  border-radius: 6px; padding: 4px 6px; font-size: 11px; color: var(--text2);
+  outline: none; font-family: inherit;
+}
+.kw-add-btn {
+  background: var(--accent); color: #fff; border: none; border-radius: 6px;
+  padding: 4px 10px; font-size: 11px; font-weight: 600;
+  cursor: pointer; font-family: inherit; white-space: nowrap;
+}
+.kw-add-btn:hover { opacity: .85; }
 
 /* 로그 */
 .log-scroll { max-height: 200px; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--border) transparent; }
@@ -376,21 +414,7 @@ body {
       <button class="folder-connect-btn" id="folder-connect-btn" onclick="openFolderPicker()">📂 폴더 연결</button>
     </div>
 
-    <div class="dropzone" id="dropzone">
-      <div id="drop-empty" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
-        <div class="drop-icon">📂</div>
-        <div class="drop-title">파일을 여기에 드래그 &amp; 드롭</div>
-        <div class="drop-sub">또는 아래에서 선택</div>
-        <div class="dropzone-empty-btns">
-          <button class="drop-scan-btn" onclick="openFolderPicker()">📂 폴더 전체 스캔</button>
-          <span class="drop-divider">·</span>
-          <button class="drop-scan-btn" onclick="document.getElementById('file-input').click()">🗂 파일 직접 선택</button>
-        </div>
-      </div>
-      <div class="file-list" id="file-list" style="display:none;"></div>
-    </div>
-
-    <!-- 일괄 분류 바 -->
+    <!-- 일괄 분류 바 (폴더 바 바로 아래) -->
     <div class="batch-bar" id="batch-bar" style="display:none;">
       <span class="batch-label" id="batch-count-label">0개 선택됨</span>
       <select class="batch-sel" id="batch-client-sel"><option value="">거래처 선택</option></select>
@@ -400,11 +424,15 @@ body {
         <option value="부가">부가</option>
         <option value="원천">원천</option>
       </select>
+      <select class="batch-sel" id="batch-year-sel"></select>
+      <select class="batch-sel" id="batch-month-sel">
+        <option value="">월 선택</option>
+      </select>
       <button class="batch-apply" onclick="applyBatch()">일괄 적용</button>
       <button class="batch-clear" onclick="clearSelection()">선택 해제</button>
     </div>
 
-    <!-- 업로드 바 -->
+    <!-- 업로드 바 (드롭존 위) -->
     <div class="upload-bar" id="upload-bar" style="display:none;">
       <div class="upload-count" id="upload-count"></div>
       <div class="progress-wrap" id="progress-wrap">
@@ -419,6 +447,20 @@ body {
       <button class="go-btn" id="go-btn" onclick="startUpload()">📤 Drive로 저장</button>
     </div>
 
+    <div class="dropzone" id="dropzone">
+      <div id="drop-empty" style="display:flex;flex-direction:column;align-items:center;gap:10px;">
+        <div class="drop-icon">📂</div>
+        <div class="drop-title">파일을 여기에 드래그 &amp; 드롭</div>
+        <div class="drop-sub">또는 아래에서 선택</div>
+        <div class="dropzone-empty-btns">
+          <button class="drop-scan-btn" onclick="event.stopPropagation(); openFolderPicker()">📂 폴더 전체 스캔</button>
+          <span class="drop-divider">·</span>
+          <button class="drop-scan-btn" onclick="event.stopPropagation(); document.getElementById('file-input').click()">🗂 파일 직접 선택</button>
+        </div>
+      </div>
+      <div class="file-list" id="file-list" style="display:none;"></div>
+    </div>
+
   </div>
 
   <!-- ── 우측 패널 ── -->
@@ -431,10 +473,10 @@ body {
           👥 거래처 목록
           <span id="client-count" style="font-size:10px;color:var(--text3);font-weight:400;"></span>
         </div>
-        <div style="display:flex;gap:5px;">
-          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="document.getElementById('xl-input').click()">📊 업로드</button>
-          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;" onclick="exportClientsExcel()">⬇ 내보내기</button>
-          <button class="drop-scan-btn" style="font-size:10px;padding:4px 10px;color:var(--error);border-color:var(--error);" onclick="clearAllClients()">🗑 전체삭제</button>
+        <div style="display:flex;gap:4px;flex-shrink:0;">
+          <button class="drop-scan-btn" style="font-size:13px;padding:3px 7px;" title="거래처 엑셀 업로드" onclick="document.getElementById('xl-input').click()">📊</button>
+          <button class="drop-scan-btn" style="font-size:13px;padding:3px 7px;" title="엑셀 내보내기" onclick="exportClientsExcel()">⬇</button>
+          <button class="drop-scan-btn" style="font-size:13px;padding:3px 7px;color:var(--error);border-color:var(--error);" title="전체삭제" onclick="clearAllClients()">🗑</button>
         </div>
       </div>
       <div class="panel-body" style="max-height:300px;overflow-y:auto;">
@@ -447,6 +489,7 @@ body {
             <option value="법인">법인</option>
             <option value="개인">개인</option>
             <option value="신고">신고</option>
+            <option value="종소">종소</option>
           </select>
           <button class="add-btn" onclick="addClientManual()">+ 추가</button>
         </div>
@@ -459,10 +502,8 @@ body {
         <div class="panel-title">🏷 자동 분류 키워드</div>
         <span id="kw-toggle" style="font-size:14px;color:var(--text3);">▾</span>
       </div>
-      <div class="panel-body" id="kw-body" style="font-size:11px;color:var(--text2);line-height:2;display:none;">
-        <div style="margin-bottom:5px;"><span class="kw-결산">결산</span> &nbsp;결산 · 법인세 · 종합소득 · 소득세 · 통장 · 은행 · 명세서 · 통신비 · 지방세세목별과세</div>
-        <div style="margin-bottom:5px;"><span class="kw-부가">부가</span> &nbsp;부가세 · 부가 · 매입 · 매출 · 판매대행 · 신용카드 · 세금계산서</div>
-        <div><span class="kw-원천">원천</span> &nbsp;원천세 · 원천 · 급여 · 인건비 · 지급명세 · 근로내용확인신고서 · 상실신고서 · 취득신고서 · 성립신고서 · 건강 · 연금 · 고용</div>
+      <div class="panel-body" id="kw-body" style="font-size:11px;color:var(--text2);display:none;">
+        <!-- JS로 렌더링 -->
       </div>
     </div>
 
@@ -495,12 +536,105 @@ const BASE_FOLDER_ID = '1KEspiY8RYWvvK-MbA47IW_5FtlawA-nc';
 const LOGIN_HINT     = 'kbkim@taxdh.net';
 const CLIENTS_KEY    = 'drive-clients-v2';
 const LOG_KEY        = 'drive-upload-log-v1';
+const CUSTOM_KW_KEY  = 'drive-custom-kw-v1';
 
 const TYPE_KEYWORDS = {
-  결산: ['결산','법인세','종합소득','소득세','통장','은행','명세서','통신비','지방세세목별과세'],
+  결산: ['결산','법인세','종합소득','소득세','통장','은행','명세서','통신비','지방세세목별과세','재무제표','연구비','주식'],
   부가: ['부가세','부가','매입','매출','판매대행','신용카드','세금계산서'],
-  원천: ['원천세','원천','급여','인건비','지급명세','근로내용확인신고서','상실신고서','취득신고서','성립신고서','건강','연금','고용'],
+  원천: ['원천세','원천','급여','인건비','지급명세','근로내용확인신고서','상실신고서','취득신고서','성립신고서','건강','연금','고용','보수 총액','소득총액','피보험자','사업소득','지급 대장','대장'],
 };
+
+/* ══════════════════════════════════════════════
+   커스텀 키워드 관리
+══════════════════════════════════════════════ */
+function getCustomKw() {
+  return JSON.parse(localStorage.getItem(CUSTOM_KW_KEY) || '{"결산":[],"부가":[],"원천":[]}');
+}
+function saveCustomKw(obj) {
+  localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(obj));
+}
+function getMergedKeywords() {
+  const custom = getCustomKw();
+  const merged = {};
+  for (const type of ['결산','부가','원천']) {
+    merged[type] = [...TYPE_KEYWORDS[type], ...(custom[type] || [])];
+  }
+  return merged;
+}
+
+function addCustomKw(type, kw) {
+  kw = kw.trim();
+  if (!kw) return false;
+  const obj = getCustomKw();
+  if (!obj[type]) obj[type] = [];
+  const all = getMergedKeywords();
+  if (all[type].some(k => k.toLowerCase() === kw.toLowerCase())) return false;
+  obj[type].push(kw);
+  saveCustomKw(obj);
+  return true;
+}
+
+function removeCustomKw(type, kw) {
+  const obj = getCustomKw();
+  if (!obj[type]) return;
+  obj[type] = obj[type].filter(k => k !== kw);
+  saveCustomKw(obj);
+}
+
+function renderKwPanel() {
+  const body = document.getElementById('kw-body');
+  const custom = getCustomKw();
+  const types = [
+    { key:'결산', cls:'kw-결산' },
+    { key:'부가', cls:'kw-부가' },
+    { key:'원천', cls:'kw-원천' },
+  ];
+  let html = '';
+  types.forEach(({ key, cls }) => {
+    html += `<div style="margin-bottom:10px;">`;
+    html += `<div style="margin-bottom:4px;"><span class="${cls}">${key}</span></div>`;
+    html += `<div style="line-height:2;">`;
+    TYPE_KEYWORDS[key].forEach(kw => {
+      html += `<span class="kw-tag">${esc(kw)}</span>`;
+    });
+    (custom[key] || []).forEach(kw => {
+      html += `<span class="kw-tag custom">${esc(kw)}<button class="kw-tag-del" onclick="removeCustomKwAndRefresh('${esc(key)}','${esc(kw)}')" title="삭제">✕</button></span>`;
+    });
+    html += `</div></div>`;
+  });
+  html += `<div class="kw-add-row">
+    <input class="kw-add-input" id="kw-add-input" placeholder="키워드 입력" onkeydown="if(event.key==='Enter')addKwFromUI()">
+    <select class="kw-add-type" id="kw-add-type">
+      <option value="결산">결산</option>
+      <option value="부가">부가</option>
+      <option value="원천" selected>원천</option>
+    </select>
+    <button class="kw-add-btn" onclick="addKwFromUI()">+ 추가</button>
+  </div>`;
+  body.innerHTML = html;
+}
+
+function addKwFromUI() {
+  const input = document.getElementById('kw-add-input');
+  const type  = document.getElementById('kw-add-type').value;
+  const kw    = input.value.trim();
+  if (!kw) { toast('키워드를 입력해주세요', 'warn'); return; }
+  if (addCustomKw(type, kw)) {
+    input.value = '';
+    renderKwPanel();
+    reprocessFiles();
+    toast(`✅ "${kw}" 키워드 추가됨 (${type})`, 'ok');
+  } else {
+    toast('이미 있는 키워드예요', 'warn');
+  }
+}
+
+function removeCustomKwAndRefresh(type, kw) {
+  removeCustomKw(type, kw);
+  renderKwPanel();
+  reprocessFiles();
+  toast(`키워드 "${kw}" 삭제됨`, 'info');
+}
 
 /* ══════════════════════════════════════════════
    거래처 관리
@@ -523,7 +657,7 @@ document.getElementById('xl-input').addEventListener('change', function() {
         const rep  = String(row[1] || '').trim();
         const type = String(row[2] || '').trim();
         if (name && name !== '거래처명') {
-          const validType = ['법인','개인','신고'].includes(type) ? type : '신고';
+          const validType = ['법인','개인','신고','종소'].includes(type) ? type : '신고';
           clients.push({ name, rep, type: validType });
         }
       });
@@ -564,7 +698,7 @@ function renderClientTable() {
     area.innerHTML = `
       <div class="xl-upload-area" onclick="document.getElementById('xl-input').click()">
         <div class="xl-upload-icon">📊</div>
-        <div class="xl-upload-txt"><strong>엑셀 파일 업로드</strong><br>A열: 거래처명 · B열: 대표자 · C열: 분류(법인/개인/신고)</div>
+        <div class="xl-upload-txt"><strong>엑셀 파일 업로드</strong><br>A열: 거래처명 · B열: 대표자 · C열: 분류(법인/개인/신고/종소)</div>
       </div>`;
     return;
   }
@@ -617,17 +751,42 @@ function exportClientsExcel() {
 /* ══════════════════════════════════════════════
    파일 분류 로직
 ══════════════════════════════════════════════ */
+/* 연속된 부분 문자열 기반 유사도 (0~1) */
+function nameSimilarity(clientName, filename) {
+  const cl = clientName.toLowerCase();
+  const fl = filename.toLowerCase();
+  for (let len = cl.length; len >= 2; len--) {
+    for (let s = 0; s <= cl.length - len; s++) {
+      if (fl.includes(cl.slice(s, s + len))) return len / cl.length;
+    }
+  }
+  return 0;
+}
+
 function matchClient(filename) {
   const lower = filename.toLowerCase();
-  return getClients().find(c =>
+  const clients = getClients();
+  // 1) 정확 매칭
+  const exact = clients.find(c =>
     lower.includes(c.name.toLowerCase()) ||
     (c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase()))
-  ) || null;
+  );
+  if (exact) return { client: exact, fuzzy: false };
+
+  // 2) 퍼지 매칭 (30% 이상)
+  let best = null, bestScore = 0;
+  clients.forEach(c => {
+    const score = nameSimilarity(c.name, filename);
+    if (score >= 0.3 && score > bestScore) { best = c; bestScore = score; }
+  });
+  if (best) return { client: best, fuzzy: true, score: Math.round(bestScore * 100) };
+  return null;
 }
 
 function detectTaxType(filename) {
   const lower = filename.toLowerCase();
-  for (const [type, kws] of Object.entries(TYPE_KEYWORDS)) {
+  const merged = getMergedKeywords();
+  for (const [type, kws] of Object.entries(merged)) {
     if (kws.some(k => lower.includes(k.toLowerCase()))) return type;
   }
   return null;
@@ -645,6 +804,10 @@ function getCurrentMonth() { return new Date().getMonth() + 1; }
 function buildDrivePath(client, taxType, month, year) {
   const mo = month || getCurrentMonth();
   const y  = year  || getYear();
+  // 종소: 신고 / ★종합소득세 신고대리 / [거래처명] / [연도]
+  if (client.type === '종소') {
+    return `신고 / ★종합소득세 신고대리 / ${client.name} / ${y}`;
+  }
   const base = `${client.type} / ${client.name} / ${y} / ${taxType}`;
   if (taxType === '결산') return base;
   if (taxType === '원천') return `${base} / ${mo}월`;
@@ -666,10 +829,16 @@ function processFiles(rawItems) {
   let dupes = 0;
   rawItems.forEach(item => {
     if (existingNames.has(item.file.name)) { dupes++; return; }
-    const client  = matchClient(item.file.name);
+    const match   = matchClient(item.file.name);
     const taxType = detectTaxType(item.file.name);
     const month   = detectMonth(item.file.name);
-    fileItems.push({ ...item, client, taxType, month: month||null, year: getYear(), skip: false });
+    fileItems.push({
+      ...item,
+      client:      match ? match.client : null,
+      fuzzy:       match ? match.fuzzy  : false,
+      fuzzyScore:  match ? (match.score || 0) : 0,
+      taxType, month: month||null, year: getYear(), skip: false
+    });
     existingNames.add(item.file.name);
   });
   if (dupes) toast(`중복 파일 ${dupes}개 제외됨`, 'warn');
@@ -677,11 +846,17 @@ function processFiles(rawItems) {
 }
 
 function reprocessFiles() {
-  fileItems = fileItems.map(item => ({
-    ...item,
-    client:  matchClient(item.file.name),
-    taxType: detectTaxType(item.file.name),
-  }));
+  fileItems = fileItems.map(item => {
+    const match   = matchClient(item.file.name);
+    const taxType = detectTaxType(item.file.name);
+    return {
+      ...item,
+      client:     match ? match.client : null,
+      fuzzy:      match ? match.fuzzy  : false,
+      fuzzyScore: match ? (match.score || 0) : 0,
+      taxType,
+    };
+  });
   renderFileList();
 }
 
@@ -729,9 +904,11 @@ function makeSelects(item, idx, clients, includeClient) {
 
 /* ── A 스타일: 컴팩트 단일 행 ── */
 function buildRowA(item, idx, clients) {
-  const resolved = item.client && item.taxType;
+  const resolved = item.client && item.taxType && !item.fuzzy;
+  const fuzzy    = item.client && item.fuzzy;
   const row = document.createElement('div');
-  row.className = 'file-row-a ' + (resolved ? 'resolved' : 'unresolved') +
+  row.className = 'file-row-a ' +
+    (resolved ? 'resolved' : fuzzy ? 'fuzzy' : 'unresolved') +
     (selectedIndices.has(idx) ? ' selected' : '');
   row.dataset.idx = idx;
 
@@ -750,11 +927,21 @@ function buildRowA(item, idx, clients) {
   nameEl.className = 'row-a-name'; nameEl.title = item.file.name;
   nameEl.textContent = item.file.name;
 
+  const pathWrap = document.createElement('div');
+  pathWrap.style.cssText = 'display:flex;align-items:center;gap:4px;flex-wrap:wrap;';
   const pathEl = document.createElement('span');
   const pathStr = item.client && item.taxType ? buildDrivePath(item.client, item.taxType, item.month, item.year) : '';
-  pathEl.className = 'file-path-preview' + (pathStr ? ' ready' : '');
+  pathEl.className = 'file-path-preview' + (pathStr && !item.fuzzy ? ' ready' : '');
   pathEl.textContent = pathStr ? '→ ' + pathStr : '경로 미지정';
-  nameWrap.append(nameEl, pathEl);
+  pathWrap.appendChild(pathEl);
+  if (item.fuzzy && item.client) {
+    const badge = document.createElement('span');
+    badge.className = 'fuzzy-badge';
+    badge.title = `유사도 ${item.fuzzyScore}% — 거래처 확인 필요`;
+    badge.textContent = `~${item.fuzzyScore}%`;
+    pathWrap.appendChild(badge);
+  }
+  nameWrap.append(nameEl, pathWrap);
 
   const sizeEl = document.createElement('span');
   sizeEl.className = 'row-a-size';
@@ -868,12 +1055,15 @@ function renderFileList() {
   noClient.forEach(({item, idx}) => list.appendChild(buildRowA(item, idx, clients)));
 
   const total      = visible.length;
-  const ready      = visible.filter(i => i.client && i.taxType).length;
-  const unresolved = total - ready;
+  const exactReady = visible.filter(i => i.client && i.taxType && !i.fuzzy).length;
+  const fuzzyReady = visible.filter(i => i.client && i.taxType && i.fuzzy).length;
+  const unresolved = total - exactReady - fuzzyReady;
   document.getElementById('upload-count').innerHTML =
-    `<strong>${total}개</strong> 파일 · <span style="color:var(--success)">매칭 ${ready}개</span>` +
+    `<strong>${total}개</strong> 파일` +
+    (exactReady ? ` · <span style="color:var(--success)">매칭 ${exactReady}개</span>` : '') +
+    (fuzzyReady ? ` · <span style="color:#7a5a9a">유사 ${fuzzyReady}개 ⚠확인필요</span>` : '') +
     (unresolved ? ` · <span style="color:var(--warn)">미확인 ${unresolved}개</span>` : '');
-  document.getElementById('go-btn').disabled = ready === 0;
+  document.getElementById('go-btn').disabled = (exactReady + fuzzyReady) === 0;
   updateBatchBar();
 }
 
@@ -895,16 +1085,35 @@ function toggleSelectAll(checked) {
   });
 }
 
-/* ── 일괄 분류 ── */
+/* ── 일괄 분류 바 업데이트 ── */
 function updateBatchBar() {
   const bar  = document.getElementById('batch-bar');
   const cnt  = document.getElementById('batch-count-label');
   const cSel = document.getElementById('batch-client-sel');
+  const ySel = document.getElementById('batch-year-sel');
   const clients = getClients();
   const prev = cSel.value;
   cSel.innerHTML = '<option value="">거래처 선택</option>' +
     clients.map(c => `<option value="${esc(c.name)}">${esc(c.name)}</option>`).join('');
   if (prev) cSel.value = prev;
+
+  // 연도 셀렉터 초기화 (한 번만)
+  if (!ySel.options.length) {
+    const years = [getYear()-1, getYear(), getYear()+1];
+    ySel.innerHTML = '<option value="">연도 선택</option>' +
+      years.map(y => `<option value="${y}">${y}</option>`).join('');
+  }
+
+  // 월 셀렉터 초기화 (한 번만)
+  const mSel = document.getElementById('batch-month-sel');
+  if (mSel.options.length <= 1) {
+    for (let m = 1; m <= 12; m++) {
+      const opt = document.createElement('option');
+      opt.value = m; opt.textContent = m + '월';
+      mSel.appendChild(opt);
+    }
+  }
+
   if (selectedIndices.size === 0) { bar.style.display = 'none'; }
   else { bar.style.display = 'flex'; cnt.textContent = `${selectedIndices.size}개 선택됨`; }
 }
@@ -931,12 +1140,18 @@ function clearSelection() {
 function applyBatch() {
   const clientName = document.getElementById('batch-client-sel').value;
   const taxType    = document.getElementById('batch-type-sel').value;
-  if (!clientName && !taxType) { toast('거래처 또는 종류를 선택해주세요', 'warn'); return; }
+  const yearVal    = document.getElementById('batch-year-sel').value;
+  const monthVal   = document.getElementById('batch-month-sel').value;
+  if (!clientName && !taxType && !yearVal && !monthVal) {
+    toast('거래처, 종류, 연도, 월 중 하나 이상을 선택해주세요', 'warn'); return;
+  }
   const clients = getClients();
   const count   = selectedIndices.size;
   selectedIndices.forEach(i => {
     if (clientName) fileItems[i].client  = clients.find(c=>c.name===clientName)||fileItems[i].client;
     if (taxType)    fileItems[i].taxType = taxType;
+    if (yearVal)    fileItems[i].year    = parseInt(yearVal);
+    if (monthVal)   fileItems[i].month   = parseInt(monthVal);
   });
   selectedIndices.clear();
   renderFileList();
@@ -1211,13 +1426,23 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   const mo = month || getCurrentMonth();
   const y  = year  || getYear();
   let fid  = BASE_FOLDER_ID;
+
+  // 종소: 신고 / ★종합소득세 신고대리 / [거래처명] / [연도]
+  if (client.type === '종소') {
+    fid = await findOrCreateSubfolder(fid, '신고');                    if (!fid) throw new Error('신고 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, '★종합소득세 신고대리');    if (!fid) throw new Error('신고대리 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, clientName);                if (!fid) throw new Error('거래처 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, String(y));                 if (!fid) throw new Error('연도 폴더 생성 실패');
+    return fid;
+  }
+
   fid = await findOrCreateSubfolder(fid, client.type);  if (!fid) throw new Error('분류 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, clientName);   if (!fid) throw new Error('거래처 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, String(y));    if (!fid) throw new Error('연도 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, taxType);      if (!fid) throw new Error('세금종류 폴더 생성 실패');
 
   if (taxType === '결산') {
-    return fid; // 결산은 바로 저장
+    return fid;
   } else if (taxType === '원천') {
     fid = await findOrCreateSubfolder(fid, `${mo}월`);  if (!fid) throw new Error('월 폴더 생성 실패');
   } else if (taxType === '부가') {
@@ -1284,6 +1509,11 @@ function startUpload() {
 async function doUpload() {
   const toUpload = fileItems.filter(i => !i.skip && i.client && i.taxType);
   if (!toUpload.length) { toast('업로드할 파일이 없어요', 'warn'); return; }
+  const fuzzyCount = toUpload.filter(i => i.fuzzy).length;
+  if (fuzzyCount > 0) {
+    const ok = confirm(`⚠️ 거래처명이 유사도로 자동 매칭된 파일이 ${fuzzyCount}개 있어요.\n거래처가 맞는지 확인 후 업로드해 주세요.\n\n그래도 업로드하시겠어요?`);
+    if (!ok) return;
+  }
 
   uploadCancelled = false;
   const btn    = document.getElementById('go-btn');
@@ -1360,6 +1590,7 @@ function toggleKwPanel() {
   const open = body.style.display === 'none';
   body.style.display = open ? '' : 'none';
   icon.textContent = open ? '▴' : '▾';
+  if (open) renderKwPanel();
 }
 
 function loadLog() {
