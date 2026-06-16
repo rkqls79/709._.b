@@ -1336,12 +1336,19 @@ function updateBatchBar() {
 
 function toggleSelect(idx, shiftKey) {
   if (shiftKey && lastClickedIdx !== null) {
-    // shift 연속 선택
-    const from = Math.min(lastClickedIdx, idx);
-    const to   = Math.max(lastClickedIdx, idx);
-    const addMode = !selectedIndices.has(lastClickedIdx); // 마지막 클릭이 선택 해제였으면 범위도 해제
-    for (let i = from; i <= to; i++) {
-      if (addMode) selectedIndices.add(i); else selectedIndices.delete(i);
+    // DOM 화면 순서 기준으로 범위 선택 (그룹 카드 등 시각적 순서 반영)
+    const allRows = [...document.querySelectorAll('[data-idx]')];
+    const idxList = allRows.map(el => parseInt(el.dataset.idx));
+    const posA = idxList.indexOf(lastClickedIdx);
+    const posB = idxList.indexOf(idx);
+    if (posA !== -1 && posB !== -1) {
+      const from = Math.min(posA, posB);
+      const to   = Math.max(posA, posB);
+      const addMode = selectedIndices.has(lastClickedIdx); // 기준 항목이 선택 상태면 범위도 선택
+      for (let p = from; p <= to; p++) {
+        if (addMode) selectedIndices.add(idxList[p]);
+        else selectedIndices.delete(idxList[p]);
+      }
     }
   } else {
     if (selectedIndices.has(idx)) selectedIndices.delete(idx); else selectedIndices.add(idx);
