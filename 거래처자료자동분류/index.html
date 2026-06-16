@@ -497,6 +497,7 @@ body {
       </select>
       <button class="batch-apply" onclick="applyBatch()">일괄 적용</button>
       <button class="batch-clear" onclick="clearSelection()">선택 해제</button>
+      <button class="batch-clear" style="border-color:#c8a0a0;color:var(--error);" onclick="deleteSelected()">🗑 선택 삭제</button>
     </div>
 
     <!-- 업로드 바 (드롭존 위) -->
@@ -1332,6 +1333,28 @@ function clearSelection() {
   });
 }
 
+async function deleteSelected() {
+  if (!selectedIndices.size) return;
+  const indices = [...selectedIndices].sort((a,b) => b - a); // 역순으로 splice
+  let diskDeleted = 0, listOnly = 0;
+  for (const idx of indices) {
+    const item = fileItems[idx];
+    if (!item) continue;
+    if (item.canDelete && item.parentHandle) {
+      try { await item.parentHandle.removeEntry(item.file.name); diskDeleted++; } catch(e) { listOnly++; }
+    } else {
+      listOnly++;
+    }
+    fileItems.splice(idx, 1);
+  }
+  selectedIndices.clear();
+  renderFileList();
+  const msg = diskDeleted
+    ? `🗑 ${diskDeleted}개 폴더에서 삭제됨` + (listOnly ? ` · ${listOnly}개 목록에서만 제거` : '')
+    : `${listOnly}개 목록에서 제거됨`;
+  toast(msg, diskDeleted ? 'ok' : 'info');
+}
+
 function applyBatch() {
   const clientName = batchClientName;
   const taxType    = document.getElementById('batch-type-sel').value;
@@ -1438,6 +1461,26 @@ function setFolderBarDisconnected() {
   document.getElementById('folder-disconnect-btn').style.display = 'none';
   document.getElementById('folder-connect-btn').textContent = '📂 폴더 연결';
   document.getElementById('folder-connect-btn').style.display   = '';
+}
+
+/* 전송완료 폴더로 이동 */
+async function moveToCompleted(parentHandle, fileName) {
+  try {
+    const completedDir = await parentHandle.getDirectoryHandle('전송완료', { create: true });
+    const srcHandle    = await parentHandle.getFileHandle(fileName);
+    const file         = await srcHandle.getFile();
+    // 같은 이름이 이미 있으면 타임스탬프 붙이기
+    let destName = fileName;
+    try { await completedDir.getFileHandle(fileName); destName = Date.now() + '_' + fileName; } catch(e) {}
+    const destHandle = await completedDir.getFileHandle(destName, { create: true });
+    const writable   = await destHandle.createWritable();
+    await writable.write(await file.arrayBuffer());
+    await writable.close();
+    await parentHandle.removeEntry(fileName);
+  } catch(e) {
+    // 이동 실패 시 원본 유지 (삭제 안 함)
+    addLog(`⚠️ 전송완료 이동 실패 — ${fileName} 원본 유지됨`, 'info');
+  }
 }
 
 /* 폴더 스캔 실행 */
@@ -1834,14 +1877,13 @@ async function autoSyncCycle() {
         const dupRes = await driveReqRetry('GET', '/files', null, `q=${dupQ}&fields=files(id)&${DRIVE_PARAMS}`);
         if (dupRes?.files?.length) {
           addLog(`⚠️ 자동: 중복 건너뜀 — ${item.file.name}`, 'info');
-          // 중복이면 로컬 파일도 삭제 (이미 Drive에 있으니)
-          if (item.parentHandle) try { await item.parentHandle.removeEntry(item.file.name); } catch(e2) {}
+          if (item.parentHandle) await moveToCompleted(item.parentHandle, item.file.name);
           continue;
         }
         await uploadFile(item.file, fid, filename);
         const path = buildDrivePath(item.client, item.taxType, item.month, item.year);
         addLog(`🔄 자동: ${item.file.name} → ${path}`, 'ok', `https://drive.google.com/drive/folders/${fid}`);
-        if (item.parentHandle) try { await item.parentHandle.removeEntry(item.file.name); } catch(e2) {}
+        if (item.parentHandle) await moveToCompleted(item.parentHandle, item.file.name);
         ok++;
       } catch(e) {
         addLog(`자동 업로드 실패: ${item.file.name} — ${e.message}`, 'fail');
@@ -1978,7 +2020,7 @@ async function doUpload() {
       const driveUrl = `https://drive.google.com/drive/folders/${fid}`;
       addLog(`${item.file.name} → ${path}`, 'ok', driveUrl);
       if (item.canDelete && item.parentHandle) {
-        try { await item.parentHandle.removeEntry(item.file.name); } catch(e) {}
+        await moveToCompleted(item.parentHandle, item.file.name);
       }
       successNames.add(item.file.name);
       ok++;
