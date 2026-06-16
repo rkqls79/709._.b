@@ -1600,11 +1600,20 @@ let gisReady       = false;
 let authPending    = false;
 let tokenResolve   = null;
 
+// GIS 스크립트가 5초 안에 안 로드되면 오류 표시
+setTimeout(() => {
+  if (!gisReady) {
+    console.warn('[GIS] 5초 내 로드 실패 — 인터넷 연결 또는 방화벽 확인 필요');
+    const authTxt = document.getElementById('auth-txt');
+    if (authTxt && !accessToken) authTxt.textContent = 'Google 연결 실패 (새로고침)';
+  }
+}, 5000);
+
 function gisLoaded() {
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: DRIVE_SCOPE,
-    hint: LOGIN_HINT,
+    login_hint: LOGIN_HINT,
     callback: (resp) => {
       if (resp.error) {
         toast('인증 실패: ' + (resp.error_description||resp.error), 'fail');
