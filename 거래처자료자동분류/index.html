@@ -280,6 +280,7 @@ body {
 .type-법인 { background: #ece7de; color: #5e5448; }
 .type-개인 { background: #e2ece4; color: #4e6054; }
 .type-신고 { background: #f0e8d8; color: #7a5e38; }
+.type-기본사항 { background: #dce8f0; color: #3a5878; }
 .type-종소 { background: #e8e0f0; color: #5a4878; }
 .client-del { background: none; border: none; color: var(--text3); cursor: pointer; opacity: .4; font-size: 11px; transition: opacity .12s; }
 .client-del:hover { opacity: 1; color: var(--error); }
@@ -296,6 +297,7 @@ body {
 .kw-결산 { color: var(--success); font-weight: 600; }
 .kw-부가  { color: var(--accent2); font-weight: 600; }
 .kw-원천  { color: var(--warn);    font-weight: 600; }
+.kw-기본  { color: #6080a0;          font-weight: 600; }
 
 /* 키워드 태그 */
 .kw-tag {
@@ -623,13 +625,14 @@ const TYPE_KEYWORDS = {
   결산: ['결산','법인세','종합소득','소득세','통장','은행','명세서','통신비','지방세세목별과세','재무제표','연구비','주식'],
   부가: ['부가세','부가','매입','매출','판매대행','신용카드','세금계산서'],
   원천: ['원천세','원천','급여','인건비','지급명세','근로내용확인신고서','상실신고서','취득신고서','성립신고서','건강','연금','고용','보수 총액','소득총액','피보험자','사업소득','지급 대장','대장'],
+  기본사항: ['사업자등록','등록증','계약서','인감','법인등기','기본사항'],
 };
 
 /* ══════════════════════════════════════════════
    커스텀 키워드 관리
 ══════════════════════════════════════════════ */
 function getCustomKw() {
-  return JSON.parse(localStorage.getItem(CUSTOM_KW_KEY) || '{"결산":[],"부가":[],"원천":[]}');
+  return JSON.parse(localStorage.getItem(CUSTOM_KW_KEY) || '{"결산":[],"부가":[],"원천":[],"기본사항":[]}');
 }
 function saveCustomKw(obj) {
   localStorage.setItem(CUSTOM_KW_KEY, JSON.stringify(obj));
@@ -637,7 +640,7 @@ function saveCustomKw(obj) {
 function getMergedKeywords() {
   const custom = getCustomKw();
   const merged = {};
-  for (const type of ['결산','부가','원천']) {
+  for (const type of ['결산','부가','원천','기본사항']) {
     merged[type] = [...TYPE_KEYWORDS[type], ...(custom[type] || [])];
   }
   return merged;
@@ -669,6 +672,7 @@ function renderKwPanel() {
     { key:'결산', cls:'kw-결산' },
     { key:'부가', cls:'kw-부가' },
     { key:'원천', cls:'kw-원천' },
+    { key:'기본사항', cls:'kw-기본' },
   ];
   let html = '';
   types.forEach(({ key, cls }) => {
@@ -689,6 +693,7 @@ function renderKwPanel() {
       <option value="결산">결산</option>
       <option value="부가">부가</option>
       <option value="원천" selected>원천</option>
+      <option value="기본사항">기본사항</option>
     </select>
     <button class="kw-add-btn" onclick="addKwFromUI()">+ 추가</button>
   </div>`;
@@ -925,11 +930,13 @@ function getCurrentMonth() { return new Date().getMonth() + 1; }
 function buildDrivePath(client, taxType, month, year) {
   const mo = month || null;
   const y  = year  || getYear();
+  // 종소: 신고 / ★종합소득세 신고대리 / 거래처 / 연도
   if (client.type === '종소') {
-    return `★종합소득세 신고대리 / ${client.name} / ${y}`;
+    return `신고 / ★종합소득세 신고대리 / ${client.name} / ${y}`;
   }
-  const base = `${client.name} / ${y} / ${taxType}`;
-  if (taxType === '결산') return base;
+  // 법인/개인/신고: [type] / 거래처 / 연도 / 세금종류
+  const base = `${client.type} / ${client.name} / ${y} / ${taxType}`;
+  if (taxType === '결산' || taxType === '기본사항') return base;
   if (taxType === '원천') return mo ? `${base} / ${mo}월` : base;
   if (taxType === '부가') {
     const m = mo || getCurrentMonth();
@@ -1045,7 +1052,7 @@ function makeClientSearchSelect(item, idx, clients) {
 }
 
 function makeSelects(item, idx, clients, includeClient) {
-  const taxTypes = ['결산','부가','원천'];
+  const taxTypes = ['결산','부가','원천','기본사항'];
   const years    = [getYear()-1, getYear(), getYear()+1];
   const months   = Array.from({length:12},(_,k)=>k+1);
   const els = [];
@@ -1718,20 +1725,22 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   const y  = year  || getYear();
   let fid  = BASE_FOLDER_ID;
 
-  // 종소: ★종합소득세 신고대리 / [거래처명] / [연도]
+  // 종소: 신고 / ★종합소득세 신고대리 / 거래처 / 연도
   if (client.type === '종소') {
-    fid = await findOrCreateSubfolder(fid, '★종합소득세 신고대리'); if (!fid) throw new Error('신고대리 폴더 생성 실패');
-    fid = await findOrCreateSubfolder(fid, clientName);             if (!fid) throw new Error('거래처 폴더 생성 실패');
-    fid = await findOrCreateSubfolder(fid, String(y));              if (!fid) throw new Error('연도 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, '신고');                   if (!fid) throw new Error('신고 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, '★종합소득세 신고대리');     if (!fid) throw new Error('신고대리 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, clientName);               if (!fid) throw new Error('거래처 폴더 생성 실패');
+    fid = await findOrCreateSubfolder(fid, String(y));                if (!fid) throw new Error('연도 폴더 생성 실패');
     return fid;
   }
 
-  // 일반: [거래처명] / [연도] / [세금종류] (/ 월 or 분기)
+  // 법인/개인/신고: [type] / 거래처 / 연도 / 세금종류
+  fid = await findOrCreateSubfolder(fid, client.type); if (!fid) throw new Error('분류 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, clientName);  if (!fid) throw new Error('거래처 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, String(y));   if (!fid) throw new Error('연도 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, taxType);     if (!fid) throw new Error('세금종류 폴더 생성 실패');
 
-  if (taxType === '결산') {
+  if (taxType === '결산' || taxType === '기본사항') {
     return fid;
   } else if (taxType === '원천') {
     if (mo) { fid = await findOrCreateSubfolder(fid, `${mo}월`); if (!fid) throw new Error('월 폴더 생성 실패'); }
@@ -1796,7 +1805,7 @@ function makeSafeName(file, item) {
   const isJongso = item && item.client && item.client.type === '종소';
 
   let prefix;
-  if (!tt || tt === '결산' || isJongso) {
+  if (!tt || tt === '결산' || tt === '기본사항' || isJongso) {
     prefix = `${y}_`;
   } else if (mo) {
     prefix = `${y}_${String(mo).padStart(2,'0')}_`;
