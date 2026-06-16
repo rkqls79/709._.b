@@ -1961,7 +1961,11 @@ function updateSyncStatus() {
    Drive 중복 사전 검사
 ══════════════════════════════════════════════ */
 async function checkDuplicates() {
-  const toCheck = fileItems.filter(i => !i.skip && i.client && i.taxType);
+  // 체크된 파일이 있으면 체크된 것만, 없으면 전체
+  const toCheck = fileItems.filter((i, idx) =>
+    !i.skip && i.client && i.taxType &&
+    (selectedIndices.size === 0 || selectedIndices.has(idx))
+  );
   if (!toCheck.length) { toast('거래처·종류가 지정된 파일이 없어요', 'warn'); return; }
   if (!accessToken) {
     if (!gisReady) { toast('Google 인증 로딩 중...', 'warn'); return; }
@@ -2005,8 +2009,8 @@ function cancelUpload() {
 }
 
 function startUpload() {
+  if (!gisReady) { toast('Google 인증 로딩 중... 잠시 후 다시 시도해주세요', 'warn'); return; }
   if (!accessToken) {
-    if (!gisReady) { toast('Google 인증 로딩 중...', 'warn'); return; }
     authPending = true;
     tokenClient.requestAccessToken({ prompt:'' });
     return;
@@ -2015,7 +2019,11 @@ function startUpload() {
 }
 
 async function doUpload() {
-  const toUpload = fileItems.filter(i => !i.skip && i.client && i.taxType);
+  // 체크된 파일이 있으면 체크된 것만, 없으면 전체 업로드
+  const toUpload = fileItems.filter((i, idx) =>
+    !i.skip && i.client && i.taxType &&
+    (selectedIndices.size === 0 || selectedIndices.has(idx))
+  );
   if (!toUpload.length) { toast('업로드할 파일이 없어요', 'warn'); return; }
   const fuzzyCount = toUpload.filter(i => i.fuzzy).length;
   if (fuzzyCount > 0) {
