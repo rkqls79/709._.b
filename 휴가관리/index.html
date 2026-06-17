@@ -6,7 +6,6 @@
 <title>휴가 관리</title>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
-<!-- Firebase SDK -->
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <style>
@@ -187,14 +186,14 @@ tr.er input:focus { outline:none; border-color:var(--a); }
 
 .date-field { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
 .date-field label { font-size:12px; font-weight:700; color:var(--mu); white-space:nowrap; }
-.date-field input { border:1.5px solid var(--bdr); border-radius:9px; padding:5px 8px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:98px; }
+.date-field input { border:1.5px solid var(--bdr); border-radius:9px; padding:5px 10px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:120px; }
 .date-field input:focus { outline:none; border-color:var(--a); }
 
 tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px solid var(--grn); border-bottom:0.5px solid var(--grn); display:flex; align-items:center; gap:10px; }
 .long-div-lbl { font-size:12px; font-weight:800; color:var(--grn); }
 .yr-badge { font-size:11px; font-weight:700; color:var(--a); background:var(--all); padding:2px 9px; border-radius:99px; white-space:nowrap; flex-shrink:0; }
 
-.xl-btn { width:34px; height:34px; display:inline-flex; align-items:center; justify-content:center; border-radius:9px; border:1.5px solid var(--bdr); background:var(--all); color:var(--mu); font-size:16px; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; padding:0; }
+.xl-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:9px; border:1.5px solid var(--bdr); background:var(--all); color:var(--ad); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
 .xl-btn:hover { background:#1D6F42; color:white; border-color:#1D6F42; }
 .xl-btn-up:hover { background:var(--a) !important; color:white !important; border-color:var(--a) !important; }
 .xl-group { display:flex; gap:6px; align-items:center; }
@@ -298,7 +297,13 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
 .gubun-outer { padding:14px 16px; }
 .gubun-row { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; }
 .gubun-row .gubun-item { display:inline-flex; align-items:center; font-size:10pt; white-space:nowrap; color:#1a1a1a; }
-.days-badge { font-size:9.5pt; color:#1a5fa8; font-weight:700; min-width:14px; display:inline-block; text-align:center; }
+.days-badge {
+  font-size:9.5pt; color:#1a5fa8; font-weight:700;
+  width:1ch; min-width:1ch; text-align:center; border:none; outline:none;
+  border-bottom:1px solid #b0c8e8; background:transparent;
+  font-family:inherit; padding:0; box-sizing:content-box;
+}
+.days-badge:focus { border-bottom-color:#1a5fa8; }
 .period-list { display:flex; flex-direction:column; gap:8px; }
 .period-row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
 .form-table .period-row select.period-type { width:auto; min-width:86px; padding:4px 6px; border:1px solid #b0b8c4; border-radius:4px; background:#f7faff; color:#1a1a1a; font-size:9.5pt; text-align:left; flex-shrink:0; }
@@ -317,6 +322,7 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
 .name-cell { display:flex; align-items:center; gap:6px; }
 .name-cell input { flex:1; }
 .name-in { font-size:10pt; white-space:nowrap; color:#555; }
+.dow-label { font-size:9pt; color:#1a5fa8; font-weight:700; flex-shrink:0; white-space:nowrap; padding:0 3px; }
 .attach-line { margin-top:18px; font-size:9pt; padding-left:2px; color:#777; letter-spacing:.3px; }
 
 /* 연동 성공 토스트 */
@@ -342,6 +348,7 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
   .page { width:100%; min-height:auto; padding:32mm 15mm 12mm 15mm; box-shadow:none; margin-top:0; }
   input[type="date"] { display:none !important; }
   textarea, input[type="text"], input[type="tel"] { border-bottom-color:transparent !important; }
+  input.days-badge { border-bottom-color:transparent !important; width:auto; }
   .add-period-btn, .remove-period-btn, .cal-btn { display:none !important; }
   .form-table .period-row select.period-type,
   .form-table .period-row select.bancha-time { border:none !important; background:transparent !important; -webkit-appearance:none; appearance:none; padding:2px 4px; }
@@ -384,16 +391,16 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
 <div class="app">
 
 <div class="topbar">
-  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--add);margin-right:4px;">🗓 휴가 관리</h1>
+  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--add);margin-right:6px;">🗓 휴가 관리</h1>
   <div class="ebadges" id="ebadges"></div>
   <span id="syncStatus" style="font-size:11px;color:var(--mu);font-weight:600;white-space:nowrap;">☁️ 클라우드 저장됨</span>
   <div class="entry-wrap">
     <div class="xl-group">
       <button class="xl-btn" onclick="exportExcel()" title="엑셀로 저장">
-        <i class="ti ti-file-spreadsheet"></i>
+        <i class="ti ti-file-spreadsheet"></i> 엑셀 저장
       </button>
       <button class="xl-btn xl-btn-up" onclick="document.getElementById('xlUploadInput').click()" title="엑셀 불러오기">
-        <i class="ti ti-upload"></i>
+        <i class="ti ti-upload"></i> 불러오기
       </button>
       <input type="file" id="xlUploadInput" accept=".xlsx" onchange="importExcel(event)">
     </div>
@@ -514,12 +521,12 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
         <td style="padding:0;">
           <div class="gubun-outer">
             <div class="gubun-row">
-              <span class="gubun-item">휴가&nbsp;(<span class="days-badge" id="d-휴가"></span>)</span>
-              <span class="gubun-item">반차&nbsp;(<span class="days-badge" id="d-반차"></span>)</span>
-              <span class="gubun-item">병가&nbsp;(<span class="days-badge" id="d-병가"></span>)</span>
-              <span class="gubun-item">출산휴가&nbsp;(<span class="days-badge" id="d-출산휴가"></span>)</span>
-              <span class="gubun-item">장기특별휴가&nbsp;(<span class="days-badge" id="d-장기특별휴가"></span>)</span>
-              <span class="gubun-item">기타&nbsp;(<span class="days-badge" id="d-기타"></span>)</span>
+              <span class="gubun-item">휴가&nbsp;(<input class="days-badge" id="d-휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">반차&nbsp;(<input class="days-badge" id="d-반차" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">병가&nbsp;(<input class="days-badge" id="d-병가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">출산휴가&nbsp;(<input class="days-badge" id="d-출산휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">장기특별휴가&nbsp;(<input class="days-badge" id="d-장기특별휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">기타&nbsp;(<input class="days-badge" id="d-기타" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
             </div>
           </div>
         </td>
@@ -564,12 +571,14 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
       <input type="text" class="start-date" placeholder="YYYY-MM-DD" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onStartDateEnter(event,this)" />
       <input type="date" class="start-picker" onchange="syncFromPicker(this)" />
       <button class="cal-btn" type="button" onclick="openPicker(this)">📅</button>
+      <span class="dow-label dow-start"></span>
     </div>
     <span class="period-sep">~</span>
     <div class="date-input-wrap">
       <input type="text" class="end-date" placeholder="YYYY-MM-DD" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onEndDateEnter(event,this)" />
       <input type="date" class="end-picker" onchange="syncFromPicker(this)" />
       <button class="cal-btn" type="button" onclick="openPicker(this)">📅</button>
+      <span class="dow-label dow-end"></span>
     </div>
     <span class="period-days"></span>
     <button type="button" class="remove-period-btn" onclick="removePeriod(this)" title="이 기간 제거">✕</button>
@@ -600,6 +609,7 @@ document.addEventListener('keydown', e => {
   ) e.preventDefault();
 });
 
+
 // ── Firebase 초기화 ───────────────────────
 const firebaseConfig = {
   apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
@@ -614,7 +624,6 @@ firebase.initializeApp(firebaseConfig);
 const db = firebase.firestore();
 const DOC_REF = db.collection('vacationData').doc('main');
 
-// 저장 상태 표시
 function showSyncStatus(msg, ok=true) {
   let el = document.getElementById('syncStatus');
   if (!el) return;
@@ -624,7 +633,6 @@ function showSyncStatus(msg, ok=true) {
   el._t = setTimeout(() => { el.textContent = '☁️ 클라우드 저장됨'; el.style.color = 'var(--mu)'; }, 2500);
 }
 
-// Firestore에 저장
 async function saveToCloud(data) {
   try {
     data._updatedAt = Date.now();
@@ -637,13 +645,10 @@ async function saveToCloud(data) {
   }
 }
 
-// Firestore에서 불러오기
 async function loadFromCloud() {
   try {
     const doc = await DOC_REF.get();
-    if (doc.exists) {
-      return doc.data();
-    }
+    if (doc.exists) return doc.data();
     return null;
   } catch(e) {
     console.error('불러오기 오류:', e);
@@ -651,7 +656,6 @@ async function loadFromCloud() {
   }
 }
 
-// 실시간 동기화 (다른 기기에서 변경 시 자동 반영)
 function startRealtimeSync() {
   DOC_REF.onSnapshot(snapshot => {
     if (snapshot.exists && !_isSaving) {
@@ -724,14 +728,14 @@ catch { S=JSON.parse(JSON.stringify(DEF)); }
 let elId=null, ewId=null;
 let _saveTimer = null;
 const save = () => {
-  localStorage.setItem('vac_v6', JSON.stringify(S)); // 로컬 백업
+  localStorage.setItem('vac_v6', JSON.stringify(S));
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(() => {
     _isSaving = true;
     saveToCloud(JSON.parse(JSON.stringify(S))).finally(() => {
       setTimeout(() => { _isSaving = false; }, 1000);
     });
-  }, 600); // 600ms 내 연속 호출은 마지막 것만 저장
+  }, 600);
 };
 const yr   = () => S.years[S.activeYear];
 const fmt  = n  => n%1===0 ? String(n) : n.toFixed(1);
@@ -760,7 +764,7 @@ function deleteYear(e, y) {
   if (!confirm(`${y}년 데이터를 삭제할까요?`)) return;
   delete S.years[y];
   if (S.activeYear === y) S.activeYear = Object.keys(S.years).sort().at(-1);
-  save(); render();
+  render();
 }
 function fd(s) {
   if (!s) return '—';
@@ -883,7 +887,7 @@ function renderWLCard() {
 function leaveEditRow(r) {
   return `<tr class="er">
     <td><input type="text" id="el_d" value="${r.date}" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
-    <td><input type="text" id="el_t" value="${r.type}" placeholder="구분"></td>
+    <td>${leaveTypeSelect('el_t', r.type)}</td>
     <td>${selDay('el_u', r.used)}</td>
     <td><div class="ra" style="opacity:1">
       <button class="rib rib-s" onclick="saveEdit('leave',${r.id})" title="저장"><i class="ti ti-check"></i></button>
@@ -999,10 +1003,15 @@ function renderWLTable() {
     </tbody></table>`;
 }
 
+
+function leaveTypeSelect(id, val) {
+  const opts = ['연차','오전반차','오후반차','병가','출산휴가','장기휴가','기타'];
+  return '<select id="'+id+'" style="border:1.5px solid var(--bdr);border-radius:8px;padding:5px 8px;font-size:13px;color:var(--add);background:var(--card);font-family:inherit;width:100%;">'+opts.map(o=>'<option value="'+o+'"'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';
+}
 function selDay(id, val) { return `<input type="number" id="${id}" min="0.5" max="30" step="0.5" value="${val!=null?val:''}" placeholder="일수">`; }
 function selHour(id, val) { return `<input type="number" id="${id}" min="0.5" max="24" step="0.5" value="${val!=null?val:''}" placeholder="시간">`; }
 
-function switchYear(y) { S.activeYear=y; elId=null; ewId=null; save(); render(); }
+function switchYear(y) { S.activeYear=y; elId=null; ewId=null; render(); }
 function addYear() {
   const v = prompt('추가할 연도를 입력하세요 (예: 2027)');
   if (!v) return;
@@ -1011,11 +1020,11 @@ function addYear() {
   if (S.years[y]) { alert('이미 있는 연도예요'); return; }
   const c = calc(y);
   S.years[y] = { leave:{total:c?c.days:15, longTotal:c?c.longDays:0, records:[]}, wl:{total:40, records:[]} };
-  S.activeYear = y; save(); render();
+  S.activeYear = y; render();
 }
-function setTot(mode, v) { const n=parseFloat(v); if (!n||n<=0) return; if (mode==='leave') yr().leave.total=n; else yr().wl.total=n; save(); render(); }
-function setLongTot(v) { yr().leave.longTotal = parseFloat(v)||0; save(); render(); }
-function applyCalc(tabY) { const c=calc(tabY); if (!c) return; S.years[tabY].leave.total=c.days; S.years[tabY].leave.longTotal=c.longDays; save(); render(); }
+function setTot(mode, v) { const n=parseFloat(v); if (!n||n<=0) return; if (mode==='leave') yr().leave.total=n; else yr().wl.total=n; render(); }
+function setLongTot(v) { yr().leave.longTotal = parseFloat(v)||0; render(); }
+function applyCalc(tabY) { const c=calc(tabY); if (!c) return; S.years[tabY].leave.total=c.days; S.years[tabY].leave.longTotal=c.longDays; render(); }
 
 function addRow(mode, isLong=false) {
   if (mode === 'leave') {
@@ -1066,13 +1075,13 @@ function saveEdit(mode, id) {
     if (r) { r.date=date; r.note=note; r.used=used; }
     ewId = null;
   }
-  save(); render();
+  render();
 }
 function del(mode, id) {
   if (!confirm('삭제할까요?')) return;
   if (mode==='leave') yr().leave.records = yr().leave.records.filter(r=>r.id!==id);
   else yr().wl.records = yr().wl.records.filter(r=>r.id!==id);
-  save(); render();
+  render();
 }
 
 // ── 테마 ──
@@ -1129,13 +1138,13 @@ document.getElementById('entryDate').addEventListener('change', e => {
   if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
   S.entryDate = v;
   Object.keys(S.years).forEach(y => { const c=calc(y); if (c) { S.years[y].leave.total=c.days; S.years[y].leave.longTotal=c.longDays; } });
-  save(); render();
+  render();
 });
 document.getElementById('careerDate').addEventListener('change', e => {
   const v = normDate(e.target.value, new Date().getFullYear().toString());
   e.target.value = v;
   if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
-  S.careerDate = v; save(); render();
+  S.careerDate = v; render();
 });
 
 // ── Enter 포커스 이동 ──
@@ -1224,17 +1233,7 @@ function importExcel(e) {
   reader.readAsBinaryString(file);
 }
 
-// 클라우드에서 불러온 뒤 render
-(async () => {
-  const cloudData = await loadFromCloud();
-  if (cloudData) {
-    S = cloudData;
-    if (!S.careerDate) S.careerDate = '';
-  }
-  render();
-  if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
-  startRealtimeSync();
-})();
+render();
 
 // ══════════════════════════════════════════
 // 휴가 신청서 로직
@@ -1336,6 +1335,55 @@ function onPeriodTypeChange(sel) {
   const bancha = row.querySelector('.bancha-time');
   bancha.style.display = sel.value === '반차' ? '' : 'none';
 }
+
+// ── 한국 법정공휴일 데이터 (2024~2027) ──
+const HOLIDAYS = new Set([
+  '2024-01-01','2024-02-09','2024-02-10','2024-02-11','2024-02-12',
+  '2024-03-01','2024-04-10','2024-05-05','2024-05-06','2024-05-15',
+  '2024-06-06','2024-08-15','2024-09-16','2024-09-17','2024-09-18',
+  '2024-10-03','2024-10-09','2024-12-25',
+  '2025-01-01','2025-01-28','2025-01-29','2025-01-30',
+  '2025-03-01','2025-05-05','2025-05-06','2025-06-06',
+  '2025-08-15','2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08','2025-10-09',
+  '2025-12-25',
+  '2026-01-01','2026-01-28','2026-01-29','2026-01-30',
+  '2026-03-01','2026-03-02','2026-05-05','2026-05-25',
+  '2026-06-06','2026-08-17',
+  '2026-09-24','2026-09-25','2026-09-26','2026-10-03','2026-10-05',
+  '2026-12-25',
+  '2027-01-01','2027-02-08','2027-02-09','2027-02-10','2027-02-11',
+  '2027-03-01','2027-05-05','2027-05-24','2027-06-06',
+  '2027-08-16','2027-09-14','2027-09-15','2027-09-16',
+  '2027-10-04','2027-10-09','2027-12-25',
+]);
+const DOW_KR = ['일','월','화','수','목','금','토'];
+function isWorkDay(dateStr) {
+  const d = new Date(dateStr); const day = d.getDay();
+  if (day === 0 || day === 6) return false;
+  if (HOLIDAYS.has(dateStr)) return false;
+  return true;
+}
+function countWorkDays(start, end) {
+  let count = 0; const cur = new Date(start); const endMs = end.getTime();
+  while (cur.getTime() <= endMs) {
+    const ds = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+    if (isWorkDay(ds)) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+function getDow(dateStr) {
+  if (!dateStr || dateStr.length < 10) return '';
+  const d = new Date(dateStr); return isNaN(d) ? '' : DOW_KR[d.getDay()];
+}
+function updateDowLabels(row) {
+  const s = row.querySelector('.start-date').value;
+  const e = row.querySelector('.end-date').value;
+  const dowS = row.querySelector('.dow-start');
+  const dowE = row.querySelector('.dow-end');
+  if (dowS) dowS.textContent = s.length === 10 ? '('+getDow(s)+')' : '';
+  if (dowE) dowE.textContent = e.length === 10 ? '('+getDow(e)+')' : '';
+}
 function calcDays() {
   const totals = {'휴가':0,'반차':0,'병가':0,'출산휴가':0,'장기특별휴가':0,'기타':0};
   document.querySelectorAll('.period-row').forEach(r => {
@@ -1346,13 +1394,18 @@ function calcDays() {
     const start=new Date(s), end=new Date(e);
     if (isNaN(start)||isNaN(end)||end<start) { out.textContent=''; return; }
     const rawDays = Math.round((end-start)/86400000)+1;
-    out.textContent=`(${rawDays}일)`;
-    if (totals[type]!==undefined) totals[type]+=rawDays;
+    const workDays = countWorkDays(start, end);
+    updateDowLabels(r);
+    out.textContent = '('+workDays+'일)';
+    if (totals[type]!==undefined) totals[type]+=workDays;
   });
   Object.keys(totals).forEach(type => {
     const el=document.getElementById('d-'+type); if (!el) return;
     const v=totals[type];
-    el.textContent = v===0 ? '' : v%1===0 ? v : v.toFixed(1);
+    if (document.activeElement !== el) {
+      const txt = v===0 ? '' : v%1===0 ? String(v) : v.toFixed(1);
+      el.value = txt; el.style.width = (txt.length||1)+'ch';
+    }
   });
 }
 function resetForm() {
@@ -1421,9 +1474,10 @@ function syncToManager() {
       if (isNaN(start) || isNaN(end) || end < start) { errors.push(`${idx+1}번째 행: 날짜 오류`); return; }
       const totalDays = Math.round((end - start) / 86400000) + 1;
 
-      // 날짜 범위를 하루씩 추가
+      // 날짜 범위를 하루씩 추가 (주말·공휴일 제외)
       for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
         const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!isWorkDay(dateStr)) continue;
         const dateYear = String(d.getFullYear());
         ensureYear(dateYear);
         // 중복 날짜 체크
@@ -1456,6 +1510,17 @@ function ensureYear(y) {
     S.years[y] = { leave:{total:c?c.days:15, longTotal:c?c.longDays:0, records:[]}, wl:{total:40, records:[]} };
   }
 }
+
+(async () => {
+  const cloudData = await loadFromCloud();
+  if (cloudData) {
+    S = cloudData;
+    if (!S.careerDate) S.careerDate = '';
+  }
+  render();
+  if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+  startRealtimeSync();
+})();
 
 loadSaved();
 addPeriod();
