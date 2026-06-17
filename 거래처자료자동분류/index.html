@@ -280,8 +280,8 @@ body {
 .type-법인 { background: #ece7de; color: #5e5448; }
 .type-개인 { background: #e2ece4; color: #4e6054; }
 .type-신고 { background: #f0e8d8; color: #7a5e38; }
-.type-기본사항 { background: #dce8f0; color: #3a5878; }
 .type-종소 { background: #e8e0f0; color: #5a4878; }
+.type-기본사항 { background: #dce8f0; color: #3a5878; }
 .client-del { background: none; border: none; color: var(--text3); cursor: pointer; opacity: .4; font-size: 11px; transition: opacity .12s; }
 .client-del:hover { opacity: 1; color: var(--error); }
 
@@ -296,8 +296,8 @@ body {
 /* 분류 키워드 */
 .kw-결산 { color: var(--success); font-weight: 600; }
 .kw-부가  { color: var(--accent2); font-weight: 600; }
-.kw-원천  { color: var(--warn);    font-weight: 600; }
 .kw-기본  { color: #6080a0;          font-weight: 600; }
+.kw-원천  { color: var(--warn);    font-weight: 600; }
 
 /* 키워드 태그 */
 .kw-tag {
@@ -857,30 +857,20 @@ function nameSimilarity(clientName, filename) {
   return 0;
 }
 
-// 업종·법인 형태 등 단독으로는 매칭 근거가 되지 않는 공통 단어
 const MATCH_COMMON_WORDS = ['pc방', '주식회사', '유한회사', '합자회사', '합명회사', '유한책임회사', '협동조합', '사회적협동조합', '농업회사법인'];
 
 function getDistinctWords(name) {
-  return name.toLowerCase().split(/\s+/)
-    .filter(w => w.length >= 2 && !MATCH_COMMON_WORDS.includes(w));
+  return name.toLowerCase().split(/\s+/).filter(w => w.length >= 2 && !MATCH_COMMON_WORDS.includes(w));
 }
 
 function matchClient(filename) {
   const lower = filename.toLowerCase().replace(/_/g, ' ');
   const clients = getClients();
-
-  // 1차: 상호명 정확 매칭 — 긴 이름 우선
   const byNameLen = [...clients].sort((a, b) => b.name.length - a.name.length);
   const exactName = byNameLen.find(c => lower.includes(c.name.toLowerCase()));
   if (exactName) return { client: exactName, fuzzy: false };
-
-  // 2차: 대표자명 매칭
-  const exactRep = clients.find(c =>
-    c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase())
-  );
+  const exactRep = clients.find(c => c.rep && c.rep.length >= 2 && lower.includes(c.rep.toLowerCase()));
   if (exactRep) return { client: exactRep, fuzzy: false };
-
-  // 3차: 구별 단어 포함 + 유사도 50% 이상
   let best = null, bestScore = 0;
   clients.forEach(c => {
     const distinct = getDistinctWords(c.name);
@@ -902,23 +892,18 @@ function detectTaxType(filename) {
 }
 
 function detectMonth(filename) {
-  // "3월", "03월" 패턴
   let m = filename.match(/(\d{1,2})월/);
   if (m) { const n = parseInt(m[1]); if (n >= 1 && n <= 12) return n; }
-  // "25.01", "2025.01" 패턴 — 앞이 연도, 뒤가 월
   m = filename.match(/\b(?:20\d{2}|\d{2})[.\-_](\d{2})\b/);
   if (m) { const n = parseInt(m[1]); if (n >= 1 && n <= 12) return n; }
   return null;
 }
 
 function detectYear(filename) {
-  // "2025년" 패턴
   let m = filename.match(/\b(20\d{2})년/);
   if (m) return parseInt(m[1]);
-  // "2025.01" 패턴
   m = filename.match(/\b(20\d{2})[.\-_]\d{2}\b/);
   if (m) return parseInt(m[1]);
-  // "25.01" 패턴 (20~35 범위)
   m = filename.match(/\b(\d{2})[.\-_]\d{2}\b/);
   if (m) { const y = parseInt(m[1]); if (y >= 20 && y <= 35) return 2000 + y; }
   return null;
@@ -930,13 +915,8 @@ function getCurrentMonth() { return new Date().getMonth() + 1; }
 function buildDrivePath(client, taxType, month, year) {
   const mo = month || null;
   const y  = year  || getYear();
-  // 종소: 신고 / ★종합소득세 신고대리 / 거래처 / 연도
-  if (client.type === '종소') {
-    return `신고 / ★종합소득세 신고대리 / ${client.name} / ${y}`;
-  }
-  // 기본사항: 연도 없이 거래처/기본사항
+  if (client.type === '종소') return `신고 / ★종합소득세 신고대리 / ${client.name} / ${y}`;
   if (taxType === '기본사항') return `${client.type} / ${client.name} / 기본사항`;
-  // 결산/원천/부가: [type] / 거래처 / 연도 / 세금종류
   const base = `${client.type} / ${client.name} / ${y} / ${taxType}`;
   if (taxType === '결산') return base;
   if (taxType === '원천') return mo ? `${base} / ${mo}월` : base;
@@ -1733,7 +1713,6 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   const y  = year  || getYear();
   let fid  = BASE_FOLDER_ID;
 
-  // 종소: 신고 / ★종합소득세 신고대리 / 거래처 / 연도
   if (client.type === '종소') {
     fid = await findOrCreateSubfolder(fid, '신고');                   if (!fid) throw new Error('신고 폴더 생성 실패');
     fid = await findOrCreateSubfolder(fid, '★종합소득세 신고대리');     if (!fid) throw new Error('신고대리 폴더 생성 실패');
@@ -1745,13 +1724,11 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   fid = await findOrCreateSubfolder(fid, client.type); if (!fid) throw new Error('분류 폴더 생성 실패');
   fid = await findSubfolder(fid, clientName);           if (!fid) throw new Error(`거래처 폴더를 찾을 수 없어요: ${clientName}`);
 
-  // 기본사항: 연도 없이 거래처/기본사항
   if (taxType === '기본사항') {
     fid = await findOrCreateSubfolder(fid, '기본사항'); if (!fid) throw new Error('기본사항 폴더 생성 실패');
     return fid;
   }
 
-  // 결산/원천/부가: 거래처/연도/세금종류
   fid = await findOrCreateSubfolder(fid, String(y));   if (!fid) throw new Error('연도 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, taxType);     if (!fid) throw new Error('세금종류 폴더 생성 실패');
 
@@ -1799,27 +1776,24 @@ function makeSafeName(file, item) {
   if (item && item.keepName) {
     // 이름 유지: 원본 파일명 그대로
   } else {
-    // 1) 상호명 제거 — 공백·밑줄 모두 구분자로 처리
     if (item && item.client) {
       const cn = item.client.name;
       const cnPat = cn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[ _]/g, '[ _]');
       cleanBase = cleanBase.replace(new RegExp(cnPat, 'gi'), '');
       cleanBase = cleanBase.replace(/^[\s_\-\.·]+|[\s_\-\.·]+$/g, '').trim() || base;
     }
-    // 2) 파일명 정규화 규칙
     const lowerClean = cleanBase.toLowerCase();
     const matchedRule = FILE_NAME_RULES.find(r => r.keywords.some(k => lowerClean.includes(k)));
     if (matchedRule) cleanBase = matchedRule.name;
   }
 
-  // 연도_월 prefix
   const y  = item ? (item.year || getYear()) : getYear();
   const mo = item ? item.month : null;
   const tt = item ? item.taxType : null;
   const isJongso = item && item.client && item.client.type === '종소';
 
   let prefix;
-  if (!tt || tt === '결산' || isJongso) {
+  if (!tt || tt === '결산' || tt === '기본사항' || isJongso) {
     prefix = `${y}_`;
   } else if (mo) {
     prefix = `${y}_${String(mo).padStart(2,'0')}_`;
