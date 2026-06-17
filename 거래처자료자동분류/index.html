@@ -934,9 +934,11 @@ function buildDrivePath(client, taxType, month, year) {
   if (client.type === '종소') {
     return `신고 / ★종합소득세 신고대리 / ${client.name} / ${y}`;
   }
-  // 법인/개인/신고: [type] / 거래처 / 연도 / 세금종류
+  // 기본사항: 연도 없이 거래처/기본사항
+  if (taxType === '기본사항') return `${client.type} / ${client.name} / 기본사항`;
+  // 결산/원천/부가: [type] / 거래처 / 연도 / 세금종류
   const base = `${client.type} / ${client.name} / ${y} / ${taxType}`;
-  if (taxType === '결산' || taxType === '기본사항') return base;
+  if (taxType === '결산') return base;
   if (taxType === '원천') return mo ? `${base} / ${mo}월` : base;
   if (taxType === '부가') {
     const m = mo || getCurrentMonth();
@@ -1740,13 +1742,20 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
     return fid;
   }
 
-  // 법인/개인/신고: [type] / 거래처 / 연도 / 세금종류
   fid = await findOrCreateSubfolder(fid, client.type); if (!fid) throw new Error('분류 폴더 생성 실패');
   fid = await findSubfolder(fid, clientName);           if (!fid) throw new Error(`거래처 폴더를 찾을 수 없어요: ${clientName}`);
+
+  // 기본사항: 연도 없이 거래처/기본사항
+  if (taxType === '기본사항') {
+    fid = await findOrCreateSubfolder(fid, '기본사항'); if (!fid) throw new Error('기본사항 폴더 생성 실패');
+    return fid;
+  }
+
+  // 결산/원천/부가: 거래처/연도/세금종류
   fid = await findOrCreateSubfolder(fid, String(y));   if (!fid) throw new Error('연도 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, taxType);     if (!fid) throw new Error('세금종류 폴더 생성 실패');
 
-  if (taxType === '결산' || taxType === '기본사항') {
+  if (taxType === '결산') {
     return fid;
   } else if (taxType === '원천') {
     if (mo) { fid = await findOrCreateSubfolder(fid, `${mo}월`); if (!fid) throw new Error('월 폴더 생성 실패'); }
@@ -1788,20 +1797,19 @@ function makeSafeName(file, item) {
 
   let cleanBase = base;
   if (item && item.keepName) {
-    // 이름 유지: 상호명·정규화 건드리지 않고 원본 파일명 그대로
-    // (prefix만 붙임 — 아래에서 처리)
+    // 이름 유지: 원본 파일명 그대로
   } else {
-    // 파일명 정규화 규칙 (원본 파일명 기준으로 검사)
-    const lowerOrig = file.name.toLowerCase();
-    const matchedRule = FILE_NAME_RULES.find(r => r.keywords.some(k => lowerOrig.includes(k)));
-    if (matchedRule) {
-      cleanBase = matchedRule.name;
-    } else if (item && item.client) {
-      // 규칙 없으면 상호명만 제거
+    // 1) 상호명 제거 — 공백·밑줄 모두 구분자로 처리
+    if (item && item.client) {
       const cn = item.client.name;
-      cleanBase = cleanBase.replace(new RegExp(cn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'gi'), '');
+      const cnPat = cn.replace(/[.*+?^${}()|[\]\\]/g, '\\$&').replace(/[ _]/g, '[ _]');
+      cleanBase = cleanBase.replace(new RegExp(cnPat, 'gi'), '');
       cleanBase = cleanBase.replace(/^[\s_\-\.·]+|[\s_\-\.·]+$/g, '').trim() || base;
     }
+    // 2) 파일명 정규화 규칙
+    const lowerClean = cleanBase.toLowerCase();
+    const matchedRule = FILE_NAME_RULES.find(r => r.keywords.some(k => lowerClean.includes(k)));
+    if (matchedRule) cleanBase = matchedRule.name;
   }
 
   // 연도_월 prefix
@@ -1811,7 +1819,7 @@ function makeSafeName(file, item) {
   const isJongso = item && item.client && item.client.type === '종소';
 
   let prefix;
-  if (!tt || tt === '결산' || tt === '기본사항' || isJongso) {
+  if (!tt || tt === '결산' || isJongso) {
     prefix = `${y}_`;
   } else if (mo) {
     prefix = `${y}_${String(mo).padStart(2,'0')}_`;
