@@ -1710,6 +1710,12 @@ async function driveReqRetry(method, path, body, params='', retries=2) {
 
 const DRIVE_PARAMS = 'supportsAllDrives=true&includeItemsFromAllDrives=true';
 
+async function findSubfolder(parentId, name) {
+  const q   = encodeURIComponent(`name='${name.replace(/'/g,"\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
+  const res = await driveReqRetry('GET', `/files`, null, `q=${q}&fields=files(id,name)&${DRIVE_PARAMS}`);
+  return res?.files?.length ? res.files[0].id : null;
+}
+
 async function findOrCreateSubfolder(parentId, name) {
   const q   = encodeURIComponent(`name='${name.replace(/'/g,"\\'")}' and mimeType='application/vnd.google-apps.folder' and '${parentId}' in parents and trashed=false`);
   const res = await driveReqRetry('GET', `/files`, null, `q=${q}&fields=files(id,name)&${DRIVE_PARAMS}`);
@@ -1729,14 +1735,14 @@ async function resolveTargetFolder(clientName, taxType, month, year) {
   if (client.type === '종소') {
     fid = await findOrCreateSubfolder(fid, '신고');                   if (!fid) throw new Error('신고 폴더 생성 실패');
     fid = await findOrCreateSubfolder(fid, '★종합소득세 신고대리');     if (!fid) throw new Error('신고대리 폴더 생성 실패');
-    fid = await findOrCreateSubfolder(fid, clientName);               if (!fid) throw new Error('거래처 폴더 생성 실패');
+    fid = await findSubfolder(fid, clientName);                       if (!fid) throw new Error(`거래처 폴더를 찾을 수 없어요: ${clientName}`);
     fid = await findOrCreateSubfolder(fid, String(y));                if (!fid) throw new Error('연도 폴더 생성 실패');
     return fid;
   }
 
   // 법인/개인/신고: [type] / 거래처 / 연도 / 세금종류
   fid = await findOrCreateSubfolder(fid, client.type); if (!fid) throw new Error('분류 폴더 생성 실패');
-  fid = await findOrCreateSubfolder(fid, clientName);  if (!fid) throw new Error('거래처 폴더 생성 실패');
+  fid = await findSubfolder(fid, clientName);           if (!fid) throw new Error(`거래처 폴더를 찾을 수 없어요: ${clientName}`);
   fid = await findOrCreateSubfolder(fid, String(y));   if (!fid) throw new Error('연도 폴더 생성 실패');
   fid = await findOrCreateSubfolder(fid, taxType);     if (!fid) throw new Error('세금종류 폴더 생성 실패');
 
