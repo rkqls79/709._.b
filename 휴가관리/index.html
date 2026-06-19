@@ -352,6 +352,10 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
   .add-period-btn, .remove-period-btn, .cal-btn { display:none !important; }
   .form-table .period-row select.period-type,
   .form-table .period-row select.bancha-time { border:none !important; background:transparent !important; -webkit-appearance:none; appearance:none; padding:2px 4px; }
+  .single-day .period-sep,
+  .single-day .end-wrap { display:none !important; }
+  .period-row { justify-content:center; }
+  #periodList { align-items:center; }
   .form-table, .form-table td, .approval-table, .approval-table td { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
   .lh, .cl, .cl-in, .approval-table .a-head, .approval-table .a-label { background:#e8f0fa !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
 }
@@ -574,8 +578,8 @@ tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px
       <span class="dow-label dow-start"></span>
     </div>
     <span class="period-sep">~</span>
-    <div class="date-input-wrap">
-      <input type="text" class="end-date" placeholder="YYYY-MM-DD" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onEndDateEnter(event,this)" />
+    <div class="date-input-wrap end-wrap">
+      <input type="text" class="end-date" placeholder="종료일 (생략시 당일)" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onEndDateEnter(event,this)" />
       <input type="date" class="end-picker" onchange="syncFromPicker(this)" />
       <button class="cal-btn" type="button" onclick="openPicker(this)">📅</button>
       <span class="dow-label dow-end"></span>
@@ -841,6 +845,7 @@ function renderLeaveCard() {
       <div><div class="rem-big">${fmt(rem)}</div><div class="rem-lbl">잔여</div></div>
       <div><div class="sec-val">${fmt(used)}</div><div class="sec-lbl">사용</div></div>
       <div><div class="sec-val" style="color:var(--bdr)">${y.leave.total}</div><div class="sec-lbl">총</div></div>
+      <div><div class="sec-val" style="color:var(--a);font-weight:800">${Math.round(pct)}%</div><div class="sec-lbl">사용율</div></div>
     </div>
     <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>`;
 }
@@ -880,6 +885,7 @@ function renderWLCard() {
       <div><div class="rem-big">${fmt(rem)}</div><div class="rem-lbl">잔여</div></div>
       <div><div class="sec-val">${fmt(used)}</div><div class="sec-lbl">사용</div></div>
       <div><div class="sec-val" style="color:var(--bdr)">${y.wl.total}</div><div class="sec-lbl">총</div></div>
+      <div><div class="sec-val" style="color:var(--grn);font-weight:800">${Math.round(pct)}%</div><div class="sec-lbl">사용율</div></div>
     </div>
     <div class="pbar"><div class="pfill pfill-g" style="width:${pct}%"></div></div>`;
 }
@@ -1183,19 +1189,39 @@ function exportExcel() {
   XLSX.writeFile(wb, `휴가관리_${new Date().toISOString().slice(0,10)}.xlsx`);
 }
 
+// ── 엑셀 날짜 변환 헬퍼 ──
+// 엑셀 날짜는 Date 객체, 시리얼 숫자, 또는 문자열로 올 수 있음
+function toDateStr(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) {
+    return val.getFullYear()+'-'+String(val.getMonth()+1).padStart(2,'0')+'-'+String(val.getDate()).padStart(2,'0');
+  }
+  if (typeof val === 'number') {
+    try {
+      const info = XLSX.SSF.parse_date_code(val);
+      if (info && info.y > 1900) return info.y+'-'+String(info.m).padStart(2,'0')+'-'+String(info.d).padStart(2,'0');
+    } catch(e) {}
+    return String(val);
+  }
+  const s = String(val).trim();
+  const d = s.replace(/[.\-\/\s]/g,'');
+  if (/^\d{8}$/.test(d)) return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8);
+  return s;
+}
+
 // ── 엑셀 불러오기 ──
 function importExcel(e) {
   const file = e.target.files[0]; if (!file) return; e.target.value='';
   const reader = new FileReader();
   reader.onload = ev => {
     try {
-      const wb = XLSX.read(ev.target.result, {type:'binary'});
+      const wb = XLSX.read(ev.target.result, {type:'binary', cellDates:true});
       const infoSheet = wb.Sheets['기본정보'];
       if (infoSheet) {
         const rows = XLSX.utils.sheet_to_json(infoSheet, {header:1});
         rows.slice(1).forEach(r => {
-          if (r[0]==='입사일'  && r[1]) S.entryDate  = String(r[1]);
-          if (r[0]==='실경력'  && r[1]) S.careerDate = String(r[1]);
+          if (r[0]==='입사일'  && r[1]) S.entryDate  = toDateStr(r[1]);
+          if (r[0]==='실경력'  && r[1]) S.careerDate = toDateStr(r[1]);
           if (r[0]==='활성연도' && r[1]) S.activeYear = String(r[1]);
           if (r[0]==='테마'    && r[1]) S.theme      = String(r[1]);
         });
@@ -1215,8 +1241,8 @@ function importExcel(e) {
           if (first==='연차총일수')      { leaveTotal=parseFloat(r[1])||15; return; }
           if (first==='장기휴가총일수')  { longTotal=parseFloat(r[1])||0;   return; }
           if (first==='재택총시간')      { wlTotal=parseFloat(r[1])||40;    return; }
-          if (section==='leave' && r[0] && r[2]!=null) leaveRecords.push({id:leaveRecords.length+1, date:String(r[0]), type:String(r[1]||'연차'), used:parseFloat(r[2])||0, long:String(r[3]||'')==='장기'});
-          if (section==='wl'    && r[0] && r[2]!=null) wlRecords.push({id:wlRecords.length+1, date:String(r[0]), note:String(r[1]||''), used:parseFloat(r[2])||0});
+          if (section==='leave' && r[0] && r[2]!=null) leaveRecords.push({id:leaveRecords.length+1, date:toDateStr(r[0]), type:String(r[1]||'연차'), used:parseFloat(r[2])||0, long:String(r[3]||'')==='장기'});
+          if (section==='wl'    && r[0] && r[2]!=null) wlRecords.push({id:wlRecords.length+1, date:toDateStr(r[0]), note:String(r[1]||''), used:parseFloat(r[2])||0});
         });
         newYears[y] = { leave:{total:leaveTotal, longTotal, records:leaveRecords}, wl:{total:wlTotal, records:wlRecords} };
       });
@@ -1390,11 +1416,14 @@ function calcDays() {
     const s=r.querySelector('.start-date').value, e=r.querySelector('.end-date').value;
     const type=r.querySelector('.period-type').value, out=r.querySelector('.period-days');
     if (type==='반차') { if (s.length===10) { out.textContent='(0.5일)'; totals['반차']+=0.5; } else out.textContent=''; return; }
-    if (s.length<10||e.length<10) { out.textContent=''; return; }
-    const start=new Date(s), end=new Date(e);
+    if (s.length<10) { out.textContent=''; return; }
+    const isSingleDay = e.length < 10;
+    const endVal = isSingleDay ? s : e;  // 종료일 미입력시 당일 처리
+    r.classList.toggle('single-day', isSingleDay);
+    const start=new Date(s), end=new Date(endVal);
     if (isNaN(start)||isNaN(end)||end<start) { out.textContent=''; return; }
     const rawDays = Math.round((end-start)/86400000)+1;
-    const workDays = countWorkDays(start, end);
+    const workDays = countWorkDays(start, end);  // endVal 기반
     updateDowLabels(r);
     out.textContent = '('+workDays+'일)';
     if (totals[type]!==undefined) totals[type]+=workDays;
