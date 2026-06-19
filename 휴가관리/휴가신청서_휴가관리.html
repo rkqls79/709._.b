@@ -1,0 +1,1558 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>휴가 관리</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@3.19.0/dist/tabler-icons.min.css">
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
+<style>
+/* ══════════════════════════════════════════════
+   공통 / 탭 네비게이션
+══════════════════════════════════════════════ */
+:root {
+  --bg:    #E4E9F2;
+  --card:  #FFFFFF;
+  --a:     #677FB4;
+  --ad:    #374580;
+  --add:   #1A2554;
+  --al:    #C8CFDF;
+  --all:   #EDF0F7;
+  --mu:    #8A97B8;
+  --bdr:   #D0D7E8;
+  --hov:   #F3F5FA;
+  --grn:   #7A9E7E;
+  --grnbg: #EFF5EF;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body {
+  font-family:'Apple SD Gothic Neo','Malgun Gothic','Noto Sans KR',sans-serif;
+  background:var(--bg); color:var(--add); min-height:100vh; font-size:14px;
+  transition:background .25s, color .25s;
+}
+#tab-manage { zoom:1.1; }
+
+/* ── 메인 탭 네비 ─────────────────────────── */
+.main-nav {
+  position:fixed; top:0; left:0; right:0; z-index:200;
+  background:var(--card);
+  box-shadow:0 2px 10px rgba(0,0,0,.08);
+  display:flex; align-items:center; gap:0;
+  padding:0 24px;
+  height:48px;
+  zoom:1;
+  justify-content:flex-end;
+}
+.main-nav h1 {
+  font-size:16px; font-weight:800; color:var(--add);
+  margin-right:20px; white-space:nowrap; letter-spacing:-.3px;
+}
+.nav-tab {
+  padding:0 20px; height:48px; border:none; background:transparent;
+  font-size:13px; font-weight:700; color:var(--mu);
+  cursor:pointer; border-bottom:3px solid transparent;
+  transition:all .15s; font-family:inherit; white-space:nowrap;
+  display:flex; align-items:center; gap:6px;
+}
+.nav-tab.active { color:var(--a); border-bottom-color:var(--a); }
+.nav-tab:hover:not(.active) { color:var(--ad); background:var(--all); }
+
+/* ── 탭 콘텐츠 ───────────────────────────── */
+.tab-content { display:none; }
+.tab-content.active { display:block; }
+
+/* ══════════════════════════════════════════════
+   휴가 관리 탭 스타일
+══════════════════════════════════════════════ */
+.app { max-width:1160px; margin:0 auto; padding:68px 20px 60px; }
+
+.topbar { display:flex; align-items:center; gap:10px; margin-bottom:16px; flex-wrap:wrap; }
+.topbar h1 { font-size:28px; font-weight:800; letter-spacing:-.5px; color:var(--add); }
+.ebadges { display:flex; gap:6px; flex-wrap:wrap; }
+.ebadge { display:inline-flex; align-items:center; gap:4px; padding:3px 11px; border-radius:99px; font-size:11px; font-weight:700; white-space:nowrap; }
+.eb-long { background:var(--grnbg); color:#2E5C32; }
+.eb-wfh  { background:var(--all);  color:var(--ad); }
+.eb-gold { background:#FFF8E1; color:#B8860B; border:1px solid #FFD54F; }
+.entry-wrap { display:flex; align-items:center; gap:10px; margin-left:auto; flex-wrap:wrap; }
+
+.ytabs { display:flex; align-items:center; gap:4px; background:var(--card); border-radius:13px; padding:5px; box-shadow:0 1px 3px rgba(58,16,32,.06); margin-bottom:18px; overflow-x:auto; }
+.ytab { padding:7px 22px; border-radius:9px; border:none; background:transparent; font-size:13px; font-weight:700; color:var(--mu); cursor:pointer; white-space:nowrap; transition:all .15s; font-family:inherit; }
+.ytab.active { background:var(--a); color:white; box-shadow:0 2px 8px rgba(168,123,138,.3); }
+.ytab:hover:not(.active) { background:var(--all); color:var(--ad); }
+.ytab-add { padding:6px 14px; border-radius:9px; border:1.5px dashed var(--bdr); background:transparent; font-size:12px; color:var(--mu); cursor:pointer; margin-left:auto; flex-shrink:0; transition:all .15s; font-family:inherit; }
+.ytab-add:hover { border-color:var(--a); color:var(--a); }
+
+.cols { display:grid; grid-template-columns:1fr 1fr; gap:16px; align-items:start; }
+@media(max-width:720px){ .cols { grid-template-columns:1fr; } }
+
+.card { background:var(--card); border-radius:18px; box-shadow:0 1px 4px rgba(58,16,32,.07); padding:20px 22px 18px; margin-bottom:12px; }
+.card-head { display:flex; align-items:center; justify-content:space-between; margin-bottom:4px; }
+.card-name { font-size:17px; font-weight:800; color:var(--add); letter-spacing:-.2px; }
+.tot-ctrl { display:flex; align-items:center; gap:4px; font-size:11px; color:var(--mu); }
+.tot-ctrl input { width:44px; text-align:center; border:1.5px solid var(--bdr); border-radius:7px; padding:3px 5px; font-size:12px; font-weight:700; color:var(--ad); background:var(--all); font-family:inherit; }
+.tot-ctrl input:focus { outline:none; border-color:var(--a); background:var(--card); }
+.auto-row { display:flex; align-items:center; gap:6px; min-height:22px; margin-bottom:10px; flex-wrap:wrap; }
+.auto-lbl { font-size:12px; font-weight:700; color:var(--a); }
+.badge-ls { background:var(--grnbg); color:#2E5C32; font-size:11px; font-weight:700; padding:2px 8px; border-radius:99px; }
+.btn-apply { background:var(--all); border:none; border-radius:6px; padding:2px 9px; font-size:11px; color:var(--a); cursor:pointer; font-weight:700; font-family:inherit; transition:all .15s; }
+.btn-apply:hover { background:var(--a); color:white; }
+
+.stats { display:flex; gap:20px; align-items:flex-end; margin-bottom:8px; flex-wrap:nowrap; }
+.stats > div { flex-shrink:0; }
+.rem-big { font-size:44px; font-weight:800; letter-spacing:-2px; line-height:1; color:var(--ad); }
+.rem-lbl { font-size:10px; color:var(--mu); font-weight:700; margin-top:4px; letter-spacing:.3px; }
+.sec-val { font-size:14px; font-weight:600; color:var(--mu); }
+.sec-lbl { font-size:10px; color:var(--bdr); font-weight:600; margin-top:4px; }
+.pbar { height:5px; background:var(--al); border-radius:99px; overflow:hidden; }
+.pfill { height:100%; border-radius:99px; background:var(--a); transition:width .4s; }
+.pfill-g { background:var(--grn); }
+
+.tsec { background:var(--card); border-radius:18px; box-shadow:0 1px 4px rgba(58,16,32,.07); overflow:hidden; }
+table { width:100%; border-collapse:collapse; }
+thead th { padding:9px 14px; text-align:left; font-size:10px; font-weight:700; color:var(--mu); letter-spacing:.6px; background:var(--all); border-bottom:0.5px solid var(--al); }
+tbody tr { border-bottom:0.5px solid var(--all); }
+tbody tr:last-child { border-bottom:none; }
+tbody tr.dr { transition:background .1s; }
+tbody tr.dr:hover { background:var(--hov); }
+tbody td { padding:10px 14px; vertical-align:middle; }
+
+.ra { display:flex; gap:4px; opacity:0; transition:opacity .15s; }
+tbody tr:hover .ra { opacity:1; }
+.rib { width:26px; height:26px; border:none; border-radius:7px; font-size:14px; cursor:pointer; transition:all .15s; display:flex; align-items:center; justify-content:center; padding:0; }
+.rib-e { background:var(--all); color:var(--a); }
+.rib-e:hover { background:var(--a); color:white; }
+.rib-d { background:#FFF0F0; color:#E57373; }
+.rib-d:hover { background:#E53E3E; color:white; }
+.rib-s { background:#EEF9EE; color:#2E7D32; }
+.rib-s:hover { background:#2E7D32; color:white; }
+.rib-c { background:#F3F4F6; color:#9CA3AF; }
+.rib-c:hover { background:#9CA3AF; color:white; }
+
+.bge { display:inline-block; padding:2px 10px; border-radius:99px; font-size:12px; font-weight:700; }
+.b연차 { background:var(--all); color:var(--ad); }
+.b반차 { background:#EEF3FF; color:#374580; }
+.b오후 { background:#EEF3FF; color:#374580; }
+.b장기 { background:var(--grnbg); color:#2E5C32; }
+.betc  { background:#F3F4F6; color:#6B7280; }
+
+.rnum { font-weight:500; font-size:14px; white-space:nowrap; }
+.rnum-last { font-weight:800; }
+.rok   { color:var(--ad); }
+.rlow  { color:#E53E3E; }
+.rzero { color:var(--mu); }
+.rgrn  { color:var(--grn); }
+.used-sm { font-size:13px; color:var(--add); font-weight:500; }
+
+tr.ar td { padding:7px 10px; background:var(--all); border-top:1.5px solid var(--al); }
+tr.ar input { border:1.5px solid var(--bdr); border-radius:8px; padding:6px 8px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:100%; transition:border-color .15s; }
+tr.ar input:focus { outline:none; border-color:var(--a); }
+.btn-add-r { width:100%; padding:6px 0; background:var(--a); color:white; border:none; border-radius:8px; font-size:14px; font-weight:800; cursor:pointer; transition:all .15s; font-family:inherit; }
+.btn-add-r:hover { background:var(--ad); }
+
+tr.er td { padding:6px 10px; background:#FDF5F7; }
+tr.er input { border:1.5px solid var(--al); border-radius:8px; padding:5px 8px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:100%; }
+tr.er input:focus { outline:none; border-color:var(--a); }
+
+/* Dark mode */
+[data-theme="dark"] .b반차       { background:#2A3258; color:#9BB8E8; }
+[data-theme="dark"] .b오후       { background:#2A3258; color:#9BB8E8; }
+[data-theme="dark"] .rib-d       { background:#3A1515; color:#EF9A9A; }
+[data-theme="dark"] .rib-s       { background:#153A18; color:#A5D6A7; }
+[data-theme="dark"] .rib-c       { background:var(--all); color:var(--mu); }
+[data-theme="dark"] .rib-e       { background:var(--all); }
+[data-theme="dark"] tr.er td     { background:var(--all); }
+[data-theme="dark"] .badge-ls    { background:var(--grnbg); color:var(--grn); }
+[data-theme="dark"] .eb-long     { background:var(--grnbg); color:var(--grn); }
+[data-theme="dark"] .b장기       { background:var(--grnbg); color:var(--grn); }
+[data-theme="dark"] .betc        { background:var(--all); color:var(--mu); }
+
+/* 테마 피커 */
+.theme-btn { width:34px; height:34px; border:1.5px solid var(--bdr); border-radius:9px; background:var(--all); color:var(--mu); font-size:16px; cursor:pointer; flex-shrink:0; display:flex; align-items:center; justify-content:center; transition:all .15s; }
+.theme-btn:hover { background:var(--a); color:white; border-color:var(--a); }
+.theme-picker { position:absolute; top:calc(100% + 8px); right:0; background:var(--card); border-radius:14px; padding:12px 14px 14px; box-shadow:0 8px 28px rgba(0,0,0,.18); border:1px solid var(--bdr); z-index:300; min-width:220px; }
+.tp-title { font-size:10px; font-weight:700; color:var(--mu); letter-spacing:.6px; margin-bottom:10px; }
+.tp-list  { display:flex; gap:6px; }
+.tp-item  { display:flex; flex-direction:column; align-items:center; gap:5px; cursor:pointer; padding:7px 6px; border-radius:10px; transition:background .1s; flex:1; }
+.tp-item:hover  { background:var(--all); }
+.tp-item.sel    { background:var(--all); }
+.tp-dot { width:26px; height:26px; border-radius:99px; display:flex; align-items:center; justify-content:center; transition:box-shadow .15s; }
+.tp-dot .chk { color:white; font-size:12px; opacity:0; transition:opacity .1s; }
+.tp-item.sel .chk     { opacity:1; }
+.tp-item.sel .tp-dot  { box-shadow:0 0 0 2.5px var(--card), 0 0 0 4.5px var(--a); }
+.tp-name { font-size:10px; font-weight:700; color:var(--mu); white-space:nowrap; }
+.tp-item.sel .tp-name { color:var(--a); }
+
+.date-field { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+.date-field label { font-size:12px; font-weight:700; color:var(--mu); white-space:nowrap; }
+.date-field input { border:1.5px solid var(--bdr); border-radius:9px; padding:5px 10px; font-size:13px; color:var(--add); background:var(--card); font-family:inherit; width:120px; }
+.date-field input:focus { outline:none; border-color:var(--a); }
+
+tr.long-divider td { padding:8px 14px; background:var(--grnbg); border-top:1.5px solid var(--grn); border-bottom:0.5px solid var(--grn); display:flex; align-items:center; gap:10px; }
+.long-div-lbl { font-size:12px; font-weight:800; color:var(--grn); }
+.yr-badge { font-size:11px; font-weight:700; color:var(--a); background:var(--all); padding:2px 9px; border-radius:99px; white-space:nowrap; flex-shrink:0; }
+
+.xl-btn { display:inline-flex; align-items:center; gap:5px; padding:6px 12px; border-radius:9px; border:1.5px solid var(--bdr); background:var(--all); color:var(--ad); font-size:12px; font-weight:700; cursor:pointer; font-family:inherit; transition:all .15s; white-space:nowrap; }
+.xl-btn:hover { background:#1D6F42; color:white; border-color:#1D6F42; }
+.xl-btn-up:hover { background:var(--a) !important; color:white !important; border-color:var(--a) !important; }
+.xl-group { display:flex; gap:6px; align-items:center; }
+#xlUploadInput { display:none; }
+
+.ytab-wrap { position:relative; display:inline-flex; align-items:center; }
+.ytab-del { display:none; position:absolute; top:-5px; right:-5px; width:16px; height:16px; border-radius:99px; background:var(--ad); color:white; border:none; cursor:pointer; font-size:9px; line-height:1; align-items:center; justify-content:center; padding:0; z-index:10; }
+.ytab-wrap:hover .ytab-del { display:flex; }
+
+/* ══════════════════════════════════════════════
+   휴가 신청서 탭 스타일
+══════════════════════════════════════════════ */
+#tab-form {
+  background: #dde3ea;
+  min-height: 100vh;
+  padding: 60px 16px 60px;
+  display: none;
+}
+#tab-form.active { display: block; }
+
+/* 신청서 툴바 */
+.form-toolbar {
+  position:fixed; top:48px; left:0; right:0; z-index:150;
+  background:var(--card);
+  border-bottom:1px solid var(--al);
+  display:flex; align-items:center; gap:8px;
+  padding:8px 20px;
+}
+.btn-print {
+  padding:7px 16px; background:#2c3e50; color:white; border:none;
+  border-radius:6px; font-size:12px; font-family:inherit;
+  cursor:pointer; display:flex; align-items:center; gap:5px; transition:background 0.2s;
+}
+.btn-print:hover { background:#3a5068; }
+.btn-reset-form {
+  padding:7px 14px; background:#6b7684; color:white; border:none;
+  border-radius:6px; font-size:12px; font-family:inherit;
+  cursor:pointer; transition:background 0.2s;
+}
+.btn-reset-form:hover { background:#505a66; }
+
+/* 관리앱 연동 버튼 */
+.btn-sync {
+  padding:7px 16px;
+  background: linear-gradient(135deg, var(--a), var(--ad));
+  color:white; border:none; border-radius:6px;
+  font-size:12px; font-weight:700; font-family:inherit;
+  cursor:pointer; display:flex; align-items:center; gap:6px;
+  transition:all 0.2s; box-shadow:0 2px 8px rgba(103,127,180,.3);
+}
+.btn-sync:hover { background: linear-gradient(135deg, var(--ad), var(--add)); transform:translateY(-1px); }
+.save-notice-form {
+  font-size:11px; color:#555;
+  background:rgba(0,0,0,.07);
+  padding:5px 11px; border-radius:4px;
+  margin-left:auto;
+}
+
+/* A4 페이지 */
+.page {
+  width: 210mm; min-height: 297mm;
+  background: white;
+  padding: 30mm 18mm 16mm 18mm;
+  box-shadow: 0 6px 30px rgba(0,0,0,0.16);
+  position: relative;
+  margin: 0 auto;
+  margin-top: 20px;
+}
+
+/* 신청서 내부 스타일 */
+.title-wrap { text-align:center; margin-bottom:64px; }
+.title { font-size:23pt; font-weight:700; letter-spacing:18px; text-indent:18px; color:#1a1a1a; }
+.approval-wrap { display:flex; justify-content:flex-end; margin-bottom:48px; width:100%; }
+.approval-table { border-collapse:collapse; font-size:8.5pt; table-layout:fixed; width:188px; }
+.approval-table td { border:1px solid #b0b8c4; text-align:center; }
+.approval-table .a-head { font-weight:600; background:#e8f0fa; padding:4px 5px; letter-spacing:3px; font-size:8.5pt; color:#2c3e50; width:38px !important; min-width:38px; max-width:38px; writing-mode:vertical-rl; }
+.approval-table .a-label { font-weight:600; background:#e8f0fa; padding:4px 0; font-size:8.5pt; color:#2c3e50; white-space:nowrap; width:75px !important; min-width:75px; max-width:75px; }
+.approval-table .a-stamp { height:75px; width:75px !important; min-width:75px; max-width:75px; vertical-align:top; padding:4px; }
+.submit-line-wrap { margin-bottom:16px; }
+.submit-line { font-size:11pt; font-weight:700; color:#1a1a1a; letter-spacing:.3px; }
+.submit-date-wrap { text-align:right; margin-bottom:40px; }
+.submit-date { font-size:10.5pt; color:#333; letter-spacing:1.5px; }
+.form-table { border-collapse:collapse; width:100%; font-size:10pt; table-layout:fixed; }
+.form-table td { border:1px solid #b0b8c4; vertical-align:middle; }
+.lh { background:#e8f0fa; text-align:center; font-weight:600; padding:0 5px; width:54px; white-space:nowrap; letter-spacing:1px; font-size:9.5pt; line-height:2.2; color:#2c3e50; }
+.cl { background:#e8f0fa; text-align:center; font-weight:600; padding:16px 6px; width:76px; white-space:nowrap; letter-spacing:1.5px; font-size:9.5pt; color:#2c3e50; }
+.cv { padding:14px 16px; }
+.info-row-inner { display:flex; align-items:stretch; min-height:52px; }
+.info-third { display:flex; align-items:center; flex:1; }
+.info-third + .info-third { border-left:1px solid #b0b8c4; }
+.cl-in { background:#e8f0fa; text-align:center; font-weight:600; padding:16px 6px; white-space:nowrap; font-size:9.5pt; color:#2c3e50; border-right:1px solid #b0b8c4; flex-shrink:0; width:76px; letter-spacing:1px; }
+.cv-in { padding:14px 16px; flex:1; min-width:0; text-align:center; }
+.form-table input[type="text"],
+.form-table input[type="tel"],
+.form-table textarea,
+.form-table select { width:100%; border:none; outline:none; font-family:inherit; font-size:10pt; background:transparent; padding:1px 2px; color:#1a1a1a; text-align:center; }
+.form-table textarea { resize:none; line-height:1.7; text-align:center; display:block; }
+.reason-cell { padding:0; vertical-align:middle; }
+.reason-cell textarea { width:100%; padding:42px 16px 8px; text-align:center; }
+.form-table select { cursor:pointer; }
+.gubun-outer { padding:14px 16px; }
+.gubun-row { display:flex; flex-wrap:wrap; gap:8px 20px; align-items:center; }
+.gubun-row .gubun-item { display:inline-flex; align-items:center; font-size:10pt; white-space:nowrap; color:#1a1a1a; }
+.days-badge {
+  font-size:9.5pt; color:#1a5fa8; font-weight:700;
+  width:1ch; min-width:1ch; text-align:center; border:none; outline:none;
+  border-bottom:1px solid #b0c8e8; background:transparent;
+  font-family:inherit; padding:0; box-sizing:content-box;
+}
+.days-badge:focus { border-bottom-color:#1a5fa8; }
+.period-list { display:flex; flex-direction:column; gap:8px; }
+.period-row { display:flex; align-items:center; gap:6px; flex-wrap:nowrap; }
+.form-table .period-row select.period-type { width:auto; min-width:86px; padding:4px 6px; border:1px solid #b0b8c4; border-radius:4px; background:#f7faff; color:#1a1a1a; font-size:9.5pt; text-align:left; flex-shrink:0; }
+.form-table .period-row select.bancha-time { width:auto; min-width:56px; padding:4px 6px; border:1px solid #d6b76e; border-radius:4px; background:#fff8e1; color:#6b4f00; font-size:9.5pt; text-align:left; flex-shrink:0; }
+.date-input-wrap { display:flex; align-items:center; gap:4px; border-bottom:1px solid #b0b8c4; position:relative; }
+.form-table .date-input-wrap input[type="text"] { font-family:inherit; font-size:10pt; border:none; outline:none; background:transparent; padding:2px 4px; width:90px; color:#1a1a1a; text-align:center; }
+.date-input-wrap input[type="date"] { position:absolute; right:0; bottom:0; width:24px; height:24px; opacity:0; pointer-events:none; border:none; padding:0; margin:0; }
+.cal-btn { background:none; border:none; cursor:pointer; font-size:13px; padding:2px; color:#2c3e50; line-height:1; position:relative; z-index:2; }
+.cal-btn:hover { opacity:.7; }
+.period-sep { font-size:12pt; color:#555; }
+.period-days { font-size:9.5pt; color:#1a5fa8; font-weight:700; white-space:nowrap; min-width:40px; flex-shrink:0; }
+.remove-period-btn { background:none; border:none; color:#b8a99c; cursor:pointer; font-size:14px; padding:0 4px; line-height:1; flex-shrink:0; }
+.remove-period-btn:hover { color:#c0392b; }
+.add-period-btn { margin-top:10px; background:transparent; border:1px dashed #8995a4; color:#2c3e50; padding:6px 14px; border-radius:4px; cursor:pointer; font-size:9.5pt; font-family:inherit; transition:background .15s, border-color .15s; }
+.add-period-btn:hover { background:#eef3fa; border-color:#2c3e50; }
+.name-cell { display:flex; align-items:center; gap:6px; }
+.name-cell input { flex:1; }
+.name-in { font-size:10pt; white-space:nowrap; color:#555; }
+.dow-label { font-size:9pt; color:#1a5fa8; font-weight:700; flex-shrink:0; white-space:nowrap; padding:0 3px; }
+.attach-line { margin-top:18px; font-size:9pt; padding-left:2px; color:#777; letter-spacing:.3px; }
+
+/* 연동 성공 토스트 */
+.sync-toast {
+  position:fixed; bottom:30px; left:50%; transform:translateX(-50%);
+  background:var(--ad); color:white;
+  padding:12px 24px; border-radius:12px;
+  font-size:13px; font-weight:700;
+  box-shadow:0 4px 20px rgba(0,0,0,.2);
+  z-index:9999; opacity:0;
+  transition:opacity .3s;
+  pointer-events:none;
+}
+.sync-toast.show { opacity:1; }
+
+/* 인쇄 */
+@media print {
+  @page { size:A4; margin:0; }
+  body { background:white; padding:0; display:block; zoom:1 !important; }
+  .main-nav, .form-toolbar { display:none !important; }
+  #tab-manage { display:none !important; }
+  #tab-form { display:block !important; background:white; padding:0; min-height:auto; }
+  .page { width:100%; min-height:auto; padding:32mm 15mm 12mm 15mm; box-shadow:none; margin-top:0; }
+  input[type="date"] { display:none !important; }
+  textarea, input[type="text"], input[type="tel"] { border-bottom-color:transparent !important; }
+  input.days-badge { border-bottom-color:transparent !important; width:auto; }
+  .add-period-btn, .remove-period-btn, .cal-btn { display:none !important; }
+  .form-table .period-row select.period-type,
+  .form-table .period-row select.bancha-time { border:none !important; background:transparent !important; -webkit-appearance:none; appearance:none; padding:2px 4px; }
+  .single-day .period-sep,
+  .single-day .end-wrap { display:none !important; }
+  .period-row { justify-content:center; }
+  #periodList { align-items:center; }
+  .form-table, .form-table td, .approval-table, .approval-table td { -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+  .lh, .cl, .cl-in, .approval-table .a-head, .approval-table .a-label { background:#e8f0fa !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; }
+}
+
+/* 워터마크 */
+#wm {
+  position:fixed; bottom:18px; right:22px; z-index:9999;
+  font-size:11px; font-weight:700; letter-spacing:1.5px;
+  color:var(--mu); opacity:0.32;
+  font-family:'Apple SD Gothic Neo','Malgun Gothic',sans-serif;
+  pointer-events:none; user-select:none;
+}
+</style>
+</head>
+<body>
+
+<!-- ── 메인 탭 네비게이션 ─────────────────────── -->
+<nav class="main-nav">
+  <button class="nav-tab active" onclick="switchTab('manage')" id="navManage">
+    <i class="ti ti-chart-bar"></i> 관리앱
+  </button>
+  <button class="nav-tab" onclick="switchTab('form')" id="navForm">
+    <i class="ti ti-file-text"></i> 휴가신청서
+  </button>
+  <div id="formNavBtns" style="display:none; align-items:center; gap:8px; margin-left:auto;">
+    <span class="save-notice-form">💾 이름·팀·직위·연락처 자동 저장</span>
+    <button class="btn-reset-form" onclick="resetForm()">양식 초기화</button>
+    <button class="btn-print" onclick="doPrint()">🖨️ 인쇄</button>
+    <button class="btn-sync" onclick="syncToManager()"><i class="ti ti-arrow-left"></i> 관리앱에 기록</button>
+  </div>
+</nav>
+
+<!-- ══════════════════════════════════════════
+     탭1: 휴가 관리
+══════════════════════════════════════════ -->
+<div id="tab-manage" class="tab-content active">
+<div class="app">
+
+<div class="topbar">
+  <h1 style="font-size:28px;font-weight:800;letter-spacing:-.5px;color:var(--add);margin-right:6px;">🗓 휴가 관리</h1>
+  <div class="ebadges" id="ebadges"></div>
+  <span id="syncStatus" style="font-size:11px;color:var(--mu);font-weight:600;white-space:nowrap;">☁️ 클라우드 저장됨</span>
+  <div class="entry-wrap">
+    <div class="xl-group">
+      <button class="xl-btn" onclick="exportExcel()" title="엑셀로 저장">
+        <i class="ti ti-file-spreadsheet"></i> 엑셀 저장
+      </button>
+      <button class="xl-btn xl-btn-up" onclick="document.getElementById('xlUploadInput').click()" title="엑셀 불러오기">
+        <i class="ti ti-upload"></i> 불러오기
+      </button>
+      <input type="file" id="xlUploadInput" accept=".xlsx" onchange="importExcel(event)">
+    </div>
+    <div style="position:relative">
+      <button class="theme-btn" id="themeBtn" onclick="togglePicker(event)" title="테마 변경">
+        <i class="ti ti-palette"></i>
+      </button>
+      <div id="themePicker" class="theme-picker" style="display:none"></div>
+    </div>
+    <div class="date-field">
+      <label>입사일</label>
+      <input type="text" id="entryDate" placeholder="YYYYMMDD">
+      <span class="yr-badge" id="entryYrBadge"></span>
+    </div>
+    <div class="date-field">
+      <label>실경력</label>
+      <input type="text" id="careerDate" placeholder="YYYYMMDD">
+      <span class="yr-badge" id="careerYrBadge"></span>
+    </div>
+  </div>
+</div>
+
+<div class="ytabs" id="ytabs"></div>
+
+<div class="cols">
+  <div>
+    <div class="card" id="leaveCard"></div>
+    <div class="tsec" id="leaveSec"></div>
+    <div class="card" id="longCard" style="display:none;margin-top:12px"></div>
+    <div class="tsec" id="longSec" style="display:none"></div>
+  </div>
+  <div>
+    <div class="card" id="wlCard"></div>
+    <div class="tsec" id="wlSec"></div>
+  </div>
+</div>
+
+</div>
+</div><!-- /tab-manage -->
+
+<!-- ══════════════════════════════════════════
+     탭2: 휴가 신청서
+══════════════════════════════════════════ -->
+<div id="tab-form">
+
+  <!-- A4 -->
+  <div class="page">
+    <div class="title-wrap">
+      <span class="title">휴 가 신 청 서</span>
+    </div>
+    <div class="approval-wrap">
+      <table class="approval-table">
+        <tr>
+          <td class="a-head" rowspan="2">결&nbsp;&nbsp;재</td>
+          <td class="a-label">팀 장</td>
+          <td class="a-label">총괄이사</td>
+        </tr>
+        <tr>
+          <td class="a-stamp"></td>
+          <td class="a-stamp"></td>
+        </tr>
+      </table>
+    </div>
+    <div class="submit-line-wrap">
+      <p class="submit-line">아래와 같이 휴가신청서를 제출합니다.</p>
+    </div>
+    <div class="submit-date-wrap">
+      <span class="submit-date" id="displayDate"></span>
+    </div>
+    <table class="form-table">
+      <colgroup>
+        <col style="width:54px;">
+        <col style="width:76px;">
+        <col>
+      </colgroup>
+      <tr>
+        <td class="lh">휴가<br>신청자</td>
+        <td colspan="2" style="padding:0;">
+          <div class="info-row-inner">
+            <div class="info-third">
+              <span class="cl-in">성&nbsp;&nbsp;&nbsp;명</span>
+              <div class="cv-in">
+                <div class="name-cell">
+                  <input type="text" id="empName" placeholder="이름 입력" oninput="savePerson()" />
+                  <span class="name-in">(인)</span>
+                </div>
+              </div>
+            </div>
+            <div class="info-third">
+              <span class="cl-in">소&nbsp;&nbsp;&nbsp;속</span>
+              <div class="cv-in">
+                <select id="empTeam" onchange="savePerson()">
+                  <option value="">팀 선택</option>
+                  <option value="1팀">1팀</option>
+                  <option value="2팀">2팀</option>
+                </select>
+              </div>
+            </div>
+            <div class="info-third">
+              <span class="cl-in">직&nbsp;&nbsp;&nbsp;위</span>
+              <div class="cv-in">
+                <select id="empRank" onchange="savePerson()">
+                  <option value="">직위 선택</option>
+                  <option value="주임">주임</option>
+                  <option value="대리">대리</option>
+                  <option value="과장">과장</option>
+                  <option value="차장">차장</option>
+                  <option value="부장">부장</option>
+                </select>
+              </div>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td class="lh" rowspan="3">휴&nbsp;가<br>내&nbsp;용</td>
+        <td class="cl">구&nbsp;&nbsp;&nbsp;&nbsp;분</td>
+        <td style="padding:0;">
+          <div class="gubun-outer">
+            <div class="gubun-row">
+              <span class="gubun-item">휴가&nbsp;(<input class="days-badge" id="d-휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">반차&nbsp;(<input class="days-badge" id="d-반차" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">병가&nbsp;(<input class="days-badge" id="d-병가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">출산휴가&nbsp;(<input class="days-badge" id="d-출산휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">장기특별휴가&nbsp;(<input class="days-badge" id="d-장기특별휴가" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+              <span class="gubun-item">기타&nbsp;(<input class="days-badge" id="d-기타" type="text" value="" oninput="this.style.width=(this.value.length||1)+'ch'" />)</span>
+            </div>
+          </div>
+        </td>
+      </tr>
+      <tr>
+        <td class="cl">사&nbsp;&nbsp;&nbsp;&nbsp;유</td>
+        <td class="reason-cell">
+          <textarea id="reason" rows="3">개인사정</textarea>
+        </td>
+      </tr>
+      <tr>
+        <td class="cl">기&nbsp;&nbsp;&nbsp;&nbsp;간</td>
+        <td class="cv">
+          <div id="periodList" class="period-list"></div>
+          <button type="button" class="add-period-btn" onclick="addPeriod()">+ 기간 추가</button>
+        </td>
+      </tr>
+      <tr>
+        <td class="cl" colspan="2" style="text-align:center;letter-spacing:1px;font-weight:600;background:#e8f0fa;color:#2c3e50;">긴 급 연 락 처</td>
+        <td class="cv" style="text-align:center;">
+          <input type="tel" id="emergency" placeholder="010-0000-0000" oninput="formatPhone(this);saveEmergency()" style="text-align:center;" />
+        </td>
+      </tr>
+    </table>
+    <p class="attach-line">※ 첨부 : 관련 증빙 자료</p>
+  </div>
+
+</div><!-- /tab-form -->
+
+<!-- 기간 row 템플릿 -->
+<template id="periodRowTemplate">
+  <div class="period-row">
+    <select class="period-type" onchange="onPeriodTypeChange(this);calcDays()">
+      <option value="휴가">휴가</option>
+      <option value="반차">반차</option>
+      <option value="병가">병가</option>
+      <option value="출산휴가">출산휴가</option>
+      <option value="장기특별휴가">장기특별휴가</option>
+      <option value="기타">기타</option>
+    </select>
+    <div class="date-input-wrap">
+      <input type="text" class="start-date" placeholder="YYYY-MM-DD" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onStartDateEnter(event,this)" />
+      <input type="date" class="start-picker" onchange="syncFromPicker(this)" />
+      <button class="cal-btn" type="button" onclick="openPicker(this)">📅</button>
+      <span class="dow-label dow-start"></span>
+    </div>
+    <span class="period-sep">~</span>
+    <div class="date-input-wrap end-wrap">
+      <input type="text" class="end-date" placeholder="종료일 (생략시 당일)" maxlength="10" oninput="formatDate(this);calcDays()" onkeydown="onEndDateEnter(event,this)" />
+      <input type="date" class="end-picker" onchange="syncFromPicker(this)" />
+      <button class="cal-btn" type="button" onclick="openPicker(this)">📅</button>
+      <span class="dow-label dow-end"></span>
+    </div>
+    <span class="period-days"></span>
+    <button type="button" class="remove-period-btn" onclick="removePeriod(this)" title="이 기간 제거">✕</button>
+    <select class="bancha-time" style="display:none;">
+      <option value="오전">오전</option>
+      <option value="오후">오후</option>
+    </select>
+  </div>
+</template>
+
+<!-- 워터마크 -->
+<div id="wm">709._.b</div>
+
+<!-- 연동 토스트 -->
+<div class="sync-toast" id="syncToast"></div>
+
+<!-- ══════════════════════════════════════════
+     스크립트
+══════════════════════════════════════════ -->
+<script>
+// ── 소스 보호 ──────────────────────────────
+document.addEventListener('contextmenu', e => e.preventDefault());
+document.addEventListener('keydown', e => {
+  if (
+    (e.ctrlKey && ['u','s','a'].includes(e.key.toLowerCase())) ||
+    e.key === 'F12' ||
+    (e.ctrlKey && e.shiftKey && ['i','j','c'].includes(e.key.toLowerCase()))
+  ) e.preventDefault();
+});
+
+
+// ── Firebase 초기화 ───────────────────────
+const firebaseConfig = {
+  apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
+  authDomain: "project-709b.firebaseapp.com",
+  projectId: "project-709b",
+  storageBucket: "project-709b.firebasestorage.app",
+  messagingSenderId: "446139391233",
+  appId: "1:446139391233:web:a229fbb157b15566204f00",
+  measurementId: "G-J4Z46HBH27"
+};
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+const DOC_REF = db.collection('vacationData').doc('main');
+
+function showSyncStatus(msg, ok=true) {
+  let el = document.getElementById('syncStatus');
+  if (!el) return;
+  el.textContent = msg;
+  el.style.color = ok ? 'var(--grn)' : '#E53E3E';
+  clearTimeout(el._t);
+  el._t = setTimeout(() => { el.textContent = '☁️ 클라우드 저장됨'; el.style.color = 'var(--mu)'; }, 2500);
+}
+
+async function saveToCloud(data) {
+  try {
+    data._updatedAt = Date.now();
+    S._updatedAt = data._updatedAt;
+    await DOC_REF.set(data);
+    showSyncStatus('✅ 저장됨');
+  } catch(e) {
+    console.error('저장 오류:', e);
+    showSyncStatus('❌ 저장 실패', false);
+  }
+}
+
+async function loadFromCloud() {
+  try {
+    const doc = await DOC_REF.get();
+    if (doc.exists) return doc.data();
+    return null;
+  } catch(e) {
+    console.error('불러오기 오류:', e);
+    return null;
+  }
+}
+
+function startRealtimeSync() {
+  DOC_REF.onSnapshot(snapshot => {
+    if (snapshot.exists && !_isSaving) {
+      const data = snapshot.data();
+      const remoteTs = data._updatedAt || 0;
+      const localTs  = S._updatedAt  || 0;
+      if (remoteTs > localTs) {
+        S = data;
+        localStorage.setItem('vac_v6', JSON.stringify(S));
+        render();
+        if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+        showSyncStatus('🔄 다른 기기에서 동기화됨');
+      }
+    }
+  });
+}
+let _isSaving = false;
+
+// ── 탭 전환 ───────────────────────────────
+function switchTab(tab) {
+  document.getElementById('tab-manage').classList.toggle('active', tab==='manage');
+  document.getElementById('tab-form').classList.toggle('active', tab==='form');
+  document.getElementById('navManage').classList.toggle('active', tab==='manage');
+  document.getElementById('navForm').classList.toggle('active', tab==='form');
+  const formBtns = document.getElementById('formNavBtns');
+  formBtns.style.display = tab==='form' ? 'flex' : 'none';
+}
+
+// ══════════════════════════════════════════
+// 휴가 관리 앱 로직
+// ══════════════════════════════════════════
+const thisYear = String(new Date().getFullYear());
+const DEF = {
+  entryDate:"", renewMonth:1, renewDay:1,
+  careerDate:"",
+  activeYear: thisYear,
+  years:{
+    [thisYear]:{
+      leave:{ total:15, longTotal:0, records:[] },
+      wl:   { total:40, records:[] }
+    }
+  }
+};
+
+let S;
+try { const r=localStorage.getItem('vac_v6'); S=r?JSON.parse(r):JSON.parse(JSON.stringify(DEF)); }
+catch { S=JSON.parse(JSON.stringify(DEF)); }
+
+(function(){
+  const ks = Object.keys(S.years||{});
+  if (ks.includes('2024') && !ks.includes('2026')) {
+    const ny={};
+    ks.forEach(k=>{ ny[String(parseInt(k)+1)]=S.years[k]; });
+    S.years=ny;
+    S.activeYear=String(parseInt(S.activeYear||'2025')+1);
+  }
+  if (!S.careerDate) S.careerDate='';
+  if (S.entryDate) {
+    const entry = new Date(S.entryDate);
+    Object.keys(S.years||{}).forEach(y => {
+      const fullY = parseInt(y) - entry.getFullYear();
+      if (fullY < 1) { S.years[y].leave.total = 11; return; }
+      S.years[y].leave.total = Math.min(25, 15 + Math.floor((fullY-1)/2));
+      const isLong = fullY >= 4 && fullY % 5 === 4;
+      if (isLong && S.years[y].leave.longTotal === 0) S.years[y].leave.longTotal = 10;
+    });
+  }
+})();
+
+let elId=null, ewId=null;
+let _saveTimer = null;
+const save = () => {
+  localStorage.setItem('vac_v6', JSON.stringify(S));
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(() => {
+    _isSaving = true;
+    saveToCloud(JSON.parse(JSON.stringify(S))).finally(() => {
+      setTimeout(() => { _isSaving = false; }, 1000);
+    });
+  }, 600);
+};
+const yr   = () => S.years[S.activeYear];
+const fmt  = n  => n%1===0 ? String(n) : n.toFixed(1);
+const nid  = a  => a.length ? Math.max(...a.map(r=>r.id))+1 : 1;
+
+function yearLabel(ds) {
+  if (!ds) return '';
+  const d = new Date(ds); if (isNaN(d)) return '';
+  const fullY = Math.floor((new Date() - d) / (365.25*864e5));
+  return `${fullY+1}년차`;
+}
+function normDate(raw, yr) {
+  if (!raw || !raw.trim()) return '';
+  const s = raw.trim();
+  const slash = s.match(/^(\d{1,2})\/(\d{1,2})$/);
+  if (slash) return `${yr}-${slash[1].padStart(2,'0')}-${slash[2].padStart(2,'0')}`;
+  const d = s.replace(/[.\-\/\s]/g,'');
+  if (/^\d{8}$/.test(d)) return `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;
+  if (/^\d{4}$/.test(d)) return `${yr}-${d.slice(0,2)}-${d.slice(2,4)}`;
+  return s;
+}
+function deleteYear(e, y) {
+  e.stopPropagation();
+  const ys = Object.keys(S.years);
+  if (ys.length <= 1) { alert('마지막 연도는 삭제할 수 없어요'); return; }
+  if (!confirm(`${y}년 데이터를 삭제할까요?`)) return;
+  delete S.years[y];
+  if (S.activeYear === y) S.activeYear = Object.keys(S.years).sort().at(-1);
+  render();
+}
+function fd(s) {
+  if (!s) return '—';
+  const d = new Date(s);
+  return isNaN(d) ? s : `${d.getFullYear()}.${String(d.getMonth()+1).padStart(2,'0')}.${String(d.getDate()).padStart(2,'0')}`;
+}
+function bc(t='', isLong=false) {
+  if (isLong) return 'b장기';
+  if (t.includes('오후반차')||t.includes('오전반차')) return 'b오후';
+  if (t.includes('반차')) return 'b반차';
+  if (t.includes('연차')) return 'b연차';
+  return 'betc';
+}
+function calc(tabY) {
+  if (!S.entryDate) return null;
+  const entry  = new Date(S.entryDate);
+  const fullY  = parseInt(tabY) - entry.getFullYear();
+  if (fullY < 1) return { days:11, longDays:0, isLong:false, hasWFH:false, fullY, lbl:`${fullY+1}년차` };
+  const days   = Math.min(25, 15 + Math.floor((fullY-1)/2));
+  const isLong = fullY >= 4 && fullY % 5 === 4;
+  const hasWFH = fullY >= 4;
+  const isGold = fullY > 0 && fullY % 5 === 0;
+  return { days, longDays: isLong ? 10 : 0, isLong, hasWFH, isGold, fullY, lbl:`${fullY+1}년차` };
+}
+
+function render() {
+  const ei = document.getElementById('entryDate');
+  if (ei && document.activeElement!==ei) ei.value = S.entryDate||'';
+  const ci = document.getElementById('careerDate');
+  if (ci && document.activeElement!==ci) ci.value = S.careerDate||'';
+  const entryBadgeEl = document.getElementById('entryYrBadge');
+  if (entryBadgeEl) entryBadgeEl.textContent = yearLabel(S.entryDate) ? `입사 ${yearLabel(S.entryDate)}` : '';
+  const careerBadgeEl = document.getElementById('careerYrBadge');
+  if (careerBadgeEl) careerBadgeEl.textContent = yearLabel(S.careerDate) ? `실경력 ${yearLabel(S.careerDate)}` : '';
+  const c = calc(S.activeYear);
+  const eb = document.getElementById('ebadges');
+  if (eb) {
+    const b = [];
+    if (c?.isGold) b.push(`<span class="ebadge eb-gold">🏅 만${c.fullY}년 근속</span>`);
+    if (c?.isLong) b.push(`<span class="ebadge eb-long">🎉 장기휴가 대상</span>`);
+    eb.innerHTML = b.join('');
+  }
+  renderTabs(); renderLeaveCard(); renderLeaveTable();
+  renderLongCard(); renderLongTable(); renderWLCard(); renderWLTable();
+  save();
+}
+
+function renderTabs() {
+  const el  = document.getElementById('ytabs');
+  const yrs = Object.keys(S.years).sort();
+  el.innerHTML = yrs.map(y =>
+    `<div class="ytab-wrap">
+      <button class="ytab${y===S.activeYear?' active':''}" onclick="switchYear('${y}')">${y}년</button>
+      <button class="ytab-del" onclick="deleteYear(event,'${y}')" title="${y}년 삭제">✕</button>
+    </div>`
+  ).join('') + `<button class="ytab-add" onclick="addYear()">＋ 연도 추가</button>`;
+}
+
+function renderLeaveCard() {
+  const y   = yr();
+  const reg = y.leave.records.filter(r=>!r.long);
+  const used = reg.reduce((s,r)=>s+r.used, 0);
+  const rem  = y.leave.total - used;
+  const pct  = Math.min(100, (used/y.leave.total)*100);
+  const c    = calc(S.activeYear);
+  if (c?.isLong && y.leave.longTotal === 0) { y.leave.longTotal = 10; }
+  const autoRow = c ? `<div class="auto-row"><span class="auto-lbl">${c.lbl} · ${c.days}일</span><button class="btn-apply" onclick="applyCalc('${S.activeYear}')">적용</button></div>` : `<div class="auto-row"></div>`;
+  document.getElementById('leaveCard').innerHTML = `
+    <div class="card-head">
+      <span class="card-name">🏖 연차</span>
+      <div class="tot-ctrl">총 <input type="number" min="1" max="30" step="0.5" value="${y.leave.total}" onchange="setTot('leave',this.value)"> 일</div>
+    </div>${autoRow}
+    <div class="stats">
+      <div><div class="rem-big">${fmt(rem)}</div><div class="rem-lbl">잔여</div></div>
+      <div><div class="sec-val">${fmt(used)}</div><div class="sec-lbl">사용</div></div>
+      <div><div class="sec-val" style="color:var(--bdr)">${y.leave.total}</div><div class="sec-lbl">총</div></div>
+      <div><div class="sec-val" style="color:var(--a);font-weight:800">${Math.round(pct)}%</div><div class="sec-lbl">사용율</div></div>
+    </div>
+    <div class="pbar"><div class="pfill" style="width:${pct}%"></div></div>`;
+}
+
+function renderLongCard() {
+  const y = yr(); const lng = y.leave.records.filter(r=>r.long);
+  const c = calc(S.activeYear); const hasLong = c?.isLong || y.leave.longTotal > 0;
+  const longCard = document.getElementById('longCard');
+  if (!hasLong) { longCard.innerHTML=''; longCard.style.display='none'; return; }
+  longCard.style.display='';
+  const lUsed = lng.reduce((s,r)=>s+r.used,0); const lRem = y.leave.longTotal - lUsed;
+  const pct = y.leave.longTotal > 0 ? Math.min(100,(lUsed/y.leave.longTotal)*100) : 0;
+  longCard.innerHTML = `
+    <div class="card-head">
+      <span class="card-name" style="color:var(--grn)">🌿 장기휴가</span>
+      <div class="tot-ctrl">총 <input type="number" min="0" max="30" value="${y.leave.longTotal}" onchange="setLongTot(this.value)"> 일</div>
+    </div>
+    <div class="auto-row"></div>
+    <div class="stats">
+      <div><div class="rem-big" style="color:var(--grn)">${fmt(lRem)}</div><div class="rem-lbl">잔여</div></div>
+      <div><div class="sec-val">${fmt(lUsed)}</div><div class="sec-lbl">사용</div></div>
+      <div><div class="sec-val" style="color:var(--bdr)">${y.leave.longTotal}</div><div class="sec-lbl">총</div></div>
+    </div>
+    <div class="pbar"><div class="pfill pfill-g" style="width:${pct}%"></div></div>`;
+}
+
+function renderWLCard() {
+  const y = yr(); const used = y.wl.records.reduce((s,r)=>s+r.used,0);
+  const rem = y.wl.total - used; const pct = Math.min(100,(used/y.wl.total)*100);
+  document.getElementById('wlCard').innerHTML = `
+    <div class="card-head">
+      <span class="card-name">⏰ 워라벨</span>
+      <div class="tot-ctrl">총 <input type="number" min="1" max="200" value="${y.wl.total}" onchange="setTot('wl',this.value)"> 시간</div>
+    </div>
+    <div class="auto-row"></div>
+    <div class="stats">
+      <div><div class="rem-big">${fmt(rem)}</div><div class="rem-lbl">잔여</div></div>
+      <div><div class="sec-val">${fmt(used)}</div><div class="sec-lbl">사용</div></div>
+      <div><div class="sec-val" style="color:var(--bdr)">${y.wl.total}</div><div class="sec-lbl">총</div></div>
+      <div><div class="sec-val" style="color:var(--grn);font-weight:800">${Math.round(pct)}%</div><div class="sec-lbl">사용율</div></div>
+    </div>
+    <div class="pbar"><div class="pfill pfill-g" style="width:${pct}%"></div></div>`;
+}
+
+function leaveEditRow(r) {
+  return `<tr class="er">
+    <td><input type="text" id="el_d" value="${r.date}" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
+    <td>${leaveTypeSelect('el_t', r.type)}</td>
+    <td>${selDay('el_u', r.used)}</td>
+    <td><div class="ra" style="opacity:1">
+      <button class="rib rib-s" onclick="saveEdit('leave',${r.id})" title="저장"><i class="ti ti-check"></i></button>
+      <button class="rib rib-c" onclick="cancelEdit('leave')" title="취소"><i class="ti ti-x"></i></button>
+    </div></td>
+  </tr>`;
+}
+
+function renderLeaveTable() {
+  const allRecs = [...yr().leave.records].sort((a,b)=>a.date.localeCompare(b.date));
+  const regRecs = allRecs.filter(r=>!r.long);
+  let regBal = yr().leave.total;
+  const regRows = regRecs.map((r, i) => {
+    regBal -= r.used;
+    if (elId === r.id) return leaveEditRow(r);
+    const rc = regBal<=0?'rzero':regBal<=3?'rlow':'rok';
+    const isLast = i === regRecs.length - 1;
+    return `<tr class="dr">
+      <td class="used-sm">${fd(r.date)}</td>
+      <td><span class="bge ${bc(r.type,false)}">${r.type}</span></td>
+      <td class="used-sm">${fmt(r.used)}일</td>
+      <td><span class="rnum${isLast?' rnum-last':''} ${rc}">${fmt(regBal)}일</span></td>
+      <td><div class="ra">
+        <button class="rib rib-e" onclick="startEdit('leave',${r.id})" title="수정"><i class="ti ti-pencil"></i></button>
+        <button class="rib rib-d" onclick="del('leave',${r.id})" title="삭제"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  });
+  document.getElementById('leaveSec').innerHTML = `<table>
+    <thead><tr><th>날짜</th><th>구분</th><th>사용</th><th>잔여</th><th></th></tr></thead>
+    <tbody>${regRows.join('')}
+      <tr class="ar">
+        <td><input type="text" id="al_d" placeholder="${S.activeYear}.M/D" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
+        <td><input type="text" id="al_t" placeholder="구분 (예: 연차, 오후반차)"></td>
+        <td>${selDay('al_u', null)}</td>
+        <td></td>
+        <td><button class="btn-add-r" onclick="addRow('leave',false)">＋</button></td>
+      </tr>
+    </tbody></table>`;
+}
+
+function renderLongTable() {
+  const c2 = calc(S.activeYear); const hasLong = c2?.isLong || yr().leave.longTotal > 0;
+  const longSec = document.getElementById('longSec');
+  if (!hasLong) { longSec.innerHTML=''; longSec.style.display='none'; return; }
+  longSec.style.display='';
+  const allRecs = [...yr().leave.records].sort((a,b)=>a.date.localeCompare(b.date));
+  const lngRecs = allRecs.filter(r=>r.long); let lngRunBal = yr().leave.longTotal;
+  const lngRows = lngRecs.map((r, i) => {
+    lngRunBal -= r.used;
+    if (elId === r.id) return leaveEditRow(r);
+    const rc = lngRunBal<=0?'rzero':lngRunBal<=3?'rlow':'rgrn';
+    const isLast = i === lngRecs.length - 1;
+    return `<tr class="dr">
+      <td class="used-sm">${fd(r.date)}</td>
+      <td><span class="bge b장기">${r.type}</span></td>
+      <td class="used-sm">${fmt(r.used)}일</td>
+      <td><span class="rnum${isLast?' rnum-last':''} ${rc}">${fmt(lngRunBal)}일</span></td>
+      <td><div class="ra">
+        <button class="rib rib-e" onclick="startEdit('leave',${r.id})" title="수정"><i class="ti ti-pencil"></i></button>
+        <button class="rib rib-d" onclick="del('leave',${r.id})" title="삭제"><i class="ti ti-trash"></i></button>
+      </div></td>
+    </tr>`;
+  });
+  longSec.innerHTML = `<table>
+    <thead><tr><th>날짜</th><th>구분</th><th>사용</th><th>잔여</th><th></th></tr></thead>
+    <tbody>${lngRows.join('')}
+      <tr class="ar">
+        <td><input type="text" id="al_ld" placeholder="${S.activeYear}.M/D" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
+        <td><input type="text" id="al_lt" placeholder="장기휴가"></td>
+        <td>${selDay('al_lu', null)}</td>
+        <td></td>
+        <td><button class="btn-add-r" onclick="addRow('leave',true)">＋</button></td>
+      </tr>
+    </tbody></table>`;
+}
+
+function renderWLTable() {
+  const recs = [...yr().wl.records].sort((a,b)=>a.date.localeCompare(b.date));
+  let bal = yr().wl.total;
+  const rows = recs.map((r, i) => {
+    bal -= r.used;
+    if (ewId === r.id) return `<tr class="er">
+      <td><input type="text" id="ew_d" value="${r.date}" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
+      <td><input type="text" id="ew_n" value="${r.note||''}" placeholder="메모"></td>
+      <td>${selHour('ew_u', r.used)}</td>
+      <td><div class="ra" style="opacity:1">
+        <button class="rib rib-s" onclick="saveEdit('wl',${r.id})" title="저장"><i class="ti ti-check"></i></button>
+        <button class="rib rib-c" onclick="cancelEdit('wl')" title="취소"><i class="ti ti-x"></i></button>
+      </div></td></tr>`;
+    const rc = bal<=0?'rzero':bal<=5?'rlow':'rok';
+    const isLast = i === recs.length - 1;
+    return `<tr class="dr">
+      <td class="used-sm">${fd(r.date)}</td>
+      <td class="used-sm" style="color:var(--mu)">${r.note||'—'}</td>
+      <td class="used-sm">${fmt(r.used)}시간</td>
+      <td><span class="rnum${isLast?' rnum-last':''} ${rc}">${fmt(bal)}시간</span></td>
+      <td><div class="ra">
+        <button class="rib rib-e" onclick="startEdit('wl',${r.id})" title="수정"><i class="ti ti-pencil"></i></button>
+        <button class="rib rib-d" onclick="del('wl',${r.id})" title="삭제"><i class="ti ti-trash"></i></button>
+      </div></td></tr>`;
+  });
+  document.getElementById('wlSec').innerHTML = `<table>
+    <thead><tr><th>날짜</th><th>메모</th><th>사용</th><th>잔여</th><th></th></tr></thead>
+    <tbody>${rows.join('')}
+      <tr class="ar">
+        <td><input type="text" id="aw_d" placeholder="${S.activeYear}.MM.DD" onblur="this.value=normDate(this.value,'${S.activeYear}')"></td>
+        <td><input type="text" id="aw_n" placeholder="메모 (선택)"></td>
+        <td>${selHour('aw_u', null)}</td>
+        <td></td>
+        <td><button class="btn-add-r" onclick="addRow('wl')">＋</button></td>
+      </tr>
+    </tbody></table>`;
+}
+
+
+function leaveTypeSelect(id, val) {
+  const opts = ['연차','오전반차','오후반차','병가','출산휴가','장기휴가','기타'];
+  return '<select id="'+id+'" style="border:1.5px solid var(--bdr);border-radius:8px;padding:5px 8px;font-size:13px;color:var(--add);background:var(--card);font-family:inherit;width:100%;">'+opts.map(o=>'<option value="'+o+'"'+(o===val?' selected':'')+'>'+o+'</option>').join('')+'</select>';
+}
+function selDay(id, val) { return `<input type="number" id="${id}" min="0.5" max="30" step="0.5" value="${val!=null?val:''}" placeholder="일수">`; }
+function selHour(id, val) { return `<input type="number" id="${id}" min="0.5" max="24" step="0.5" value="${val!=null?val:''}" placeholder="시간">`; }
+
+function switchYear(y) { S.activeYear=y; elId=null; ewId=null; render(); }
+function addYear() {
+  const v = prompt('추가할 연도를 입력하세요 (예: 2027)');
+  if (!v) return;
+  const y = v.trim();
+  if (!/^\d{4}$/.test(y)) { alert('올바른 연도를 입력해주세요'); return; }
+  if (S.years[y]) { alert('이미 있는 연도예요'); return; }
+  const c = calc(y);
+  S.years[y] = { leave:{total:c?c.days:15, longTotal:c?c.longDays:0, records:[]}, wl:{total:40, records:[]} };
+  S.activeYear = y; render();
+}
+function setTot(mode, v) { const n=parseFloat(v); if (!n||n<=0) return; if (mode==='leave') yr().leave.total=n; else yr().wl.total=n; render(); }
+function setLongTot(v) { yr().leave.longTotal = parseFloat(v)||0; render(); }
+function applyCalc(tabY) { const c=calc(tabY); if (!c) return; S.years[tabY].leave.total=c.days; S.years[tabY].leave.longTotal=c.longDays; render(); }
+
+function addRow(mode, isLong=false) {
+  if (mode === 'leave') {
+    const dId = isLong ? 'al_ld' : 'al_d';
+    const tId = isLong ? 'al_lt' : 'al_t';
+    const uId = isLong ? 'al_lu' : 'al_u';
+    const date = normDate(document.getElementById(dId)?.value||'', S.activeYear);
+    const type = document.getElementById(tId)?.value?.trim() || (isLong?'장기휴가':'연차');
+    const used = parseFloat(document.getElementById(uId)?.value);
+    if (!date) { document.getElementById(dId)?.focus(); return; }
+    if (!used) { document.getElementById(uId)?.focus(); return; }
+    yr().leave.records.push({id:nid(yr().leave.records), date, type, used, long:isLong});
+    save(); render();
+    setTimeout(()=>{ document.getElementById(dId)?.focus(); }, 40);
+  } else {
+    const date = normDate(document.getElementById('aw_d')?.value||'', S.activeYear);
+    const note = document.getElementById('aw_n')?.value?.trim() || '';
+    const used = parseFloat(document.getElementById('aw_u')?.value);
+    if (!date) { document.getElementById('aw_d')?.focus(); return; }
+    if (!used) { document.getElementById('aw_u')?.focus(); return; }
+    yr().wl.records.push({id:nid(yr().wl.records), date, note, used});
+    save(); render();
+    setTimeout(()=>{ document.getElementById('aw_d')?.focus(); }, 40);
+  }
+}
+
+function startEdit(mode, id) {
+  if (mode==='leave') { elId=id; ewId=null; } else { ewId=id; elId=null; }
+  render();
+  setTimeout(()=>document.getElementById(mode==='leave'?'el_d':'ew_d')?.focus(), 40);
+}
+function cancelEdit(mode) { if (mode==='leave') elId=null; else ewId=null; render(); }
+function saveEdit(mode, id) {
+  if (mode === 'leave') {
+    const date = normDate(document.getElementById('el_d')?.value||'', S.activeYear);
+    const type = document.getElementById('el_t')?.value?.trim() || '연차';
+    const used = parseFloat(document.getElementById('el_u')?.value);
+    if (!date||!used) return;
+    const r = yr().leave.records.find(r=>r.id===id);
+    if (r) { r.date=date; r.type=type; r.used=used; }
+    elId = null;
+  } else {
+    const date = normDate(document.getElementById('ew_d')?.value||'', S.activeYear);
+    const note = document.getElementById('ew_n')?.value?.trim() || '';
+    const used = parseFloat(document.getElementById('ew_u')?.value);
+    if (!date||!used) return;
+    const r = yr().wl.records.find(r=>r.id===id);
+    if (r) { r.date=date; r.note=note; r.used=used; }
+    ewId = null;
+  }
+  render();
+}
+function del(mode, id) {
+  if (!confirm('삭제할까요?')) return;
+  if (mode==='leave') yr().leave.records = yr().leave.records.filter(r=>r.id!==id);
+  else yr().wl.records = yr().wl.records.filter(r=>r.id!==id);
+  render();
+}
+
+// ── 테마 ──
+const THEMES = {
+  blue:  { name:'블루',   dot:'#677FB4', dark:false },
+  rose:  { name:'로즈',   dot:'#A87B8A', dark:false },
+  sage:  { name:'세이지', dot:'#6B8F71', dark:false },
+  stone: { name:'스톤',   dot:'#78716C', dark:false },
+  dark:  { name:'다크',   dot:'#7B9DD6', dark:true  },
+};
+const TVARS = {
+  blue:  {'--bg':'#E4E9F2','--card':'#FFFFFF','--a':'#677FB4','--ad':'#374580','--add':'#1A2554','--al':'#C8CFDF','--all':'#EDF0F7','--mu':'#8A97B8','--bdr':'#D0D7E8','--hov':'#F3F5FA','--grn':'#7A9E7E','--grnbg':'#EFF5EF'},
+  rose:  {'--bg':'#EEE2E6','--card':'#FFFFFF','--a':'#A87B8A','--ad':'#6A2D3F','--add':'#3A1020','--al':'#EDD9DE','--all':'#F8F0F2','--mu':'#B898A0','--bdr':'#E5CDD3','--hov':'#FDF6F7','--grn':'#7A9E7E','--grnbg':'#EFF5EF'},
+  sage:  {'--bg':'#DDE9DE','--card':'#FFFFFF','--a':'#6B8F71','--ad':'#2E5C35','--add':'#163019','--al':'#BDD6BF','--all':'#EDF5EE','--mu':'#88A88C','--bdr':'#C3D9C4','--hov':'#F2FAF2','--grn':'#5A9E60','--grnbg':'#E8F5E9'},
+  stone: {'--bg':'#E4E0DA','--card':'#FFFFFF','--a':'#78716C','--ad':'#44403C','--add':'#1C1917','--al':'#D6D3D1','--all':'#F5F4F0','--mu':'#A8A29E','--bdr':'#D6D3D1','--hov':'#F9F8F7','--grn':'#7A9E7E','--grnbg':'#EFF5EF'},
+  dark:  {'--bg':'#131720','--card':'#1E2434','--a':'#8BA5D6','--ad':'#B8CEF0','--add':'#E2EAF8','--al':'#2C3548','--all':'#242B3E','--mu':'#6B7A9A','--bdr':'#303A52','--hov':'#252D42','--grn':'#81C784','--grnbg':'#1A3A1E'},
+};
+function applyTheme(key) {
+  S.theme = key;
+  const vars = TVARS[key] || TVARS.blue;
+  const root = document.documentElement;
+  Object.entries(vars).forEach(([k,v]) => root.style.setProperty(k,v));
+  document.body.setAttribute('data-theme', THEMES[key]?.dark ? 'dark' : 'light');
+  save(); updateThemePicker();
+}
+function updateThemePicker() {
+  const picker = document.getElementById('themePicker');
+  if (!picker) return;
+  const cur = S.theme || 'blue';
+  picker.innerHTML = `<div class="tp-title">테마</div><div class="tp-list">
+    ${Object.entries(THEMES).map(([k,t]) => `
+      <div class="tp-item${cur===k?' sel':''}" onclick="applyTheme('${k}');document.getElementById('themePicker').style.display='none'">
+        <div class="tp-dot" style="background:${t.dot}"><span class="chk"><i class="ti ti-check"></i></span></div>
+        <div class="tp-name">${t.name}</div>
+      </div>`).join('')}
+  </div>`;
+}
+function togglePicker(e) {
+  e.stopPropagation();
+  const picker = document.getElementById('themePicker');
+  const open = picker.style.display !== 'none';
+  picker.style.display = open ? 'none' : 'block';
+  if (!open) updateThemePicker();
+}
+document.addEventListener('click', () => {
+  const p = document.getElementById('themePicker');
+  if (p) p.style.display = 'none';
+});
+if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+
+document.getElementById('entryDate').addEventListener('change', e => {
+  const v = normDate(e.target.value, new Date().getFullYear().toString());
+  e.target.value = v;
+  if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
+  S.entryDate = v;
+  Object.keys(S.years).forEach(y => { const c=calc(y); if (c) { S.years[y].leave.total=c.days; S.years[y].leave.longTotal=c.longDays; } });
+  render();
+});
+document.getElementById('careerDate').addEventListener('change', e => {
+  const v = normDate(e.target.value, new Date().getFullYear().toString());
+  e.target.value = v;
+  if (!v.match(/^\d{4}-\d{2}-\d{2}$/)) return;
+  S.careerDate = v; render();
+});
+
+// ── Enter 포커스 이동 ──
+document.addEventListener('keydown', e => {
+  if (e.key !== 'Enter') return;
+  const id = document.activeElement?.id;
+  if (id === 'al_d')  { document.getElementById('al_t')?.focus(); return; }
+  if (id === 'al_t')  { document.getElementById('al_u')?.focus(); return; }
+  if (id === 'al_u')  { addRow('leave', false); return; }
+  if (id === 'al_ld') { document.getElementById('al_lt')?.focus(); return; }
+  if (id === 'al_lt') { document.getElementById('al_lu')?.focus(); return; }
+  if (id === 'al_lu') { addRow('leave', true); return; }
+  if (id === 'aw_d')  { document.getElementById('aw_n')?.focus(); return; }
+  if (id === 'aw_n')  { document.getElementById('aw_u')?.focus(); return; }
+  if (id === 'aw_u')  { addRow('wl'); return; }
+});
+
+// ── 엑셀 내보내기 ──
+function exportExcel() {
+  const wb = XLSX.utils.book_new();
+  const infoRows = [['항목','값'],['입사일',S.entryDate||''],['실경력',S.careerDate||''],['활성연도',S.activeYear||''],['테마',S.theme||'blue']];
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(infoRows), '기본정보');
+  Object.keys(S.years).sort().forEach(y => {
+    const yd = S.years[y];
+    const leaveHeader = [['[연차]'],['날짜','유형','일수','장기여부']];
+    const leaveRows = yd.leave.records.map(r=>[r.date,r.type,r.used,r.long?'장기':'']);
+    const leaveSummary = [[],['연차총일수',yd.leave.total],['장기휴가총일수',yd.leave.longTotal||0]];
+    const wlHeader = [[],['[재택근무]'],['날짜','메모','시간']];
+    const wlRows = yd.wl.records.map(r=>[r.date,r.note||'',r.used]);
+    const wlSummary = [[],['재택총시간',yd.wl.total]];
+    const allRows = [...leaveHeader,...leaveRows,...leaveSummary,...wlHeader,...wlRows,...wlSummary];
+    const ws = XLSX.utils.aoa_to_sheet(allRows);
+    ws['!cols'] = [{wch:14},{wch:22},{wch:8},{wch:8}];
+    XLSX.utils.book_append_sheet(wb, ws, `${y}년`);
+  });
+  XLSX.writeFile(wb, `휴가관리_${new Date().toISOString().slice(0,10)}.xlsx`);
+}
+
+// ── 엑셀 날짜 변환 헬퍼 ──
+// 엑셀 날짜는 Date 객체, 시리얼 숫자, 또는 문자열로 올 수 있음
+function toDateStr(val) {
+  if (!val && val !== 0) return '';
+  if (val instanceof Date) {
+    return val.getFullYear()+'-'+String(val.getMonth()+1).padStart(2,'0')+'-'+String(val.getDate()).padStart(2,'0');
+  }
+  if (typeof val === 'number') {
+    try {
+      const info = XLSX.SSF.parse_date_code(val);
+      if (info && info.y > 1900) return info.y+'-'+String(info.m).padStart(2,'0')+'-'+String(info.d).padStart(2,'0');
+    } catch(e) {}
+    return String(val);
+  }
+  const s = String(val).trim();
+  const d = s.replace(/[.\-\/\s]/g,'');
+  if (/^\d{8}$/.test(d)) return d.slice(0,4)+'-'+d.slice(4,6)+'-'+d.slice(6,8);
+  return s;
+}
+
+// ── 엑셀 불러오기 ──
+function importExcel(e) {
+  const file = e.target.files[0]; if (!file) return; e.target.value='';
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const wb = XLSX.read(ev.target.result, {type:'binary', cellDates:true});
+      const infoSheet = wb.Sheets['기본정보'];
+      if (infoSheet) {
+        const rows = XLSX.utils.sheet_to_json(infoSheet, {header:1});
+        rows.slice(1).forEach(r => {
+          if (r[0]==='입사일'  && r[1]) S.entryDate  = toDateStr(r[1]);
+          if (r[0]==='실경력'  && r[1]) S.careerDate = toDateStr(r[1]);
+          if (r[0]==='활성연도' && r[1]) S.activeYear = String(r[1]);
+          if (r[0]==='테마'    && r[1]) S.theme      = String(r[1]);
+        });
+      }
+      const newYears = {};
+      wb.SheetNames.filter(n=>/^\d{4}년$/.test(n)).forEach(sheetName => {
+        const y = sheetName.replace('년','');
+        const rows = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1});
+        const leaveRecords=[]; const wlRecords=[];
+        let leaveTotal=15, longTotal=0, wlTotal=40, section='';
+        rows.forEach(r => {
+          if (!r||r.length===0) return;
+          const first = String(r[0]||'').trim();
+          if (first==='[연차]')   { section='leave'; return; }
+          if (first==='[재택근무]') { section='wl';    return; }
+          if (first==='날짜')      return;
+          if (first==='연차총일수')      { leaveTotal=parseFloat(r[1])||15; return; }
+          if (first==='장기휴가총일수')  { longTotal=parseFloat(r[1])||0;   return; }
+          if (first==='재택총시간')      { wlTotal=parseFloat(r[1])||40;    return; }
+          if (section==='leave' && r[0] && r[2]!=null) leaveRecords.push({id:leaveRecords.length+1, date:toDateStr(r[0]), type:String(r[1]||'연차'), used:parseFloat(r[2])||0, long:String(r[3]||'')==='장기'});
+          if (section==='wl'    && r[0] && r[2]!=null) wlRecords.push({id:wlRecords.length+1, date:toDateStr(r[0]), note:String(r[1]||''), used:parseFloat(r[2])||0});
+        });
+        newYears[y] = { leave:{total:leaveTotal, longTotal, records:leaveRecords}, wl:{total:wlTotal, records:wlRecords} };
+      });
+      if (Object.keys(newYears).length > 0) S.years = newYears;
+      if (!S.years[S.activeYear]) S.activeYear = Object.keys(S.years).sort().at(-1);
+      render();
+      if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+      alert('✅ 불러오기 완료!');
+    } catch(err) {
+      alert('❌ 파일을 읽는 중 오류가 발생했어요.\n올바른 형식의 파일인지 확인해주세요.');
+      console.error(err);
+    }
+  };
+  reader.readAsBinaryString(file);
+}
+
+render();
+
+// ══════════════════════════════════════════
+// 휴가 신청서 로직
+// ══════════════════════════════════════════
+function doPrint() {
+  switchTab('form');
+  setTimeout(() => { const orig=document.title; document.title=''; window.print(); setTimeout(()=>{ document.title=orig; }, 500); }, 100);
+}
+
+function formatKorDate(d) {
+  const y=d.getFullYear(), m=String(d.getMonth()+1).padStart(2,'0'), day=String(d.getDate()).padStart(2,'0');
+  return `${y}년  ${m}월  ${day}일`;
+}
+document.getElementById('displayDate').textContent = formatKorDate(new Date());
+
+function savePerson() {
+  localStorage.setItem('hv_name',  document.getElementById('empName').value);
+  localStorage.setItem('hv_team',  document.getElementById('empTeam').value);
+  localStorage.setItem('hv_rank',  document.getElementById('empRank').value);
+}
+function formatDate(input) {
+  let v = input.value.replace(/\D/g,'');
+  if (v.length > 8) v = v.slice(0,8);
+  if (v.length > 6)      input.value = v.slice(0,4)+'-'+v.slice(4,6)+'-'+v.slice(6);
+  else if (v.length > 4) input.value = v.slice(0,4)+'-'+v.slice(4);
+  else                   input.value = v;
+}
+function syncFromPicker(picker) {
+  const row = picker.closest('.period-row');
+  const isStart = picker.classList.contains('start-picker');
+  const txt = isStart ? row.querySelector('.start-date') : row.querySelector('.end-date');
+  if (picker.value) txt.value = picker.value;
+  calcDays();
+}
+function openPicker(btn) {
+  const picker = btn.parentElement.querySelector('input[type="date"]');
+  if (picker.showPicker) picker.showPicker();
+  else picker.focus();
+}
+function formatPhone(input) {
+  let v = input.value.replace(/\D/g,'');
+  if (v.length <= 3) input.value = v;
+  else if (v.length <= 7) input.value = v.slice(0,3)+'-'+v.slice(3);
+  else input.value = v.slice(0,3)+'-'+v.slice(3,7)+'-'+v.slice(7,11);
+}
+function saveEmergency() { localStorage.setItem('hv_emergency', document.getElementById('emergency').value); }
+function loadSaved() {
+  const name=localStorage.getItem('hv_name')||'';
+  const team=localStorage.getItem('hv_team')||'';
+  const rank=localStorage.getItem('hv_rank')||'';
+  const emerg=localStorage.getItem('hv_emergency')||'';
+  if (name)  document.getElementById('empName').value   = name;
+  if (team)  document.getElementById('empTeam').value   = team;
+  if (rank)  document.getElementById('empRank').value   = rank;
+  if (emerg) document.getElementById('emergency').value = emerg;
+}
+
+function onStartDateEnter(e, input) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  const row = input.closest('.period-row');
+  const type = row.querySelector('.period-type').value;
+  if (type === '반차') {
+    // 반차는 종료일 없으니 바로 새 행
+    onEndDateEnter(e, row.querySelector('.end-date'));
+  } else {
+    row.querySelector('.end-date')?.focus();
+  }
+}
+
+function onEndDateEnter(e, input) {
+  if (e.key !== 'Enter') return;
+  e.preventDefault();
+  // 아무것도 안함 - 기간 추가는 버튼으로만
+}
+
+function addPeriod() {
+  const tpl = document.getElementById('periodRowTemplate');
+  const node = tpl.content.firstElementChild.cloneNode(true);
+  document.getElementById('periodList').appendChild(node);
+  calcDays();
+}
+function removePeriod(btn) {
+  const rows = document.querySelectorAll('.period-row');
+  const row = btn.closest('.period-row');
+  if (rows.length <= 1) {
+    row.querySelector('.period-type').value = '휴가';
+    row.querySelector('.bancha-time').style.display = 'none';
+    row.querySelector('.bancha-time').value = '오전';
+    row.querySelector('.start-date').value = '';
+    row.querySelector('.end-date').value = '';
+    const sp=row.querySelector('.start-picker'); const ep=row.querySelector('.end-picker');
+    if (sp) sp.value=''; if (ep) ep.value='';
+  } else { row.remove(); }
+  calcDays();
+}
+function onPeriodTypeChange(sel) {
+  const row = sel.closest('.period-row');
+  const bancha = row.querySelector('.bancha-time');
+  bancha.style.display = sel.value === '반차' ? '' : 'none';
+}
+
+// ── 한국 법정공휴일 데이터 (2024~2027) ──
+const HOLIDAYS = new Set([
+  '2024-01-01','2024-02-09','2024-02-10','2024-02-11','2024-02-12',
+  '2024-03-01','2024-04-10','2024-05-05','2024-05-06','2024-05-15',
+  '2024-06-06','2024-08-15','2024-09-16','2024-09-17','2024-09-18',
+  '2024-10-03','2024-10-09','2024-12-25',
+  '2025-01-01','2025-01-28','2025-01-29','2025-01-30',
+  '2025-03-01','2025-05-05','2025-05-06','2025-06-06',
+  '2025-08-15','2025-10-03','2025-10-05','2025-10-06','2025-10-07','2025-10-08','2025-10-09',
+  '2025-12-25',
+  '2026-01-01','2026-01-28','2026-01-29','2026-01-30',
+  '2026-03-01','2026-03-02','2026-05-05','2026-05-25',
+  '2026-06-06','2026-08-17',
+  '2026-09-24','2026-09-25','2026-09-26','2026-10-03','2026-10-05',
+  '2026-12-25',
+  '2027-01-01','2027-02-08','2027-02-09','2027-02-10','2027-02-11',
+  '2027-03-01','2027-05-05','2027-05-24','2027-06-06',
+  '2027-08-16','2027-09-14','2027-09-15','2027-09-16',
+  '2027-10-04','2027-10-09','2027-12-25',
+]);
+const DOW_KR = ['일','월','화','수','목','금','토'];
+function isWorkDay(dateStr) {
+  const d = new Date(dateStr); const day = d.getDay();
+  if (day === 0 || day === 6) return false;
+  if (HOLIDAYS.has(dateStr)) return false;
+  return true;
+}
+function countWorkDays(start, end) {
+  let count = 0; const cur = new Date(start); const endMs = end.getTime();
+  while (cur.getTime() <= endMs) {
+    const ds = cur.getFullYear()+'-'+String(cur.getMonth()+1).padStart(2,'0')+'-'+String(cur.getDate()).padStart(2,'0');
+    if (isWorkDay(ds)) count++;
+    cur.setDate(cur.getDate()+1);
+  }
+  return count;
+}
+function getDow(dateStr) {
+  if (!dateStr || dateStr.length < 10) return '';
+  const d = new Date(dateStr); return isNaN(d) ? '' : DOW_KR[d.getDay()];
+}
+function updateDowLabels(row) {
+  const s = row.querySelector('.start-date').value;
+  const e = row.querySelector('.end-date').value;
+  const dowS = row.querySelector('.dow-start');
+  const dowE = row.querySelector('.dow-end');
+  if (dowS) dowS.textContent = s.length === 10 ? '('+getDow(s)+')' : '';
+  if (dowE) dowE.textContent = e.length === 10 ? '('+getDow(e)+')' : '';
+}
+function calcDays() {
+  const totals = {'휴가':0,'반차':0,'병가':0,'출산휴가':0,'장기특별휴가':0,'기타':0};
+  document.querySelectorAll('.period-row').forEach(r => {
+    const s=r.querySelector('.start-date').value, e=r.querySelector('.end-date').value;
+    const type=r.querySelector('.period-type').value, out=r.querySelector('.period-days');
+    if (type==='반차') { if (s.length===10) { out.textContent='(0.5일)'; totals['반차']+=0.5; } else out.textContent=''; return; }
+    if (s.length<10) { out.textContent=''; return; }
+    const isSingleDay = e.length < 10;
+    const endVal = isSingleDay ? s : e;  // 종료일 미입력시 당일 처리
+    r.classList.toggle('single-day', isSingleDay);
+    const start=new Date(s), end=new Date(endVal);
+    if (isNaN(start)||isNaN(end)||end<start) { out.textContent=''; return; }
+    const rawDays = Math.round((end-start)/86400000)+1;
+    const workDays = countWorkDays(start, end);  // endVal 기반
+    updateDowLabels(r);
+    out.textContent = '('+workDays+'일)';
+    if (totals[type]!==undefined) totals[type]+=workDays;
+  });
+  Object.keys(totals).forEach(type => {
+    const el=document.getElementById('d-'+type); if (!el) return;
+    const v=totals[type];
+    if (document.activeElement !== el) {
+      const txt = v===0 ? '' : v%1===0 ? String(v) : v.toFixed(1);
+      el.value = txt; el.style.width = (txt.length||1)+'ch';
+    }
+  });
+}
+function resetForm() {
+  if (!confirm('작성 내용을 초기화할까요?\n(저장된 이름·팀·직위·연락처는 유지됩니다)')) return;
+  document.getElementById('reason').value = '개인사정';
+  document.getElementById('periodList').innerHTML = '';
+  addPeriod();
+  document.getElementById('displayDate').textContent = formatKorDate(new Date());
+}
+
+// ── 토스트 메시지 ──
+function showToast(msg, ok=true) {
+  const t = document.getElementById('syncToast');
+  t.textContent = msg;
+  t.style.background = ok ? 'var(--ad)' : '#E53E3E';
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+// ══════════════════════════════════════════
+// ★ 핵심: 신청서 → 관리앱 연동
+// ══════════════════════════════════════════
+function syncToManager() {
+  const rows = document.querySelectorAll('.period-row');
+  if (!rows.length) { showToast('❌ 입력된 기간이 없어요', false); return; }
+
+  let addedCount = 0;
+  const errors = [];
+
+  rows.forEach((row, idx) => {
+    const type     = row.querySelector('.period-type').value;
+    const startStr = row.querySelector('.start-date').value;
+    const endStr   = row.querySelector('.end-date').value;
+    const banchaTime = row.querySelector('.bancha-time').value;
+
+    // 날짜 유효성 검사
+    if (startStr.length < 10) { errors.push(`${idx+1}번째 행: 시작일 미입력`); return; }
+
+    // 관리앱 유형 매핑
+    const typeMap = {
+      '휴가':       '연차',
+      '반차':       banchaTime === '오전' ? '오전반차' : '오후반차',
+      '병가':       '병가',
+      '출산휴가':   '출산휴가',
+      '장기특별휴가': '장기휴가',
+      '기타':       '기타',
+    };
+    const managerType = typeMap[type] || type;
+    const isLong = type === '장기특별휴가';
+
+    if (type === '반차') {
+      // 반차: 시작일 하나에 0.5일
+      const date = startStr;
+      const dateYear = date.slice(0,4);
+      ensureYear(dateYear);
+      S.years[dateYear].leave.records.push({
+        id: nid(S.years[dateYear].leave.records),
+        date, type: managerType, used: 0.5, long: false
+      });
+      addedCount++;
+    } else {
+      // 연차/병가 등: 시작~종료 날짜를 각 날짜별로 1일씩 추가
+      // (단순하게: 시작날짜 하나에 총 일수를 묶어서 추가)
+      const endDate = endStr.length >= 10 ? endStr : startStr;
+      const start = new Date(startStr); const end = new Date(endDate);
+      if (isNaN(start) || isNaN(end) || end < start) { errors.push(`${idx+1}번째 행: 날짜 오류`); return; }
+      const totalDays = Math.round((end - start) / 86400000) + 1;
+
+      // 날짜 범위를 하루씩 추가 (주말·공휴일 제외)
+      for (let d = new Date(start); d <= end; d.setDate(d.getDate()+1)) {
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+        if (!isWorkDay(dateStr)) continue;
+        const dateYear = String(d.getFullYear());
+        ensureYear(dateYear);
+        // 중복 날짜 체크
+        const already = S.years[dateYear].leave.records.find(r => r.date === dateStr && r.type === managerType);
+        if (!already) {
+          S.years[dateYear].leave.records.push({
+            id: nid(S.years[dateYear].leave.records),
+            date: dateStr, type: managerType, used: 1, long: isLong
+          });
+          addedCount++;
+        }
+      }
+    }
+  });
+
+  if (errors.length) { showToast('⚠️ ' + errors.join(', '), false); return; }
+  if (addedCount === 0) { showToast('⚠️ 이미 모두 기록되어 있어요', false); return; }
+
+  save(); render();
+  showToast(`✅ ${addedCount}건 관리앱에 기록 완료!`);
+
+  // 관리앱 탭으로 이동
+  setTimeout(() => switchTab('manage'), 1200);
+}
+
+// 해당 연도가 없으면 자동 생성
+function ensureYear(y) {
+  if (!S.years[y]) {
+    const c = calc(y);
+    S.years[y] = { leave:{total:c?c.days:15, longTotal:c?c.longDays:0, records:[]}, wl:{total:40, records:[]} };
+  }
+}
+
+(async () => {
+  const cloudData = await loadFromCloud();
+  if (cloudData) {
+    S = cloudData;
+    if (!S.careerDate) S.careerDate = '';
+  }
+  render();
+  if (S.theme && TVARS[S.theme]) applyTheme(S.theme);
+  startRealtimeSync();
+})();
+
+loadSaved();
+addPeriod();
+</script>
+</body>
+</html>
