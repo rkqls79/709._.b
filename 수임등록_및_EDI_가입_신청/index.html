@@ -1326,7 +1326,17 @@ async function savePDF(tabIdx) {
       inp.parentNode.insertBefore(span,inp); inp.style.display='none';
       replaced.push({span,inp});
     });
-    const canvas=await html2canvas(sheet,{scale:2,useCORS:true,logging:false,allowTaint:true,width:sheet.offsetWidth,height:sheet.scrollHeight,windowWidth:sheet.offsetWidth});
+    // zoom:1.2를 잠깐 리셋해야 html2canvas가 전체 콘텐츠를 정확히 캡처함
+    const origZoom = sheet.style.zoom;
+    sheet.style.zoom = '1';
+    await new Promise(r => setTimeout(r, 60));
+    const sheetW = sheet.offsetWidth;
+    const sheetH = sheet.scrollHeight;
+    const canvas=await html2canvas(sheet,{
+      scale:2,useCORS:true,logging:false,allowTaint:true,
+      width:sheetW,height:sheetH,windowWidth:sheetW
+    });
+    sheet.style.zoom = origZoom;
     replaced.forEach(({span,inp})=>{ inp.style.display=''; span.remove(); });
     if(wasHidden){ panel.style.cssText=''; }
 
@@ -1334,26 +1344,15 @@ async function savePDF(tabIdx) {
     const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4'});
     const pageW=pdf.internal.pageSize.getWidth(), pageH=pdf.internal.pageSize.getHeight();
     const imgW=pageW, imgH=(canvas.height/canvas.width)*imgW;
-    const imgData=canvas.toDataURL('image/jpeg',0.95);
+    const imgData=canvas.toDataURL('image/png');
     if(imgH<=pageH){
-      // 한 페이지에 딱 맞는 경우
-      pdf.addImage(imgData,'JPEG',0,0,imgW,imgH);
-    } else if(imgH <= pageH * 1.15){
-      // 살짝 넘치는 경우 → 높이 기준으로 축소해서 한 장에 맞춤
-      const fitW=(canvas.width/canvas.height)*pageH;
-      pdf.addImage(imgData,'JPEG',(pageW-fitW)/2,0,fitW,pageH);
+      // 한 페이지에 딱 맞거나 작은 경우
+      pdf.addImage(imgData,'PNG',0,0,imgW,imgH);
     } else {
-      // 진짜 여러 페이지가 필요한 경우
-      const pxPerMm=canvas.width/imgW, pageHpx=pageH*pxPerMm;
-      let yPx=0;
-      while(yPx<canvas.height){
-        const sliceH=Math.min(pageHpx,canvas.height-yPx);
-        const sc=document.createElement('canvas'); sc.width=canvas.width; sc.height=sliceH;
-        sc.getContext('2d').drawImage(canvas,0,yPx,canvas.width,sliceH,0,0,canvas.width,sliceH);
-        if(yPx>0) pdf.addPage();
-        pdf.addImage(sc.toDataURL('image/jpeg',0.95),'JPEG',0,0,imgW,(sliceH/canvas.width)*imgW);
-        yPx+=sliceH;
-      }
+      // 세로가 넘치면 A4 높이 기준으로 비율 축소해서 한 장에 맞춤
+      const scale=pageH/imgH;
+      const fitW=imgW*scale;
+      pdf.addImage(imgData,'PNG',(pageW-fitW)/2,0,fitW,pageH);
     }
     // 홈택스: 첨부 신분증을 추가 페이지로 병합 (이미지 + PDF 모두 지원)
     if (tabIdx === 0) {
