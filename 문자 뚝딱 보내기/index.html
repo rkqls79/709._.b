@@ -126,6 +126,7 @@
       <button onclick="switchSub('원천세', '급여전달', this)">💼 급여대장 전달</button>
       <button onclick="switchSub('원천세', '신고결과', this)">💰 환급 결과</button>
       <button onclick="switchSub('원천세', '사전', this)">📅 사전 안내</button>
+      <button onclick="switchSub('원천세', '인건비반기', this)">📬 인건비 요청(반기)</button>
     </div>
 
     <!-- 사전 안내 -->
@@ -135,7 +136,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="원천세-사전-호칭" value="사장님" oninput="update('원천세-사전')">
+            <select id="원천세-사전-호칭" onchange="update('원천세-사전')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>납부 기한</label>
@@ -167,7 +171,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="원천세-마감-호칭" value="사장님" oninput="update('원천세-마감')">
+            <select id="원천세-마감-호칭" onchange="update('원천세-마감')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
         </div>
       </div>
@@ -194,7 +201,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="원천세-급여전달-호칭" value="대표님" oninput="update('원천세-급여전달')">
+            <select id="원천세-급여전달-호칭" onchange="update('원천세-급여전달')">
+              <option value="대표님">대표님</option>
+              <option value="사장님">사장님</option>
+            </select>
           </div>
           <div class="field">
             <label>급여 월</label>
@@ -242,6 +252,13 @@
         <h3>입력 정보</h3>
         <div class="field-row">
           <div class="field">
+            <label>호칭</label>
+            <select id="원천세-급여요청-호칭" onchange="update('원천세-급여요청')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
+          </div>
+          <div class="field">
             <label>급여 월</label>
             <div class="input-suffix-wrap">
               <input type="number" id="원천세-급여요청-월" placeholder="5" min="1" max="12" oninput="update('원천세-급여요청')">
@@ -250,11 +267,80 @@
             <div class="amount-hint">📅 오늘 날짜 기준 자동 반영 (20일 기준)</div>
           </div>
         </div>
+        <div style="background:#f9f9f9; padding:12px 14px; border-radius:10px; margin-top:4px;">
+          <label class="check-label" style="margin-bottom:8px;">
+            <input type="checkbox" id="원천세-급여요청-변동없음" onchange="update('원천세-급여요청')">
+            변동 없음 안내 포함
+          </label>
+          <div style="margin-top:6px; display:flex; gap:16px;">
+            <label class="check-label">
+              <input type="radio" name="급여요청-소득유형" value="급여" checked onchange="update('원천세-급여요청')"> 급여소득
+            </label>
+            <label class="check-label">
+              <input type="radio" name="급여요청-소득유형" value="사업" onchange="update('원천세-급여요청')"> 사업소득
+            </label>
+          </div>
+        </div>
       </div>
       <div class="card">
         <div class="preview-label">미리보기 <span>✏️ 직접 수정도 가능합니다</span></div>
         <textarea class="preview-box" id="preview-원천세-급여요청"></textarea>
         <button class="copy-btn" onclick="copy('원천세-급여요청', this)">📋 복사하기</button>
+      </div>
+    </div>
+
+    <!-- 인건비 요청 (반기) -->
+    <div id="sub-원천세-인건비반기" class="sub-panel">
+      <div class="card">
+        <h3>입력 정보</h3>
+        <div class="field-row">
+          <div class="field">
+            <label>호칭</label>
+            <select id="원천세-인건비반기-호칭" onchange="update('원천세-인건비반기')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>반기 구분</label>
+            <select id="원천세-인건비반기-기수" onchange="update반기날짜(); update('원천세-인건비반기')">
+              <option value="1">1기 (상반기)</option>
+              <option value="2">2기 (하반기)</option>
+            </select>
+            <div class="amount-hint">📅 오늘 날짜 기준 자동 선택</div>
+          </div>
+        </div>
+        <div style="background:#f9f9f9; padding:12px 14px; border-radius:10px; margin-bottom:10px;">
+          <label class="check-label" style="margin-bottom:8px;">
+            <input type="checkbox" id="원천세-인건비반기-변동없음" onchange="update('원천세-인건비반기')">
+            변동 없음 안내 포함
+          </label>
+          <div id="원천세-인건비반기-소득유형-wrap" style="margin-top:6px; display:flex; gap:16px;">
+            <label class="check-label">
+              <input type="radio" name="인건비반기-소득유형" value="급여" checked onchange="update('원천세-인건비반기')"> 급여소득
+            </label>
+            <label class="check-label">
+              <input type="radio" name="인건비반기-소득유형" value="사업" onchange="update('원천세-인건비반기')"> 사업소득
+            </label>
+          </div>
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label>자료 제출 기한</label>
+            <input type="text" id="원천세-인건비반기-자료기한" placeholder="7월 1일(화)" oninput="update('원천세-인건비반기')">
+            <div class="amount-hint">📅 자동 반영 · 주말 시 다음 월요일 · 직접 수정 가능</div>
+          </div>
+          <div class="field">
+            <label>원천세 신고 마감일</label>
+            <input type="text" id="원천세-인건비반기-마감일" placeholder="7월 10일(목)" oninput="update('원천세-인건비반기')">
+            <div class="amount-hint">📅 자동 반영 · 주말 시 다음 월요일 · 공휴일은 직접 수정</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="preview-label">미리보기 <span>✏️ 직접 수정도 가능합니다</span></div>
+        <textarea class="preview-box" id="preview-원천세-인건비반기"></textarea>
+        <button class="copy-btn" onclick="copy('원천세-인건비반기', this)">📋 복사하기</button>
       </div>
     </div>
   </div>
@@ -274,7 +360,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="부가세-마감-호칭" value="사장님" oninput="update('부가세-마감')">
+            <select id="부가세-마감-호칭" onchange="update('부가세-마감')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
         </div>
       </div>
@@ -291,7 +380,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="부가세-사전-호칭" value="사장님" oninput="update('부가세-사전')">
+            <select id="부가세-사전-호칭" onchange="update('부가세-사전')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>납부 기한</label>
@@ -322,7 +414,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="부가세-예정고지-호칭" value="대표님" oninput="update('부가세-예정고지')">
+            <select id="부가세-예정고지-호칭" onchange="update('부가세-예정고지')">
+              <option value="대표님">대표님</option>
+              <option value="사장님">사장님</option>
+            </select>
           </div>
           <div class="field">
             <label>납부 금액</label>
@@ -352,7 +447,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="부가세-자료-호칭" value="사장님" oninput="update('부가세-자료')">
+            <select id="부가세-자료-호칭" onchange="update('부가세-자료')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>귀속 기간</label>
@@ -428,7 +526,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="법인세-자료-호칭" value="대표님" oninput="update('법인세-자료')">
+            <select id="법인세-자료-호칭" onchange="update('법인세-자료')">
+              <option value="대표님">대표님</option>
+              <option value="사장님">사장님</option>
+            </select>
           </div>
           <div class="field">
             <label>귀속연도</label>
@@ -548,7 +649,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="법인세-마감-호칭" value="대표님" oninput="update('법인세-마감')">
+            <select id="법인세-마감-호칭" onchange="update('법인세-마감')">
+              <option value="대표님">대표님</option>
+              <option value="사장님">사장님</option>
+            </select>
           </div>
         </div>
       </div>
@@ -565,7 +669,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="법인세-결과-호칭" value="대표님" oninput="update('법인세-결과')">
+            <select id="법인세-결과-호칭" onchange="update('법인세-결과')">
+              <option value="대표님">대표님</option>
+              <option value="사장님">사장님</option>
+            </select>
           </div>
           <div class="field">
             <label>귀속연도</label>
@@ -608,6 +715,16 @@
           </div>
         </div>
       </div>
+        <div class="field-row">
+          <div class="field">
+            <label>수수료 청구 금액 <span style="font-weight:400;color:#a1a1aa;">(없으면 비워두세요)</span></label>
+            <div class="input-suffix-wrap">
+              <input type="text" id="법인세-결과-수수료" placeholder="330" oninput="update('법인세-결과')">
+              <span class="suffix">원</span>
+            </div>
+            <div class="amount-hint">숫자 입력 후 + 키 → 1,000 단위 변환 · 계좌는 수수료 탭과 연동</div>
+          </div>
+        </div>
       <div class="card">
         <div class="preview-label">미리보기 <span>✏️ 직접 수정도 가능합니다</span></div>
         <textarea class="preview-box" id="preview-법인세-결과"></textarea>
@@ -630,7 +747,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="종합소득세-자료-호칭" value="사장님" oninput="update('종합소득세-자료')">
+            <select id="종합소득세-자료-호칭" onchange="update('종합소득세-자료')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>귀속연도</label>
@@ -703,7 +823,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="종합소득세-마감-호칭" value="사장님" oninput="update('종합소득세-마감')">
+            <select id="종합소득세-마감-호칭" onchange="update('종합소득세-마감')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
         </div>
       </div>
@@ -720,7 +843,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="종합소득세-결과-호칭" value="사장님" oninput="update('종합소득세-결과')">
+            <select id="종합소득세-결과-호칭" onchange="update('종합소득세-결과')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>결과 구분</label>
@@ -749,6 +875,16 @@
           </div>
         </div>
       </div>
+        <div class="field-row">
+          <div class="field">
+            <label>수수료 청구 금액 <span style="font-weight:400;color:#a1a1aa;">(없으면 비워두세요)</span></label>
+            <div class="input-suffix-wrap">
+              <input type="text" id="종합소득세-결과-수수료" placeholder="330" oninput="update('종합소득세-결과')">
+              <span class="suffix">원</span>
+            </div>
+            <div class="amount-hint">숫자 입력 후 + 키 → 1,000 단위 변환 · 계좌는 수수료 탭과 연동</div>
+          </div>
+        </div>
       <div class="card">
         <div class="preview-label">미리보기 <span>✏️ 직접 수정도 가능합니다</span></div>
         <textarea class="preview-box" id="preview-종합소득세-결과"></textarea>
@@ -770,7 +906,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="수수료-신고대리-호칭" value="사장님" oninput="update('수수료-신고대리')">
+            <select id="수수료-신고대리-호칭" onchange="update('수수료-신고대리')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>신고 과목 (예: 부가세)</label>
@@ -808,7 +947,10 @@
         <div class="field-row">
           <div class="field">
             <label>호칭</label>
-            <input type="text" id="수수료-기장-호칭" value="사장님" oninput="update('수수료-기장')">
+            <select id="수수료-기장-호칭" onchange="update('수수료-기장')">
+              <option value="사장님">사장님</option>
+              <option value="대표님">대표님</option>
+            </select>
           </div>
           <div class="field">
             <label>과목 (예: 법인세)</label>
@@ -886,7 +1028,7 @@
           </div>
           <div class="field">
             <label>직통번호</label>
-            <input type="text" id="기타-담당자-직통번호" placeholder="031-783-8872" oninput="saveStaff('기타-담당자-직통번호'); update('기타-담당자')">
+            <input type="text" id="기타-담당자-직통번호" placeholder="031-783-8872" oninput="formatPhone(this)" inputmode="numeric">
           </div>
         </div>
         <div class="field-row">
@@ -932,6 +1074,77 @@
 </div>
 
 <script>
+
+// ─── 반기 인건비 요청 관련 ───
+function get반기마감일(기수) {
+  const year = new Date().getFullYear();
+  let d;
+  if (기수 === '1') {
+    d = new Date(year, 6, 10); // 7월 10일
+  } else {
+    d = new Date(year + 1, 0, 10); // 내년 1월 10일
+  }
+  const dow = d.getDay();
+  if (dow === 6) d.setDate(d.getDate() + 2);
+  else if (dow === 0) d.setDate(d.getDate() + 1);
+  const dayNames = ['일','월','화','수','목','금','토'];
+  return `${d.getMonth()+1}월 ${d.getDate()}일(${dayNames[d.getDay()]})`;
+}
+
+function get반기자료기한(기수) {
+  const year = new Date().getFullYear();
+  let d;
+  if (기수 === '1') {
+    d = new Date(year, 6, 1); // 7월 1일
+  } else {
+    d = new Date(year + 1, 0, 2); // 내년 1월 2일
+  }
+  const dow = d.getDay();
+  if (dow === 6) d.setDate(d.getDate() + 2);
+  else if (dow === 0) d.setDate(d.getDate() + 1);
+  const dayNames = ['일','월','화','수','목','금','토'];
+  return `${d.getMonth()+1}월 ${d.getDate()}일(${dayNames[d.getDay()]})`;
+}
+
+function update반기날짜() {
+  const 기수 = val('원천세-인건비반기-기수') || '1';
+  const 마감El = document.getElementById('원천세-인건비반기-마감일');
+  const 자료El = document.getElementById('원천세-인건비반기-자료기한');
+  if (마감El) 마감El.value = get반기마감일(기수);
+  if (자료El) 자료El.value = get반기자료기한(기수);
+}
+
+function init반기기수() {
+  const today = new Date();
+  const m = today.getMonth() + 1;
+  const d = today.getDate();
+  // 7월 10일 이전이면 1기, 이후면 2기
+  const is1기 = (m < 7) || (m === 7 && d <= 10);
+  const sel = document.getElementById('원천세-인건비반기-기수');
+  if (sel) sel.value = is1기 ? '1' : '2';
+  update반기날짜();
+}
+
+// 직통번호 자동 하이픈 포맷
+function formatPhone(el) {
+  let v = el.value.replace(/[^0-9]/g, '');
+  if (v.startsWith('02')) {
+    // 서울 02-XXXX-XXXX 또는 02-XXX-XXXX
+    if (v.length <= 2) v = v;
+    else if (v.length <= 5) v = v.slice(0,2) + '-' + v.slice(2);
+    else if (v.length <= 9) v = v.slice(0,2) + '-' + v.slice(2,5) + '-' + v.slice(5);
+    else v = v.slice(0,2) + '-' + v.slice(2,6) + '-' + v.slice(6,10);
+  } else {
+    // 010-XXXX-XXXX 또는 0XX-XXX-XXXX
+    if (v.length <= 3) v = v;
+    else if (v.length <= 6) v = v.slice(0,3) + '-' + v.slice(3);
+    else if (v.length <= 10) v = v.slice(0,3) + '-' + v.slice(3,6) + '-' + v.slice(6);
+    else v = v.slice(0,3) + '-' + v.slice(3,7) + '-' + v.slice(7,11);
+  }
+  el.value = v;
+  saveStaff('기타-담당자-직통번호');
+  update('기타-담당자');
+}
 function getAccount() { return val('수수료-계좌') || '341-057820-01-014 기업은행_대한세무법인'; }
 
 // 부가세 예정고지 납부 마감일 자동계산
@@ -1185,11 +1398,42 @@ ${월} 급여대장 전달드립니다.${변동줄}
 감사합니다! :)`;
   }
 
+
+  if (key === '원천세-인건비반기') {
+    const 호칭 = val('원천세-인건비반기-호칭') || '사장님';
+    const 기수 = val('원천세-인건비반기-기수') || '1';
+    const 마감일 = val('원천세-인건비반기-마감일') || get반기마감일(기수);
+    const 자료기한 = val('원천세-인건비반기-자료기한') || get반기자료기한(기수);
+    const 반기명 = 기수 === '1' ? '상반기' : '하반기';
+    const 변동체크 = checked('원천세-인건비반기-변동없음');
+    const 소득유형 = document.querySelector('input[name="인건비반기-소득유형"]:checked')?.value || '급여';
+    const 변동줄 = 변동체크
+      ? (소득유형 === '급여'
+          ? "\n급여 변동이 없으시다면 '변동 없음'이라고만 남겨주세요 :)"
+          : "\n전달과 변동이 없으시다면 '변동 없음'이라고만 남겨주세요 :)")
+      : '';
+    return `<원천세 신고 관련 자료 요청>
+안녕하세요, ${호칭}!
+다가오는 ${마감일}은 ${반기명} 원천세 신고 및 납부 마감일입니다.
+
+인건비 자료를 ${자료기한}까지 전달 부탁드립니다.${변동줄}
+
+감사합니다!`;
+  }
+
   if (key === '원천세-급여요청') {
     const 월 = valSuffix('원천세-급여요청-월', '월') || '___월';
+    const 변동체크 = checked('원천세-급여요청-변동없음');
+    const 소득유형 = document.querySelector('input[name="급여요청-소득유형"]:checked')?.value || '급여';
+    const 변동줄 = 변동체크
+      ? (소득유형 === '급여'
+          ? "\n급여 변동이 없으시다면 '변동 없음'이라고만 남겨주세요 :)"
+          : "\n전달과 변동이 없으시다면 '변동 없음'이라고만 남겨주세요 :)")
+      : '';
+    const 호칭 = val('원천세-급여요청-호칭') || '사장님';
     return `<급여대장 요청>
-안녕하세요, 사장님!
-${월} 인건비 자료 전달 부탁드립니다.
+안녕하세요, ${호칭}!
+${월} 인건비 자료 전달 부탁드립니다.${변동줄}
 감사합니다 :)`;
   }
 
@@ -1353,6 +1597,8 @@ ${서류목록}
     const 국세 = val('법인세-결과-국세') || '___';
     const 지방세 = val('법인세-결과-지방세') || '___';
     const 납부기한 = val('법인세-결과-납부기한') || '____년 __월 __일(__)';
+    const 수수료raw = val('법인세-결과-수수료');
+    const 수수료멘트 = 수수료raw ? `\n\n─────────────\n▶ 수수료 안내: ${수수료raw}원 (VAT 포함)\n▶ 입금 계좌: ${getAccount()}\n확인 후 입금 부탁드립니다.` : '';
     if (구분 === '환급') {
       return `<법인세 신고 결과 안내>
 안녕하세요, ${호칭}! 😊
@@ -1365,7 +1611,7 @@ ${서류목록}
 
 환급금은 신고일로부터 약 30일 이내에 등록하신 계좌로 입금될 예정입니다.
 
-궁금하신 점은 편하게 연락 주세요. 감사합니다! :)`;
+궁금하신 점은 편하게 연락 주세요. 감사합니다! :)${수수료멘트}`;
     } else {
       return `<법인세 신고 결과 안내>
 안녕하세요, ${호칭}! 😊
@@ -1378,7 +1624,7 @@ ${서류목록}
 ▶ 납부 기한: ${납부기한}까지
 
 기한 내 납부 부탁드립니다!
-궁금하신 점은 편하게 연락 주세요. 감사합니다! :)`;
+궁금하신 점은 편하게 연락 주세요. 감사합니다! :)${수수료멘트}`;
     }
   }
 
@@ -1437,6 +1683,8 @@ ${서류목록}
     const 구분 = val('종합소득세-결과-구분') || '환급';
     const 국세 = val('종합소득세-결과-국세') || '___';
     const 지방세 = val('종합소득세-결과-지방세') || '___';
+    const 수수료raw = val('종합소득세-결과-수수료');
+    const 수수료멘트 = 수수료raw ? `\n\n─────────────\n▶ 수수료 안내: ${수수료raw}원 (VAT 포함)\n▶ 입금 계좌: ${getAccount()}\n확인 후 입금 부탁드립니다.` : '';
     if (구분 === '환급') {
       return `<종합소득세 신고 결과 안내>
 안녕하세요, ${호칭}!
@@ -1451,7 +1699,7 @@ ${서류목록}
 
 환급금은 신고일로부터 약 30일 이내에 등록하신 계좌로 입금될 예정입니다.
 
-궁금하신 점은 편하게 연락 주세요. 감사합니다! :)`;
+궁금하신 점은 편하게 연락 주세요. 감사합니다! :)${수수료멘트}`;
     } else {
       return `<종합소득세 신고 결과 안내>
 안녕하세요, ${호칭}!
@@ -1466,7 +1714,7 @@ ${서류목록}
 ▶ 납부 기한: 5월 31일까지
 
 기한 내 납부 부탁드립니다!
-궁금하신 점은 편하게 연락 주세요. 감사합니다! :)`;
+궁금하신 점은 편하게 연락 주세요. 감사합니다! :)${수수료멘트}`;
     }
   }
 
@@ -1595,6 +1843,7 @@ function setupAmountField(id, key) {
 loadStaff();
 loadKakao();
 loadAccount();
+init반기기수();
 
 // 예정고지 마감일 자동 반영
 const _deadline = getYejeonggojiDeadline();
@@ -1624,7 +1873,7 @@ if (_법인세결과연도El) {
 });
 
 const allKeys = [
-  '원천세-사전','원천세-마감','원천세-신고결과','원천세-급여전달','원천세-급여요청',
+  '원천세-사전','원천세-마감','원천세-신고결과','원천세-급여전달','원천세-급여요청','원천세-인건비반기',
   '부가세-마감','부가세-사전','부가세-예정고지','부가세-자료',
   '법인세-자료','법인세-마감','법인세-결과',
   '종합소득세-자료','종합소득세-마감','종합소득세-결과',
@@ -1648,6 +1897,8 @@ setupAmountField('종합소득세-결과-국세', '종합소득세-결과');
 setupAmountField('종합소득세-결과-지방세', '종합소득세-결과');
 setupAmountField('수수료-신고대리-금액', '수수료-신고대리');
 setupAmountField('수수료-기장-금액', '수수료-기장');
+setupAmountField('법인세-결과-수수료', '법인세-결과');
+setupAmountField('종합소득세-결과-수수료', '종합소득세-결과');
 </script>
 
 
