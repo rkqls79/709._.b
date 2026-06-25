@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>거래처 자료 자동 분류</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
@@ -598,7 +599,7 @@ body {
 <input type="file" id="file-input" multiple>
 <input type="file" id="xl-input" accept=".xlsx,.xls">
 <div id="toast-c"></div>
-<div style="position:fixed;bottom:14px;right:20px;font-size:11px;color:var(--border2);letter-spacing:.5px;pointer-events:none;user-select:none;font-family:'Apple SD Gothic Neo','Pretendard',sans-serif;">709._.b</div>
+<div id="logo-709" style="position:fixed;bottom:14px;right:20px;font-size:12px;color:var(--border2);letter-spacing:.8px;pointer-events:none;user-select:none;font-family:'Nunito','Apple SD Gothic Neo','Pretendard',sans-serif;font-weight:700;opacity:.7;">709._.b</div>
 
 <script>
 /* ══════════════════════════════════════════════
@@ -2181,6 +2182,9 @@ function toast(msg, type) {
 function esc(s) {
   return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
 }
+
+/* 보안: 우클릭 차단 */
+document.addEventListener('contextmenu', e => e.preventDefault());
 
 /* 초기 실행 */
 renderClientTable();
