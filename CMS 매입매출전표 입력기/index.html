@@ -561,7 +561,8 @@ function renderSuccess() {
   let totalAmt = 0, totalSupply = 0, totalTax = 0;
   let rows = '';
 
-  currentSuccess.forEach((r, i) => {
+  const sortedSuccess = [...currentSuccess].sort((a, b) => (Number(b['출금성공금액']) || 0) - (Number(a['출금성공금액']) || 0));
+  sortedSuccess.forEach((r, i) => {
     const dt = parseDate(r['출금날짜'] || r['출금일']);
     const amount = Number(r['출금성공금액']) || 0;
     const { supply, tax } = calcTax(amount);
@@ -613,7 +614,8 @@ function renderFail() {
   let totalReq = 0, totalUnpaid = 0;
   let rows = '';
 
-  currentFail.forEach((r, i) => {
+  const sortedFail = [...currentFail].sort((a, b) => (Number(b['출금신청금액']) || 0) - (Number(a['출금신청금액']) || 0));
+  sortedFail.forEach((r, i) => {
     const dt = parseDate(r['출금날짜'] || r['출금일']);
     const reqAmt  = Number(r['출금신청금액']) || 0;
     const unpaid  = Number(r['미납금액']) || Number(r['출금실패금액']) || reqAmt;
