@@ -2,6 +2,7 @@
 <html lang="ko">
 <head>
 <meta charset="UTF-8">
+<link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&display=swap" rel="stylesheet">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>CMS 매입매출전표 입력기</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
@@ -717,6 +718,9 @@ function downloadExcel() {
   }
   XLSX.writeFile(wb, `${currentManager}_${fileDate}_매입매출전표.xlsx`);
 }
+
+document.addEventListener('contextmenu', e => e.preventDefault());
 </script>
+<div id="logo-709" style="position:fixed;bottom:14px;right:20px;font-size:12px;color:#bbb5ae;letter-spacing:.8px;pointer-events:none;user-select:none;font-family:'Nunito','Apple SD Gothic Neo','Pretendard',sans-serif;font-weight:700;opacity:.7;">709._.b</div>
 </body>
 </html>
