@@ -126,7 +126,8 @@ body {
   display:flex; flex-direction:column; align-items:center; gap:4px;
   text-decoration:none; cursor:pointer; transition:transform .15s; width:100%;
 }
-.shortcut:hover { transform:scale(1.07); }
+.shortcut:hover  { transform:scale(1.07); }
+.shortcut:active { transform:scale(0.91); transition:transform .07s; }
 .shortcut-icon {
   width:46px; height:46px; border-radius:12px;
   display:flex; align-items:center; justify-content:center;
@@ -340,6 +341,27 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
 .todo-input:focus { border-color:var(--accent); }
 .todo-add-btn { background:var(--accent); color:var(--bg); border:none; border-radius:7px; padding:5px 12px; font-size:13px; font-weight:600; cursor:pointer; transition:opacity .15s; flex-shrink:0; }
 .todo-add-btn:hover { opacity:.8; }
+.todo-date-btn {
+  background:var(--surface); border:1px solid var(--border); border-radius:7px;
+  padding:5px 8px; font-size:13px; cursor:pointer; flex-shrink:0;
+  transition:background .15s, border-color .15s, color .15s; color:var(--text2); line-height:1;
+}
+.todo-date-btn:hover { background:var(--surface2); }
+.todo-date-btn.has-date { border-color:#4285F4; color:#4285F4; background:rgba(66,133,244,.08); }
+.todo-date-row { display:none; gap:6px; align-items:center; padding:2px 0 4px; }
+.todo-date-row.open { display:flex; }
+.todo-date-input {
+  flex:1; background:var(--surface2); border:1px solid var(--border);
+  border-radius:7px; padding:4px 8px; font-size:11px; color:var(--text);
+  outline:none; transition:border-color .15s;
+}
+.todo-date-input:focus { border-color:#4285F4; }
+.todo-date-badge {
+  display:inline-flex; align-items:center;
+  background:#e8f0fe; color:#1a73e8; border-radius:4px;
+  font-size:9px; font-weight:600; padding:1px 5px; margin-left:5px;
+  vertical-align:middle;
+}
 .todo-glink { display:flex; align-items:center; justify-content:center; gap:5px; font-size:10px; color:var(--text2); text-decoration:none; padding:2px 0; transition:color .15s; }
 .todo-glink:hover { color:var(--accent); }
 .todo-empty { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:6px; padding:20px; }
@@ -403,6 +425,34 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
   cursor:pointer; text-decoration:none; transition:opacity .15s;
 }
 .fallback-btn:hover { opacity:.8; }
+/* ── ID 메모 잠금 오버레이 ── */
+.id-memo-lock-overlay {
+  position:absolute; inset:0;
+  background:var(--bg);
+  display:flex; align-items:center; justify-content:center;
+  z-index:10; border-radius:0 0 var(--radius) var(--radius);
+}
+.id-memo-lock-inner {
+  display:flex; flex-direction:column; align-items:center; gap:8px; padding:20px;
+}
+.id-memo-pw-input {
+  background:var(--surface2); border:1px solid var(--border);
+  border-radius:7px; padding:6px 12px; font-size:12px; color:var(--text);
+  outline:none; width:180px; text-align:center; transition:border-color .15s;
+  font-family:inherit;
+}
+.id-memo-pw-input:focus { border-color:var(--accent); }
+.id-memo-unlock-btn {
+  background:var(--accent); color:var(--bg); border:none;
+  border-radius:7px; padding:6px 16px; font-size:11px; font-weight:600;
+  cursor:pointer; transition:opacity .15s; width:100%;
+}
+.id-memo-unlock-btn:hover { opacity:.8; }
+.id-memo-unlock-btn:disabled { opacity:.5; cursor:not-allowed; }
+.id-memo-remember-row {
+  display:flex; align-items:center; gap:5px; font-size:10px; color:var(--text2);
+}
+.id-memo-remember-row input[type=checkbox] { cursor:pointer; accent-color:var(--accent); }
 </style>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
@@ -592,7 +642,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
             <div class="sub-panel-header">
               <span>✅ 할 일</span>
               <div style="display:flex;align-items:center;gap:6px;">
-                <button id="gcal-btn" onclick="gcalAuthClick()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;padding:2px 8px;cursor:pointer;transition:all .15s;" title="구글 캘린더 연동">🔗 구글 연동</button>
+                <button id="gcal-btn" onclick="gcalAuthClick()" style="background:none;border:1px solid var(--border);border-radius:6px;color:var(--text2);font-size:10px;padding:2px 8px;cursor:pointer;transition:all .15s;" title="구글 Tasks + 캘린더 연동">🔗 Tasks 연동</button>
                 <span id="todo-count" style="font-size:10px;font-weight:400;"></span>
               </div>
             </div>
@@ -607,7 +657,12 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
             <div class="todo-footer">
               <div class="todo-input-row">
                 <input class="todo-input" id="todo-input" placeholder="할 일 추가..." maxlength="80" />
+                <button id="todo-date-btn" class="todo-date-btn" onclick="toggleTodoDueDate()" title="날짜 설정하면 캘린더에도 등록">📅</button>
                 <button class="todo-add-btn" onclick="addTodo()">+</button>
+              </div>
+              <div class="todo-date-row" id="todo-date-row">
+                <input type="date" id="todo-date" class="todo-date-input" onchange="onTodoDateChange()">
+                <span style="font-size:10px;color:var(--text2);opacity:.7;">날짜 설정 시 캘린더에도 등록</span>
               </div>
             </div>
           </div>
@@ -642,10 +697,25 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
               <div id="id-search-result" style="display:none;position:absolute;top:calc(100% + 4px);right:0;min-width:220px;max-width:320px;background:var(--bg);border:1px solid var(--border);border-radius:9px;box-shadow:0 6px 20px rgba(0,0,0,.12);z-index:999;max-height:260px;overflow-y:auto;padding:4px 0;-webkit-user-select:text;user-select:text;"></div>
             </div>
             <button id="id-memo-insert-btn" title="구분선 삽입" style="background:none;border:1px solid var(--border);border-radius:5px;color:var(--text2);font-size:8px;padding:1px 5px;cursor:pointer;transition:background .15s;line-height:1.4;" onmouseover="this.style.background='var(--surface2)'" onmouseout="this.style.background='none'">▸</button>
+            <button onclick="idMemoChangePw()" title="비밀번호 변경" style="background:none;border:none;cursor:pointer;font-size:12px;padding:2px 3px;opacity:.5;transition:opacity .15s;line-height:1;" onmouseover="this.style.opacity='1'" onmouseout="this.style.opacity='.5'">🔐</button>
             <span style="font-size:9px; color:var(--text2); opacity:.6;">자동저장</span>
           </div>
         </div>
-        <div class="panel-body" style="display:flex; flex-direction:column;">
+        <div class="panel-body" style="display:flex; flex-direction:column; position:relative;">
+          <!-- 잠금 오버레이 -->
+          <div class="id-memo-lock-overlay" id="id-memo-lock" style="display:none;">
+            <div class="id-memo-lock-inner">
+              <div style="font-size:28px;line-height:1;">🔐</div>
+              <div id="id-memo-lock-title" style="font-size:11px;color:var(--text2);font-weight:600;text-align:center;">마스터 비밀번호</div>
+              <input type="password" id="id-memo-pw" class="id-memo-pw-input" placeholder="비밀번호 입력...">
+              <input type="password" id="id-memo-pw2" class="id-memo-pw-input" placeholder="비밀번호 확인" style="display:none;">
+              <label class="id-memo-remember-row">
+                <input type="checkbox" id="id-memo-remember" checked> 이 기기에서 기억하기
+              </label>
+              <button class="id-memo-unlock-btn" id="id-memo-unlock-btn" onclick="idMemoUnlock()">잠금 해제</button>
+              <div id="id-memo-pw-error" style="font-size:10px;color:var(--urgent);display:none;text-align:center;max-width:180px;"></div>
+            </div>
+          </div>
           <textarea
             class="id-memo-area"
             id="id-memo-area"
@@ -792,6 +862,36 @@ daehantaxc/ idol9967*</textarea>
         </svg>
       </div>
       <span class="shortcut-label">종소세<br>표지</span>
+    </a>
+
+    <a class="shortcut" href="https://rkqls79.github.io/709._.b/%EA%B1%B0%EB%9E%98%EC%B2%98%20%EC%B2%B4%ED%81%AC%EB%A6%AC%EC%8A%A4%ED%8A%B8/index.html" target="_blank">
+      <div class="shortcut-icon">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect width="30" height="30" rx="7" fill="#E8F5E9"/>
+          <rect x="7" y="5" width="13" height="18" rx="1.5" fill="white" stroke="#43A047" stroke-width="1.2"/>
+          <line x1="10" y1="10" x2="17" y2="10" stroke="#43A047" stroke-width="1" opacity=".4"/>
+          <line x1="10" y1="13" x2="17" y2="13" stroke="#43A047" stroke-width="1" opacity=".4"/>
+          <line x1="10" y1="16" x2="17" y2="16" stroke="#43A047" stroke-width="1" opacity=".4"/>
+          <polyline points="19,17 21,20 25,14" stroke="#43A047" stroke-width="1.8" fill="none" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <span class="shortcut-label">거래처<br>체크리스트</span>
+    </a>
+
+    <a class="shortcut" href="https://rkqls79.github.io/709._.b/CMS%20%EB%A7%A4%EC%9E%85%EB%A7%A4%EC%B6%9C%EC%A0%84%ED%91%9C%20%EC%9E%85%EB%A0%A5%EA%B8%B0/index.html" target="_blank">
+      <div class="shortcut-icon">
+        <svg width="30" height="30" viewBox="0 0 30 30" fill="none">
+          <rect width="30" height="30" rx="7" fill="#E3F2FD"/>
+          <rect x="5" y="8" width="20" height="14" rx="2" fill="white" stroke="#1E88E5" stroke-width="1.2"/>
+          <line x1="5" y1="12" x2="25" y2="12" stroke="#1E88E5" stroke-width="1" opacity=".5"/>
+          <line x1="12" y1="8" x2="12" y2="22" stroke="#1E88E5" stroke-width="1" opacity=".4"/>
+          <rect x="7" y="14" width="3" height="2" rx=".4" fill="#1E88E5" opacity=".5"/>
+          <rect x="14" y="14" width="3" height="2" rx=".4" fill="#1E88E5" opacity=".5"/>
+          <rect x="7" y="18" width="3" height="2" rx=".4" fill="#1E88E5" opacity=".4"/>
+          <rect x="14" y="18" width="3" height="2" rx=".4" fill="#1E88E5" opacity=".4"/>
+        </svg>
+      </div>
+      <span class="shortcut-label">CMS<br>전표입력기</span>
     </a>
 
   </aside>
@@ -1151,7 +1251,7 @@ function renderTodos() {
       li.dataset.i = i;
       li.innerHTML = `
         <input type="checkbox" class="todo-cb" ${t.done ? 'checked' : ''} onchange="toggleTodo(${i})">
-        <span class="todo-txt">${escHtml(t.text)}</span>
+        <span class="todo-txt">${escHtml(t.text)}${t.dueDate ? `<span class="todo-date-badge">${t.dueDate.slice(5).replace('-','/')}</span>` : ''}</span>
         <span class="todo-del" onclick="deleteTodo(${i})" title="삭제">✕</span>`;
       list.appendChild(li);
     });
@@ -1165,22 +1265,50 @@ function addTodo() {
   const inp = document.getElementById('todo-input');
   const txt = inp.value.trim();
   if (!txt) return;
-  const todo = { text: txt, done: false, id: Date.now() };
+  const dateEl = document.getElementById('todo-date');
+  const dueDate = dateEl ? dateEl.value : '';
+  const todo = { text: txt, done: false, id: Date.now(), taskId: null, dueDate: dueDate || null };
   todos.unshift(todo);
   saveTodos(); renderTodos();
   inp.value = '';
-  gcalCreateEvent(todo);
+  // 날짜 입력 초기화
+  if (dateEl && dueDate) {
+    dateEl.value = '';
+    const btn = document.getElementById('todo-date-btn');
+    if (btn) btn.classList.remove('has-date');
+    const row = document.getElementById('todo-date-row');
+    if (row) row.classList.remove('open');
+  }
+  tasksCreateTask(todo);               // 항상 Google Tasks에 생성
+  if (dueDate) gcalCreateEvent(todo);  // 날짜 있을 때만 캘린더에 등록
+}
+function toggleTodoDueDate() {
+  const row = document.getElementById('todo-date-row');
+  const btn = document.getElementById('todo-date-btn');
+  const isOpen = row.classList.toggle('open');
+  if (!isOpen) {
+    document.getElementById('todo-date').value = '';
+    btn.classList.remove('has-date');
+  } else {
+    setTimeout(() => document.getElementById('todo-date').focus(), 50);
+  }
+}
+function onTodoDateChange() {
+  const val = document.getElementById('todo-date').value;
+  document.getElementById('todo-date-btn').classList.toggle('has-date', !!val);
 }
 function toggleTodo(i) {
   todos[i].done = !todos[i].done;
   saveTodos(); renderTodos();
+  tasksUpdateTask(todos[i]);
   gcalUpdateEvent(todos[i]);
 }
 function deleteTodo(i) {
-  const tid = todos[i].id;
+  const todo = todos[i];
   todos.splice(i, 1);
   saveTodos(); renderTodos();
-  gcalDeleteEvent(tid);
+  tasksDeleteTask(todo);
+  gcalDeleteEvent(todo.id);
 }
 document.getElementById('todo-input').addEventListener('keydown', e => {
   if (e.key === 'Enter') addTodo();
@@ -1626,8 +1754,14 @@ updateCompletion();
 const idMemoEl = document.getElementById('id-memo-area');
 if (idMemoEl) {
   const _idDefault = "\u25b8 \ub300\ud55c\uc138\ubb34\ubc95\uc778 \ub300\ud45c\ubc88\ud638 : 1566-4845 / 129-81-68431\n\u25b8 \uad6d\uc138\uccad \ud648\ud0dd\uc2a4 : U16004 / idol9967*\n\u25b8 \uac74\uac15\ubcf4\ud5d8edi : dlsj9880^^/ dol9967\n\u25b8 \uad6d\ubbfc\uc5f0\uae08edi : idol9967 / dlsj9880^^\n\u25b8 \ub354\uc874 \uc138\uae08\uacc4\uc0b0\uc11c \ubc1c\ud589\n \uc544\uc774\ub514 idol9967 / \ube44\ubc00\ubc88\ud638 dlsj9880^^\n\u25b8 DH_5G \uc640\uc774\ud30c\uc774: \ube44\ubc00\ubc88\ud638 1298168431\n\u25b8 \uc8fc\ucc28\uad8c\ubc1c\ud589\nhttp://bdbyc.iptime.org\n\uc544\uc774\ub514 : 501byc \ube44\ubc00\ubc88\ud638 1234\n\u25b8 \ub354\uc874 \ud074\ub77c\uc6b0\ub4dc \ud329\uc2a4\n\ud68c\uc0ac\uc544\uc774\ub514 idol9967\n\uc9c1\uc6d0\uc544\uc774\ub514 \ub2f4\ub2f9\uc790\uc774\ub984\n\ube44\ubc00\ubc88\ud638 dlsj9880\n\u25b8 \ube44\uc988\ud50c\ub7ec\uc2a4 (\ucf00\uc774\ud2f0\ud1b5\ud654\uba54\ub2c8\uc800)\nwww.ktpcp.com\n\uc544\uc774\ub514 : \uc9c1\ud1b5\ubc88\ud638(0317838877)@kt.com\n\ube44\ubc00\ubc88\ud638 dlsj9880^^\n\u25b8 \ubaa8\ub450\uc2f8\uc778\nhttps://app.modusign.co.kr\n\uc544\uc774\ub514 : tax@taxdh.net\n\ube44\ubc00\ubc88\ud638 : idol9967*\n\u25b8 \uacc4\uc88c\ubc88\ud638\n341-057820-01-014 \uae30\uc5c5\uc740\ud589_\ub300\ud55c\uc138\ubb34\ubc95\uc778\n\ube44\ubc00\ubc88\ud638: 0701\n\u25b8 \uc704\ud558\uace0 \uc1a1\uc774\uc0ac\ub2d8 \uc544\uc774\ub514: dh89111451@wehago.com\n\u25b8 \uc54c\ub9ac\uace0\n\uc544\uc774\ub514 : tuzaga /\ube44\ubc88 : idol9967\n\u25b8 \ud604\uae08\uc601\uc218\uc99d \ubc1c\ud589\nhttp://taxadmin.uplus.co.kr\ndaehantaxc/ idol9967*";
-  idMemoEl.value = localStorage.getItem('dash-id-memo') || idMemoEl.value || _idDefault;
-  idMemoEl.addEventListener('input', () => { localStorage.setItem('dash-id-memo', idMemoEl.value); fsSaveIdMemo(idMemoEl.value); });
+  // 기억된 비밀번호로 자동 해제 시도
+  idMemoInit(_idDefault);
+  idMemoEl.addEventListener('input', async () => {
+    if (!idMemoMasterPw) return;
+    const enc = await encryptIdMemo(idMemoEl.value, idMemoMasterPw);
+    localStorage.setItem('dash-id-memo', enc);
+    fsSaveIdMemo(enc);
+  });
 }
 const idMemoInsertBtn = document.getElementById('id-memo-insert-btn');
 if (idMemoInsertBtn) {
@@ -1642,7 +1776,12 @@ if (idMemoInsertBtn) {
     const newPos = start + insert.length;
     ta.setSelectionRange(newPos, newPos);
     ta.focus();
-    localStorage.setItem('dash-id-memo', ta.value);
+    if (idMemoMasterPw) {
+      encryptIdMemo(ta.value, idMemoMasterPw).then(enc => {
+        localStorage.setItem('dash-id-memo', enc);
+        fsSaveIdMemo(enc);
+      });
+    }
   });
 }
 const idMemoSearchEl = document.getElementById('id-memo-search');
@@ -1692,6 +1831,206 @@ if (idMemoSearchEl) {
   });
 }
 
+
+
+/* ── ID 메모 암호화 (AES-GCM + PBKDF2) + 비번 기억하기 ── */
+const ID_MEMO_ENC_PREFIX = 'ENC::';
+const ID_MEMO_MPW_STORE  = 'dash-id-memo-mpw'; // 기억하기 선택 시 저장
+let idMemoMasterPw = null;
+
+async function _idMemoDeriveKey(password, salt) {
+  const km = await crypto.subtle.importKey('raw', new TextEncoder().encode(password), 'PBKDF2', false, ['deriveKey']);
+  return crypto.subtle.deriveKey(
+    { name:'PBKDF2', salt, iterations:100000, hash:'SHA-256' },
+    km, { name:'AES-GCM', length:256 }, false, ['encrypt','decrypt']
+  );
+}
+
+async function encryptIdMemo(text, password) {
+  const salt = crypto.getRandomValues(new Uint8Array(16));
+  const iv   = crypto.getRandomValues(new Uint8Array(12));
+  const key  = await _idMemoDeriveKey(password, salt);
+  const ct   = await crypto.subtle.encrypt({name:'AES-GCM', iv}, key, new TextEncoder().encode(text));
+  const combined = new Uint8Array(16 + 12 + ct.byteLength);
+  combined.set(salt,0); combined.set(iv,16); combined.set(new Uint8Array(ct),28);
+  return ID_MEMO_ENC_PREFIX + btoa(String.fromCharCode(...combined));
+}
+
+async function decryptIdMemo(encStr, password) {
+  if (!encStr || !encStr.startsWith(ID_MEMO_ENC_PREFIX)) return encStr || '';
+  const combined = Uint8Array.from(atob(encStr.slice(ID_MEMO_ENC_PREFIX.length)), c => c.charCodeAt(0));
+  const key = await _idMemoDeriveKey(password, combined.slice(0,16));
+  try {
+    const dec = await crypto.subtle.decrypt({name:'AES-GCM', iv:combined.slice(16,28)}, key, combined.slice(28));
+    return new TextDecoder().decode(dec);
+  } catch { throw new Error('wrong_password'); }
+}
+
+async function idMemoInit(defaultText) {
+  const stored  = localStorage.getItem('dash-id-memo');
+  const savedPw = localStorage.getItem(ID_MEMO_MPW_STORE);
+  const lock    = document.getElementById('id-memo-lock');
+  const ta      = document.getElementById('id-memo-area');
+
+  // 저장된 비밀번호로 자동 해제 시도
+  if (savedPw && stored && stored.startsWith(ID_MEMO_ENC_PREFIX)) {
+    try {
+      const pw = atob(savedPw);
+      const txt = await decryptIdMemo(stored, pw);
+      idMemoMasterPw = pw;
+      ta.value = txt;
+      lock.style.display = 'none';
+      return;
+    } catch { localStorage.removeItem(ID_MEMO_MPW_STORE); }
+  }
+
+  // 데이터 없음 → 신규 설정
+  if (!stored) {
+    ta.value = defaultText;
+    _idMemoShowLock('new');
+    return;
+  }
+
+  // ENC:: 암호화 데이터 → 비번 입력 필요
+  if (stored.startsWith(ID_MEMO_ENC_PREFIX)) {
+    _idMemoShowLock('unlock');
+    return;
+  }
+
+  // 평문 데이터 → 암호화 설정 유도
+  ta.value = stored;
+  _idMemoShowLock('migrate');
+}
+
+function _idMemoShowLock(mode) {
+  const lock  = document.getElementById('id-memo-lock');
+  const title = document.getElementById('id-memo-lock-title');
+  const pw2El = document.getElementById('id-memo-pw2');
+  const btn   = document.getElementById('id-memo-unlock-btn');
+  if (!lock) return;
+  if (mode === 'unlock') {
+    title.textContent = '마스터 비밀번호';
+    pw2El.style.display = 'none';
+    btn.textContent = '잠금 해제';
+  } else if (mode === 'new') {
+    title.textContent = '비밀번호를 설정해주세요';
+    pw2El.style.display = 'block';
+    btn.textContent = '암호화 시작';
+  } else {
+    title.innerHTML = '⚠️ 암호화되어 있지 않습니다<br><span style="font-weight:400;font-size:10px;">비밀번호 설정 시 즉시 암호화</span>';
+    pw2El.style.display = 'block';
+    btn.textContent = '암호화 설정';
+  }
+  lock.style.display = 'flex';
+}
+
+async function idMemoUnlock() {
+  const pw    = document.getElementById('id-memo-pw').value;
+  const pw2El = document.getElementById('id-memo-pw2');
+  const errEl = document.getElementById('id-memo-pw-error');
+  const btn   = document.getElementById('id-memo-unlock-btn');
+  const lock  = document.getElementById('id-memo-lock');
+  const ta    = document.getElementById('id-memo-area');
+  const remem = document.getElementById('id-memo-remember').checked;
+  if (!pw) { errEl.textContent='비밀번호를 입력해주세요'; errEl.style.display='block'; return; }
+
+  const stored = localStorage.getItem('dash-id-memo') || '';
+
+  if (stored.startsWith(ID_MEMO_ENC_PREFIX)) {
+    btn.textContent='확인 중...'; btn.disabled=true;
+    try {
+      const txt = await decryptIdMemo(stored, pw);
+      idMemoMasterPw = pw;
+      if (remem) localStorage.setItem(ID_MEMO_MPW_STORE, btoa(pw));
+      else localStorage.removeItem(ID_MEMO_MPW_STORE);
+      ta.value = txt;
+      lock.style.display='none';
+      errEl.style.display='none';
+      document.getElementById('id-memo-pw').value='';
+    } catch {
+      errEl.textContent='비밀번호가 틀렸습니다'; errEl.style.display='block';
+      btn.textContent='잠금 해제'; btn.disabled=false;
+    }
+  } else {
+    // 신규 설정 또는 마이그레이션
+    const pw2 = pw2El.value;
+    if (pw !== pw2) { errEl.textContent='비밀번호가 일치하지 않습니다'; errEl.style.display='block'; return; }
+    if (pw.length < 4) { errEl.textContent='4자 이상 입력해주세요'; errEl.style.display='block'; return; }
+    btn.textContent='암호화 중...'; btn.disabled=true;
+    const plain = stored || ta.value || '';
+    const enc   = await encryptIdMemo(plain, pw);
+    idMemoMasterPw = pw;
+    if (remem) localStorage.setItem(ID_MEMO_MPW_STORE, btoa(pw));
+    localStorage.setItem('dash-id-memo', enc);
+    fsSaveIdMemo(enc);
+    ta.value = plain;
+    lock.style.display='none';
+    errEl.style.display='none';
+    document.getElementById('id-memo-pw').value='';
+    document.getElementById('id-memo-pw2').value='';
+    btn.textContent='잠금 해제'; btn.disabled=false;
+  }
+}
+
+function idMemoChangePw() {
+  // 비번 변경: 잠금 화면을 change 모드로 표시
+  const lock  = document.getElementById('id-memo-lock');
+  const title = document.getElementById('id-memo-lock-title');
+  const pw2El = document.getElementById('id-memo-pw2');
+  const btn   = document.getElementById('id-memo-unlock-btn');
+  const errEl = document.getElementById('id-memo-pw-error');
+  if (!lock) return;
+  title.innerHTML = '새 비밀번호 설정<br><span style="font-weight:400;font-size:10px;">현재 비밀번호 → 새 비밀번호 순</span>';
+  document.getElementById('id-memo-pw').placeholder = '현재 비밀번호';
+  pw2El.placeholder = '새 비밀번호';
+  pw2El.style.display = 'block';
+  btn.textContent = '변경하기';
+  btn.onclick = idMemoDoChangePw;
+  errEl.style.display = 'none';
+  lock.style.display = 'flex';
+  document.getElementById('id-memo-pw').focus();
+}
+
+async function idMemoDoChangePw() {
+  const oldPw = document.getElementById('id-memo-pw').value;
+  const newPw = document.getElementById('id-memo-pw2').value;
+  const errEl = document.getElementById('id-memo-pw-error');
+  const btn   = document.getElementById('id-memo-unlock-btn');
+  const lock  = document.getElementById('id-memo-lock');
+  const ta    = document.getElementById('id-memo-area');
+  if (!oldPw || !newPw) { errEl.textContent='모두 입력해주세요'; errEl.style.display='block'; return; }
+  if (newPw.length < 4) { errEl.textContent='새 비밀번호 4자 이상'; errEl.style.display='block'; return; }
+  if (oldPw !== idMemoMasterPw) {
+    // 현재 비번으로 검증 시도
+    const stored = localStorage.getItem('dash-id-memo') || '';
+    btn.textContent='확인 중...'; btn.disabled=true;
+    try { await decryptIdMemo(stored, oldPw); }
+    catch { errEl.textContent='현재 비밀번호가 틀렸습니다'; errEl.style.display='block'; btn.textContent='변경하기'; btn.disabled=false; return; }
+  }
+  btn.textContent='변경 중...'; btn.disabled=true;
+  const enc = await encryptIdMemo(ta.value, newPw);
+  idMemoMasterPw = newPw;
+  const remem = document.getElementById('id-memo-remember').checked;
+  if (remem) localStorage.setItem(ID_MEMO_MPW_STORE, btoa(newPw));
+  localStorage.setItem('dash-id-memo', enc);
+  fsSaveIdMemo(enc);
+  lock.style.display='none';
+  document.getElementById('id-memo-pw').value='';
+  document.getElementById('id-memo-pw2').value='';
+  document.getElementById('id-memo-pw').placeholder='비밀번호 입력...';
+  document.getElementById('id-memo-pw2').placeholder='비밀번호 확인';
+  document.getElementById('id-memo-unlock-btn').onclick = idMemoUnlock;
+  btn.textContent='잠금 해제'; btn.disabled=false;
+}
+
+// Enter키
+document.addEventListener('DOMContentLoaded', () => {
+  const _pw = document.getElementById('id-memo-pw');
+  if (_pw) _pw.addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('id-memo-unlock-btn').click(); });
+  const _pw2 = document.getElementById('id-memo-pw2');
+  if (_pw2) _pw2.addEventListener('keydown', e => { if(e.key==='Enter') document.getElementById('id-memo-unlock-btn').click(); });
+});
+
 /* ── Firebase Firestore 연동 ── */
 const firebaseConfig = {
   apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
@@ -1736,8 +2075,13 @@ async function fsLoad() {
       renderMemoNotes();
     }
     if (d.idmemo !== undefined && d.idmemo !== '') {
-      document.getElementById('id-memo-area').value = d.idmemo;
       localStorage.setItem('dash-id-memo', d.idmemo);
+      // 기억된 비밀번호로 자동 복호화
+      if (idMemoMasterPw) {
+        decryptIdMemo(d.idmemo, idMemoMasterPw).then(txt => {
+          document.getElementById('id-memo-area').value = txt;
+        }).catch(() => {});
+      }
     }
     fsSetStatus('synced');
   } catch(e) { console.warn('Firestore 불러오기 실패:', e); fsSetStatus('error'); }
@@ -1756,8 +2100,8 @@ async function fsSaveIdMemo(text) {
 }
 
 /* ── Google Calendar 연동 ── */
-const GCAL_CLIENT_ID = '14747227159-7n3jucu2rb9dt8ubj6pcspncj4vlaum8.apps.googleusercontent.com';
-const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events';
+const GCAL_CLIENT_ID = '204917340853-ooacgv1n725g6k9jga3jjhks0pm82ece.apps.googleusercontent.com';
+const GCAL_SCOPE = 'https://www.googleapis.com/auth/calendar.events https://www.googleapis.com/auth/tasks https://www.googleapis.com/auth/gmail.readonly';
 let gcalAccessToken = localStorage.getItem('gcal-token') || null;
 let gcalTokenClient = null;
 let gcalGisReady = false;
@@ -1775,6 +2119,8 @@ function gisLoaded() {
       gcalAccessToken = resp.access_token;
       localStorage.setItem('gcal-token', gcalAccessToken);
       updateGcalBtn(true);
+      tasksLoadAll();
+      gmailStartPolling();
     }
   });
   gcalGisReady = true;
@@ -1802,12 +2148,12 @@ function updateGcalBtn(connected) {
   const btn = document.getElementById('gcal-btn');
   if (!btn) return;
   if (connected) {
-    btn.textContent = '🔗 연동됨';
+    btn.textContent = '✅ Tasks 연동됨';
     btn.title = '클릭하면 연동 해제';
     btn.style.color = '#43a047';
     btn.style.borderColor = '#43a047';
   } else {
-    btn.textContent = '🔗 구글 연동';
+    btn.textContent = '🔗 Tasks 연동';
     btn.title = '구글 캘린더 연동';
     btn.style.color = 'var(--text2)';
     btn.style.borderColor = 'var(--border)';
@@ -1832,10 +2178,11 @@ async function gcalFetch(method, path, body) {
 }
 
 async function gcalCreateEvent(todo) {
-  if (!gcalAccessToken) return;
-  const ds = new Date().toISOString().split('T')[0];
+  if (!gcalAccessToken || !todo.dueDate) return;
   const data = await gcalFetch('POST', '/calendars/primary/events', {
-    summary: '📋 ' + todo.text, start: { date: ds }, end: { date: ds }
+    summary: '📋 ' + todo.text,
+    start: { date: todo.dueDate },
+    end: { date: todo.dueDate }
   });
   if (data && data.id) { todoEventMap[todo.id] = data.id; saveTodoEventMap(); }
 }
@@ -1853,6 +2200,162 @@ async function gcalDeleteEvent(todoId) {
   if (!eid || !gcalAccessToken) return;
   await gcalFetch('DELETE', '/calendars/primary/events/' + eid);
   delete todoEventMap[todoId]; saveTodoEventMap();
+}
+
+
+
+/* ── Google Tasks API 연동 ── */
+async function tasksApi(method, path, body) {
+  if (!gcalAccessToken) return null;
+  const url = 'https://tasks.googleapis.com/tasks/v1' + path;
+  const opts = {
+    method,
+    headers: { 'Authorization': 'Bearer ' + gcalAccessToken, 'Content-Type': 'application/json' }
+  };
+  if (body) opts.body = JSON.stringify(body);
+  const r = await fetch(url, opts);
+  if (r.status === 401) {
+    gcalAccessToken = null; localStorage.removeItem('gcal-token'); updateGcalBtn(false);
+    return null;
+  }
+  if (r.status === 204 || method === 'DELETE') return {};
+  return r.json().catch(() => ({}));
+}
+
+async function tasksCreateTask(todo) {
+  if (!gcalAccessToken) return;
+  const body = { title: todo.text, status: 'needsAction' };
+  if (todo.dueDate) body.due = todo.dueDate + 'T00:00:00.000Z';
+  const data = await tasksApi('POST', '/lists/@default/tasks', body);
+  if (data && data.id) {
+    // todos 배열에서 이 todo 찾아서 taskId 저장
+    const found = todos.find(t => t.id === todo.id);
+    if (found) { found.taskId = data.id; saveTodos(); }
+  }
+}
+
+async function tasksUpdateTask(todo) {
+  if (!todo.taskId || !gcalAccessToken) return;
+  await tasksApi('PATCH', '/lists/@default/tasks/' + todo.taskId, {
+    status: todo.done ? 'completed' : 'needsAction',
+    title: todo.text
+  });
+}
+
+async function tasksDeleteTask(todo) {
+  if (!todo.taskId || !gcalAccessToken) return;
+  await tasksApi('DELETE', '/lists/@default/tasks/' + todo.taskId);
+}
+
+async function tasksLoadAll() {
+  if (!gcalAccessToken) return;
+  const data = await tasksApi('GET', '/lists/@default/tasks?showCompleted=false&maxResults=100');
+  if (!data || !data.items) return;
+  const apiTasks = data.items;
+  const localTaskIds = new Set(todos.map(t => t.taskId).filter(Boolean));
+  let changed = false;
+  apiTasks.forEach(apiTask => {
+    if (!localTaskIds.has(apiTask.id)) {
+      // Tasks에만 있고 로컬에 없는 항목 → 로컬에 추가
+      todos.push({
+        text: apiTask.title || '(제목 없음)',
+        done: apiTask.status === 'completed',
+        id: Date.now() + Math.floor(Math.random() * 10000),
+        taskId: apiTask.id,
+        dueDate: apiTask.due ? apiTask.due.split('T')[0] : null
+      });
+      changed = true;
+    }
+  });
+  // 로컬에 있고 taskId 없는 항목 → Tasks에 생성
+  const noTaskId = todos.filter(t => !t.taskId);
+  for (const t of noTaskId) {
+    await tasksCreateTask(t);
+    changed = true;
+  }
+  if (changed) { saveTodos(); renderTodos(); }
+}
+
+/* ── Gmail 라벨 자동 할일 연동 (법인/개인/신고) ── */
+const GMAIL_WATCH_LABELS = ['법인', '개인', '신고'];
+const GMAIL_SEEN_KEY     = 'gmail-seen-ids';
+let   gmailPollingTimer  = null;
+
+function gmailSeenIds() {
+  try { return new Set(JSON.parse(localStorage.getItem(GMAIL_SEEN_KEY) || '[]')); }
+  catch { return new Set(); }
+}
+function gmailSaveSeen(ids) {
+  const arr = [...ids].slice(-300); // 최대 300개만 유지
+  localStorage.setItem(GMAIL_SEEN_KEY, JSON.stringify(arr));
+}
+
+async function gmailFetch(path) {
+  if (!gcalAccessToken) return null;
+  const r = await fetch('https://www.googleapis.com/gmail/v1/users/me' + path,
+    { headers: { 'Authorization': 'Bearer ' + gcalAccessToken } });
+  if (r.status === 401) { gcalAccessToken = null; localStorage.removeItem('gcal-token'); updateGcalBtn(false); return null; }
+  if (!r.ok) return null;
+  return r.json().catch(() => null);
+}
+
+async function gmailGetLabelIds() {
+  const data = await gmailFetch('/labels');
+  if (!data || !data.labels) return [];
+  return data.labels
+    .filter(l => GMAIL_WATCH_LABELS.includes(l.name))
+    .map(l => l.id);
+}
+
+async function gmailPollLabels() {
+  if (!gcalAccessToken) return;
+  const labelIds = await gmailGetLabelIds();
+  if (!labelIds.length) return;
+
+  const q = encodeURIComponent('is:unread (' + GMAIL_WATCH_LABELS.map(l => 'label:' + l).join(' OR ') + ')');
+  const data = await gmailFetch('/messages?q=' + q + '&maxResults=20');
+  if (!data || !data.messages) return;
+
+  const seen = gmailSeenIds();
+  const newMsgs = data.messages.filter(m => !seen.has(m.id));
+  if (!newMsgs.length) return;
+
+  // 알림 권한 요청 (처음 한 번)
+  if (Notification.permission === 'default') await Notification.requestPermission();
+
+  for (const msg of newMsgs) {
+    const detail = await gmailFetch('/messages/' + msg.id + '?format=metadata&metadataHeaders=Subject&metadataHeaders=From');
+    if (!detail) continue;
+    const subjectHdr = (detail.payload?.headers || []).find(h => h.name === 'Subject');
+    const fromHdr    = (detail.payload?.headers || []).find(h => h.name === 'From');
+    const subject = subjectHdr?.value || '(제목 없음)';
+    const from    = fromHdr?.value?.replace(/<.*>/, '').trim() || '';
+
+    // 할일 추가
+    const todoText = '[메일] ' + subject + (from ? ' (' + from + ')' : '');
+    const todo = { text: todoText, done: false, id: Date.now() + Math.random(), taskId: null, dueDate: null };
+    todos.unshift(todo);
+    seen.add(msg.id);
+    tasksCreateTask(todo);
+
+    // 브라우저 알림
+    if (Notification.permission === 'granted') {
+      new Notification('📧 확인 필요 메일', {
+        body: subject + (from ? '\n' + from : ''),
+        icon: 'https://www.google.com/favicon.ico',
+        tag: 'gmail-' + msg.id
+      });
+    }
+  }
+
+  if (newMsgs.length > 0) { saveTodos(); renderTodos(); }
+  gmailSaveSeen(seen);
+}
+
+function gmailStartPolling() {
+  gmailPollLabels(); // 즉시 1회
+  if (gmailPollingTimer) clearInterval(gmailPollingTimer);
+  gmailPollingTimer = setInterval(gmailPollLabels, 5 * 60 * 1000); // 5분마다
 }
 
 /* ── Firestore 초기 로드 ── */
