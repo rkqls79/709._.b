@@ -1,0 +1,1539 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<title>외화예금 전표 자동변환기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root {
+    --bg:        #eae6e1;
+    --card:      #f8f6f3;
+    --border:    #ddd8d2;
+    --text:      #3c3831;
+    --sub:       #857e76;
+    --accent:    #7a8fa6;
+    --sage:      #7d9b8a;
+    --sage-dark: #6a8a77;
+    --rose:      #a87878;
+    --sage-bg:   #eff4f1;
+    --rose-bg:   #f6efef;
+    --sage-tag:  #deeae3;
+    --rose-tag:  #f0dede;
+    --shadow:    0 2px 8px rgba(60,56,49,0.08);
+  }
+  body {
+    font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, "Apple SD Gothic Neo", sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    margin: 0;
+    padding: 2cm 2cm 24px 2cm;
+  }
+  h1 { font-size: 21px; margin: 0 0 4px; color: var(--text); }
+  h2 { font-size: 16px; margin: 0 0 4px; color: var(--text); display: flex; align-items: center; gap: 10px; }
+  .sub { color: var(--sub); font-size: 13px; margin-bottom: 20px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 16px;
+    box-shadow: var(--shadow);
+  }
+  .step-num {
+    display: inline-flex; align-items: center; justify-content: center;
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--sage); color: #fff; font-size: 13px; font-weight: 700; flex-shrink: 0;
+  }
+  .card-desc { color: var(--sub); font-size: 12.5px; margin: 4px 0 16px 36px; }
+  .row { display: flex; gap: 24px; flex-wrap: wrap; }
+  .field { flex: 1; min-width: 260px; }
+  label.title { display: block; font-weight: 600; font-size: 13px; margin-bottom: 6px; color: var(--text); }
+  input[type=file] {
+    width: 100%; font-size: 13px; padding: 8px; border: 1px dashed var(--border); border-radius: 6px; background: var(--card);
+  }
+  .hint { font-size: 12px; color: var(--sub); margin-top: 4px; }
+  button {
+    background: var(--sage); color: #fff; border: none; border-radius: 7px;
+    padding: 9px 16px; font-size: 13px; cursor: pointer; font-weight: 600;
+    font-family: inherit; transition: background .15s;
+  }
+  button.secondary { background: var(--sage-bg); color: #3d6653; }
+  button.small { padding: 4px 9px; font-size: 12px; }
+  button:hover { background: var(--sage-dark); }
+  button.secondary:hover { background: var(--sage-tag); }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
+  th, td { border: 1px solid var(--border); padding: 5px 6px; text-align: center; color: var(--text); }
+  th { background: #f2efeb; font-weight: 600; color: var(--sub); }
+  td input, td select {
+    width: 100%; border: none; background: transparent; text-align: center; font-size: 12.5px; padding: 2px; color: var(--text);
+  }
+  td input:focus { background: #fff8e1; outline: 1px solid var(--accent); }
+  .issue-row td { background: var(--rose-bg); }
+  .dup-row td:first-child { box-shadow: inset 4px 0 0 #c9a227; }
+  .search-row { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+  .search-row input { flex: 1; padding: 7px 10px; border: 1px solid var(--border); border-radius: 6px; font-size: 13px; }
+  #mappingTable input { text-align: left; }
+  #mappingTable td:first-child input { text-align: left; }
+  .table-wrap { max-height: 480px; overflow: auto; border: 1px solid var(--border); border-radius: 8px; }
+  .table-wrap table { min-width: 900px; }
+  #mappingWrap table { min-width: 0; }
+  .summary-box { font-size: 13px; line-height: 1.7; color: var(--text); }
+  .summary-box b { color: var(--rose); }
+  .actions { display: flex; gap: 10px; margin-top: 14px; }
+  .actions-right { justify-content: flex-end; }
+  .badge { display:inline-block; padding:2px 8px; border-radius:20px; font-size:11px; font-weight:700; }
+  .badge.ok { background: var(--sage-tag); color: #3d6653; }
+  .badge.warn { background: var(--rose-tag); color: #7a4040; }
+  .dropzone {
+    border: 2px dashed var(--border); border-radius: 8px; padding: 16px; text-align: center;
+    background: var(--card); cursor: pointer; transition: all .15s;
+  }
+  .dropzone.dragover { border-color: var(--sage); background: var(--sage-bg); }
+  .dropzone input[type=file] { display: none; }
+  .dropzone .dz-text { font-size: 13px; color: var(--sub); pointer-events: none; }
+  .dropzone .dz-text b { color: var(--sage); }
+  .file-list { margin-top: 8px; font-size: 12px; color: var(--text); text-align: left; }
+  .file-list .file-row { display: flex; align-items: center; justify-content: space-between; padding: 2px 0; gap: 8px; }
+  .file-list .file-row span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .file-list .remove-file { background: none; border: none; color: var(--rose); font-weight: 700; cursor: pointer; padding: 0 4px; font-size: 13px; }
+  .file-list .clear-all { background: none; border: none; color: var(--accent); font-size: 11.5px; text-decoration: underline; cursor: pointer; padding: 4px 0 0; }
+  .toggle-link {
+    background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600;
+    cursor: pointer; padding: 4px 0; text-decoration: underline;
+  }
+  .rule-summary { font-size: 12.5px; color: var(--sub); background: #f2efeb; border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
+  .note-col { display: none; }
+  .show-notes .note-col { display: table-cell; }
+  .note-toggle-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--sub); margin-bottom: 8px; }
+  th.group-head { background: var(--sage-bg); color: #3d6653; }
+  .modal-overlay {
+    position: fixed; inset: 0; background: rgba(60,56,49,0.45);
+    display: flex; align-items: center; justify-content: center; z-index: 1000;
+  }
+  .modal-overlay.hidden { display: none; }
+  .modal-box {
+    background: var(--card); border: 1px solid var(--border); border-radius: 12px;
+    padding: 22px 24px; width: 340px; max-width: 88vw; box-shadow: 0 10px 34px rgba(30,28,24,0.25);
+  }
+  .modal-box h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
+  .modal-box p { margin: 0 0 14px; font-size: 12.5px; color: var(--sub); line-height: 1.6; }
+  .modal-box input {
+    width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 7px;
+    font-size: 13.5px; margin-bottom: 16px; font-family: inherit; color: var(--text); background: #fff;
+  }
+  .modal-box input:focus { outline: 1px solid var(--accent); }
+  .modal-actions { display: flex; justify-content: flex-end; gap: 8px; }
+  .modal-actions button.danger { background: var(--rose); }
+  .modal-actions button.danger:hover { background: #8f5f5f; }
+  .tab-bar { display: flex; gap: 4px; margin-bottom: 18px; border-bottom: 2px solid var(--border); }
+  .tab-btn {
+    background: none; border: none; padding: 10px 18px; font-size: 14px; font-weight: 700;
+    color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px;
+    border-radius: 0; font-family: inherit;
+  }
+  .tab-btn.active { color: #3d6653; border-bottom-color: var(--sage); }
+  .tab-btn:hover { background: var(--sage-bg); }
+  .settings-head { display: flex; align-items: center; gap: 8px; }
+  .settings-head .icon { font-size: 15px; }
+</style>
+</head>
+<body>
+
+<h1>외화예금 전표 자동변환기</h1>
+<div class="sub">외화계좌 엑셀과 환율 파일을 올리면 자동으로 원화 환산해서 전표 형식으로 만들어줍니다. 모든 처리는 이 화면 안에서만 이뤄지고 파일은 어디에도 전송되지 않아요.</div>
+
+<div class="tab-bar">
+  <button class="tab-btn active" id="tabBtnConvert">변환하기</button>
+  <button class="tab-btn" id="tabBtnSettings">설정</button>
+</div>
+
+<div id="tabConvert">
+
+<div class="card">
+  <h2><span class="step-num">1</span> 파일 올리기</h2>
+  <div class="card-desc">외화계좌 엑셀과 환율 파일, 두 가지만 올리면 됩니다.</div>
+  <div class="actions" style="margin-top:0;margin-bottom:14px;flex-wrap:wrap;">
+    <label class="title" style="margin:0;white-space:nowrap;display:flex;align-items:center;">지금 처리할 거래처</label>
+    <select id="vendorSelectQuick" style="flex:1;min-width:160px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;"></select>
+    <button class="toggle-link" id="btnGotoVendorSettings" style="white-space:nowrap;">거래처 관리 →</button>
+  </div>
+  <div class="row">
+    <div class="field">
+      <label class="title">외화계좌 거래내역 엑셀</label>
+      <div class="dropzone" id="fxDrop">
+        <div class="dz-text">여기로 <b>끌어다 놓거나</b> 클릭해서 선택<br>(여러 계좌·여러 파일 동시 선택 가능)</div>
+        <input type="file" id="fxFiles" accept=".xlsx,.xls" multiple>
+      </div>
+      <div class="file-list" id="fxFileList"></div>
+    </div>
+    <div class="field">
+      <label class="title">서울외국환중개 환율 파일</label>
+      <div class="dropzone" id="rateDrop">
+        <div class="dz-text">여기로 <b>끌어다 놓거나</b> 클릭해서 선택</div>
+        <input type="file" id="rateFiles" accept=".xls,.html,.htm" multiple>
+      </div>
+      <div class="file-list" id="rateFileList"></div>
+    </div>
+  </div>
+  <div id="rateCoverageWarning" style="margin-top:2px;font-size:12.5px;line-height:1.6;"></div>
+  <div class="actions actions-right">
+    <button id="btnProcess">변환 실행 →</button>
+  </div>
+</div>
+
+<div class="card" id="previewCard" style="display:none">
+  <h2><span class="step-num">2</span> 확인 후 다운로드</h2>
+  <div class="summary-box" id="summaryBox" style="margin-bottom:10px;"></div>
+  <div class="card-desc">빨간색 행은 확인이 필요한 거래예요. 셀을 클릭하면 바로 고칠 수 있어요. 계정·거래처를 채우면 자동으로 규칙에 저장돼서 다음에도 같은 적요는 자동 분류돼요.</div>
+  <div class="rule-summary" id="quickFixSaveTarget" style="margin-top:-6px;"></div>
+  <div id="balanceCheck" style="margin-bottom:10px;font-size:13px"></div>
+  <label class="note-toggle-row"><input type="checkbox" id="toggleNotes"> 환율 적용 참고정보 같이 보기</label>
+  <div class="search-row">
+    <input type="text" id="previewSearch" placeholder="계좌번호, 날짜, 적요, 계정과목, 거래처로 검색">
+    <button class="secondary small" id="btnClearSearch">지우기</button>
+    <label style="display:flex;align-items:center;gap:5px;white-space:nowrap;font-size:12.5px;color:var(--text);"><input type="checkbox" id="toggleIssueOnly"> 확인 필요만 보기</label>
+  </div>
+  <div class="table-wrap" id="previewWrap">
+    <table id="previewTable">
+      <thead>
+        <tr>
+          <th rowspan="2" style="width:10%">통장적요<br><span style="font-weight:400;color:#999;">(참고용, 다운로드에 안 들어감)</span></th>
+          <th rowspan="2" style="width:7%">적요 접두어</th>
+          <th colspan="3" class="group-head">거래일자</th>
+          <th rowspan="2" style="width:5%">구분</th>
+          <th colspan="2" class="group-head">계정 정보</th>
+          <th colspan="2" class="group-head">거래처</th>
+          <th rowspan="2" style="width:8%">차변</th>
+          <th rowspan="2" style="width:8%">대변</th>
+          <th rowspan="2" style="width:19%">적요</th>
+          <th rowspan="2" class="note-col">참고(적용환율)</th>
+        </tr>
+        <tr>
+          <th style="width:3.5%">년</th><th style="width:3.5%">월</th><th style="width:3.5%">일</th>
+          <th style="width:5%">코드</th><th style="width:10%">계정과목</th>
+          <th style="width:5%">코드</th><th style="width:10%">거래처명</th>
+        </tr>
+      </thead>
+      <tbody id="previewBody"></tbody>
+    </table>
+  </div>
+  <div class="actions actions-right">
+    <button class="secondary" id="btnReset">변환 결과로 되돌리기</button>
+    <button id="btnDownload">일반전표입력 엑셀 다운로드</button>
+  </div>
+</div>
+
+</div>
+
+<div id="tabSettings" style="display:none">
+
+<div class="card">
+  <h2 class="settings-head">거래처 등록 및 관리 <span style="font-weight:400;color:#999;font-size:12.5px">(선택사항)</span></h2>
+  <div class="card-desc">거래처를 등록해두면 변환하기 탭에서 골라 쓸 수 있어요. 거래처마다 전용 규칙(계정과목·거래처코드·보통예금 계정)을 따로 저장해요.</div>
+  <div class="actions" style="margin-top:0;margin-bottom:10px;flex-wrap:wrap;">
+    <label class="title" style="margin:0;white-space:nowrap;display:flex;align-items:center;">거래처</label>
+    <select id="vendorSelect" style="width:200px;padding:7px 10px;border:1px solid var(--border);border-radius:6px;font-size:13px;background:#fff;"></select>
+    <button class="secondary small" id="btnAddVendor">+ 새 거래처</button>
+    <button class="secondary small" id="btnRenameVendor">이름 변경</button>
+    <button class="secondary small" id="btnDeleteVendor">삭제</button>
+    <span style="flex:1"></span>
+    <button class="secondary small" id="btnExportSettings">규칙 엑셀로 내보내기</button>
+    <button class="secondary small" id="btnImportSettings">규칙 엑셀 불러오기</button>
+    <input type="file" id="importSettingsFile" accept=".xlsx,.xls,.json" style="display:none">
+  </div>
+  <div class="hint" id="vendorEmptyHint">아직 등록된 거래처가 없어요. "+ 새 거래처"를 눌러 추가해보세요.</div>
+  <div id="vendorDetail" style="display:none; margin-top:12px;">
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label class="title">보통예금 계정과목 <span style="font-weight:400;color:#999;">(비우면 기본값 보통예금)</span></label>
+        <input type="text" id="vendorMainAccount" placeholder="보통예금">
+      </div>
+      <div class="field">
+        <label class="title">보통예금 코드 <span style="font-weight:400;color:#999;">(비우면 기본값 103)</span></label>
+        <input type="text" id="vendorMainCode" placeholder="103">
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label class="title">결산(이자) 거래처코드</label>
+        <input type="text" id="vendorSettleCustCode" placeholder="예: 001">
+      </div>
+      <div class="field">
+        <label class="title">결산(이자) 거래처명</label>
+        <input type="text" id="vendorSettleCust" placeholder="예: OO은행">
+      </div>
+    </div>
+    <div class="hint" style="margin:-4px 0 10px;">거래구분에 "결산"이 포함된 거래는 자동으로 계정과목 이자수익(901) + 위 거래처로 처리돼요.</div>
+    <div class="rule-summary" id="vendorRuleSummary"></div>
+    <table id="vendorRuleTable">
+      <thead><tr><th style="width:20%">통장적요에 이 단어가 있으면</th><th style="width:12%">코드</th><th style="width:20%">계정과목</th><th style="width:14%">거래처코드</th><th style="width:20%">거래처명</th><th style="width:14%"></th></tr></thead>
+      <tbody id="vendorRuleBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="secondary small" id="addVendorRuleRow">+ 이 거래처 전용 규칙 추가</button>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <h2 class="settings-head">상대계정 규칙 (공통) <span style="font-weight:400;color:#999;font-size:12.5px">(선택사항)</span></h2>
+  <div class="card-desc">적요에 특정 단어가 있으면 상대 계정을 자동으로 채워주는 공통 규칙이에요.</div>
+  <div class="rule-summary" id="ruleSummary"></div>
+  <button class="toggle-link" id="toggleRules">규칙 펼쳐서 직접 수정하기 ▾</button>
+  <div id="mappingWrap" style="display:none; margin-top:12px;">
+    <table id="mappingTable">
+      <thead><tr><th style="width:20%">통장적요에 이 단어가 있으면</th><th style="width:12%">코드</th><th style="width:20%">계정과목</th><th style="width:14%">거래처코드</th><th style="width:20%">거래처명</th><th style="width:14%"></th></tr></thead>
+      <tbody id="mappingBody"></tbody>
+    </table>
+    <div class="actions">
+      <button class="secondary small" id="addMappingRow">+ 규칙 추가</button>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div class="modal-overlay hidden" id="modalOverlay">
+  <div class="modal-box">
+    <h3 id="modalTitle"></h3>
+    <p id="modalMessage" style="display:none"></p>
+    <input type="text" id="modalInput" style="display:none">
+    <div class="modal-actions">
+      <button class="secondary" id="modalCancelBtn">취소</button>
+      <button id="modalConfirmBtn">확인</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ---------- 화면 중앙 모달 (브라우저 기본 prompt/confirm/alert 대신 사용) ----------
+let modalResolve = null;
+function openModal({ title, message, showInput, inputValue, placeholder, confirmText, cancelText, showCancel, danger }) {
+  return new Promise(resolve => {
+    modalResolve = resolve;
+    document.getElementById('modalTitle').textContent = title || '';
+    const msgEl = document.getElementById('modalMessage');
+    if (message) { msgEl.textContent = message; msgEl.style.display = 'block'; } else { msgEl.style.display = 'none'; }
+    const inputEl = document.getElementById('modalInput');
+    if (showInput) {
+      inputEl.style.display = 'block';
+      inputEl.value = inputValue || '';
+      inputEl.placeholder = placeholder || '';
+    } else {
+      inputEl.style.display = 'none';
+    }
+    const confirmBtn = document.getElementById('modalConfirmBtn');
+    const cancelBtn = document.getElementById('modalCancelBtn');
+    confirmBtn.textContent = confirmText || '확인';
+    confirmBtn.className = danger ? 'danger' : '';
+    cancelBtn.style.display = (showCancel === false) ? 'none' : 'inline-block';
+    cancelBtn.textContent = cancelText || '취소';
+    document.getElementById('modalOverlay').classList.remove('hidden');
+    if (showInput) setTimeout(() => inputEl.focus(), 30);
+  });
+}
+function closeModal(result) {
+  document.getElementById('modalOverlay').classList.add('hidden');
+  if (modalResolve) { modalResolve(result); modalResolve = null; }
+}
+document.getElementById('modalCancelBtn').addEventListener('click', () => closeModal(null));
+document.getElementById('modalConfirmBtn').addEventListener('click', () => {
+  const inputEl = document.getElementById('modalInput');
+  closeModal(inputEl.style.display !== 'none' ? inputEl.value.trim() : true);
+});
+document.getElementById('modalOverlay').addEventListener('click', (e) => {
+  if (e.target.id === 'modalOverlay') closeModal(null);
+});
+document.getElementById('modalInput').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') { e.preventDefault(); document.getElementById('modalConfirmBtn').click(); }
+  if (e.key === 'Escape') closeModal(null);
+});
+// 텍스트 입력 하나 받기 (취소하거나 빈 값이면 null)
+async function promptModal(title, placeholder, defaultValue) {
+  const result = await openModal({ title, showInput: true, inputValue: defaultValue, placeholder, confirmText: '확인', cancelText: '취소' });
+  return result || null;
+}
+// 예/아니오 확인
+async function confirmModal(title, message, confirmText, danger) {
+  const result = await openModal({ title, message, showInput: false, confirmText: confirmText || '확인', cancelText: '취소', danger });
+  return !!result;
+}
+// 확인 버튼만 있는 알림
+async function alertModal(message, title) {
+  await openModal({ title: title || '알림', message, showInput: false, confirmText: '확인', showCancel: false });
+}
+
+const MAPPING_KEY = 'fx_mapping_rules_v1';
+let mappingRules = [];
+let currentRows = []; // holds {y,m,d,gubun,code,account,custCode,cust,dr,cr,memo,note,_issue}
+let originalRows = []; // 방금 변환 직후의 스냅샷 (되돌리기용)
+
+function loadMappingRules() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(MAPPING_KEY) || 'null');
+    if (saved && saved.length) { mappingRules = saved; return; }
+  } catch(e) {}
+  mappingRules = [
+    { keyword: '환전', account: '보통예금', code: '103', custCode: '', cust: '' },
+    { keyword: '이자', account: '이자수익', code: '901', custCode: '', cust: '' },
+    { keyword: '수수료', account: '수수료비용', code: '831', custCode: '', cust: '' }
+  ];
+}
+// 이미 저장된 규칙에 없는 필수 기본 규칙은 자동으로 맨 앞에 추가 (기존 설정은 건드리지 않음)
+function ensureDefaultRule(keyword, account, code) {
+  if (!mappingRules.some(r => r.keyword === keyword)) {
+    mappingRules.unshift({ keyword, account, code, custCode: '', cust: '' });
+    saveMappingRules();
+  }
+}
+function saveMappingRules() {
+  localStorage.setItem(MAPPING_KEY, JSON.stringify(mappingRules));
+}
+function renderRuleSummary() {
+  const box = document.getElementById('ruleSummary');
+  if (!box) return;
+  if (!mappingRules.length) { box.textContent = '등록된 규칙이 없습니다. 아래에서 규칙을 추가해보세요.'; return; }
+  const items = mappingRules
+    .filter(r => r.keyword)
+    .map(r => `<b>${r.keyword}</b> → ${r.account || '(계정 미지정)'}`)
+    .join(' &nbsp;·&nbsp; ');
+  box.innerHTML = `현재 ${mappingRules.length}개 규칙 적용 중: ${items}`;
+}
+
+function renderMappingTable() {
+  const body = document.getElementById('mappingBody');
+  body.innerHTML = '';
+  mappingRules.forEach((rule, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input data-idx="${idx}" data-f="keyword" value="${rule.keyword||''}"></td>
+      <td><input data-idx="${idx}" data-f="code" value="${rule.code||''}"></td>
+      <td><input data-idx="${idx}" data-f="account" value="${rule.account||''}"></td>
+      <td><input data-idx="${idx}" data-f="custCode" value="${rule.custCode||''}"></td>
+      <td><input data-idx="${idx}" data-f="cust" value="${rule.cust||''}"></td>
+      <td><button class="secondary small" data-del="${idx}">삭제</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      mappingRules[inp.dataset.idx][inp.dataset.f] = inp.value;
+      saveMappingRules();
+      renderRuleSummary();
+    });
+  });
+  body.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      mappingRules.splice(parseInt(btn.dataset.del), 1);
+      saveMappingRules();
+      renderMappingTable();
+      renderRuleSummary();
+    });
+  });
+  renderRuleSummary();
+}
+document.getElementById('addMappingRow').addEventListener('click', () => {
+  mappingRules.push({ keyword:'', account:'', code:'', custCode:'', cust:'' });
+  saveMappingRules();
+  renderMappingTable();
+});
+
+document.getElementById('toggleRules').addEventListener('click', () => {
+  const wrap = document.getElementById('mappingWrap');
+  const btn = document.getElementById('toggleRules');
+  const opening = wrap.style.display === 'none';
+  wrap.style.display = opening ? 'block' : 'none';
+  btn.textContent = opening ? '규칙 접기 ▲' : '규칙 펼쳐서 직접 수정하기 ▾';
+});
+
+document.getElementById('toggleNotes').addEventListener('change', (e) => {
+  document.getElementById('previewWrap').classList.toggle('show-notes', e.target.checked);
+});
+
+// ---------- 거래처 등록/선택 (거래처마다 전용 적요 규칙 + 보통예금 계정을 묶어서 저장) ----------
+const VENDOR_KEY = 'fx_vendor_profiles_v1';
+const SELECTED_VENDOR_KEY = 'fx_selected_vendor_v1';
+let vendorProfiles = [];
+let selectedVendorId = '';
+
+function loadVendorProfiles() {
+  try {
+    const saved = JSON.parse(localStorage.getItem(VENDOR_KEY) || 'null');
+    vendorProfiles = Array.isArray(saved) ? saved : [];
+  } catch(e) { vendorProfiles = []; }
+  migrateOldAcctRulesToVendors();
+  selectedVendorId = localStorage.getItem(SELECTED_VENDOR_KEY) || '';
+}
+function saveVendorProfiles() {
+  localStorage.setItem(VENDOR_KEY, JSON.stringify(vendorProfiles));
+}
+// 예전 "계좌별 거래처코드"(계좌번호 자동매칭) 데이터가 남아있으면, 한 번만 거래처 등록 목록으로 옮겨줌
+function migrateOldAcctRulesToVendors() {
+  if (vendorProfiles.length) return;
+  let oldRules = [];
+  try { oldRules = JSON.parse(localStorage.getItem('fx_account_cust_rules_v1') || 'null') || []; } catch(e) {}
+  if (!Array.isArray(oldRules) || !oldRules.length) return;
+  oldRules.forEach(r => {
+    if (!r || (!r.key && !r.cust)) return;
+    vendorProfiles.push({
+      id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7),
+      name: r.cust || r.key || '거래처',
+      mainAccount: r.mainAccount || '',
+      mainCode: r.mainCode || '',
+      rules: []
+    });
+  });
+  if (vendorProfiles.length) saveVendorProfiles();
+}
+function getSelectedVendor() {
+  return vendorProfiles.find(v => v.id === selectedVendorId) || null;
+}
+function renderVendorSelect() {
+  const optionsHtml = '<option value="">(공통 규칙만 사용)</option>' +
+    vendorProfiles.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+  const validId = vendorProfiles.some(v => v.id === selectedVendorId) ? selectedVendorId : '';
+  selectedVendorId = validId;
+  // 설정 탭의 거래처 선택과 변환하기 탭의 간단 선택, 두 군데 모두 동기화
+  ['vendorSelect', 'vendorSelectQuick'].forEach(id => {
+    const sel = document.getElementById(id);
+    if (!sel) return;
+    sel.innerHTML = optionsHtml;
+    sel.value = validId;
+  });
+  document.getElementById('vendorEmptyHint').style.display = vendorProfiles.length ? 'none' : 'block';
+  renderVendorDetail();
+}
+function renderVendorDetail() {
+  const vendor = getSelectedVendor();
+  const detail = document.getElementById('vendorDetail');
+  if (!vendor) { detail.style.display = 'none'; return; }
+  detail.style.display = 'block';
+  document.getElementById('vendorMainAccount').value = vendor.mainAccount || '';
+  document.getElementById('vendorMainCode').value = vendor.mainCode || '';
+  document.getElementById('vendorSettleCustCode').value = vendor.settleCustCode || '';
+  document.getElementById('vendorSettleCust').value = vendor.settleCust || '';
+  renderVendorRuleTable();
+}
+function renderVendorRuleSummary() {
+  const vendor = getSelectedVendor();
+  const box = document.getElementById('vendorRuleSummary');
+  if (!vendor || !box) return;
+  if (!vendor.rules.length) { box.textContent = `"${vendor.name}" 전용 규칙 없음 — 공통 규칙 사용 중`; return; }
+  const items = vendor.rules
+    .filter(r => r.keyword)
+    .map(r => `<b>${r.keyword}</b> → ${r.account || '(계정 미지정)'}`)
+    .join(' &nbsp;·&nbsp; ');
+  box.innerHTML = `"${vendor.name}" 전용 규칙 ${vendor.rules.length}개: ${items}`;
+}
+function renderVendorRuleTable() {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  const body = document.getElementById('vendorRuleBody');
+  body.innerHTML = '';
+  vendor.rules.forEach((rule, idx) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td><input data-idx="${idx}" data-f="keyword" value="${rule.keyword||''}"></td>
+      <td><input data-idx="${idx}" data-f="code" value="${rule.code||''}"></td>
+      <td><input data-idx="${idx}" data-f="account" value="${rule.account||''}"></td>
+      <td><input data-idx="${idx}" data-f="custCode" value="${rule.custCode||''}"></td>
+      <td><input data-idx="${idx}" data-f="cust" value="${rule.cust||''}"></td>
+      <td><button class="secondary small" data-del="${idx}">삭제</button></td>
+    `;
+    body.appendChild(tr);
+  });
+  body.querySelectorAll('input').forEach(inp => {
+    inp.addEventListener('input', () => {
+      vendor.rules[inp.dataset.idx][inp.dataset.f] = inp.value;
+      saveVendorProfiles();
+      renderVendorRuleSummary();
+    });
+  });
+  body.querySelectorAll('button[data-del]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      vendor.rules.splice(parseInt(btn.dataset.del), 1);
+      saveVendorProfiles();
+      renderVendorRuleTable();
+      renderVendorRuleSummary();
+    });
+  });
+  renderVendorRuleSummary();
+}
+// 설정 탭의 거래처 선택과 변환하기 탭의 간단 선택, 둘 중 어디서 바꾸든 서로 동기화
+function onVendorSelectChange(e) {
+  selectedVendorId = e.target.value;
+  localStorage.setItem(SELECTED_VENDOR_KEY, selectedVendorId);
+  renderVendorSelect();
+}
+document.getElementById('vendorSelect').addEventListener('change', onVendorSelectChange);
+document.getElementById('vendorSelectQuick').addEventListener('change', onVendorSelectChange);
+
+document.getElementById('tabBtnConvert').addEventListener('click', () => switchTab('convert'));
+document.getElementById('tabBtnSettings').addEventListener('click', () => switchTab('settings'));
+document.getElementById('btnGotoVendorSettings').addEventListener('click', () => switchTab('settings'));
+function switchTab(tab) {
+  document.getElementById('tabConvert').style.display = tab === 'convert' ? 'block' : 'none';
+  document.getElementById('tabSettings').style.display = tab === 'settings' ? 'block' : 'none';
+  document.getElementById('tabBtnConvert').classList.toggle('active', tab === 'convert');
+  document.getElementById('tabBtnSettings').classList.toggle('active', tab === 'settings');
+}
+document.getElementById('btnAddVendor').addEventListener('click', async () => {
+  const name = await promptModal('새 거래처 등록', '예: A상사', '');
+  if (!name) return;
+  const v = { id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', rules: [] };
+  vendorProfiles.push(v);
+  saveVendorProfiles();
+  selectedVendorId = v.id;
+  localStorage.setItem(SELECTED_VENDOR_KEY, selectedVendorId);
+  renderVendorSelect();
+});
+document.getElementById('btnRenameVendor').addEventListener('click', async () => {
+  const vendor = getSelectedVendor();
+  if (!vendor) { await alertModal('먼저 위 목록에서 거래처를 선택하세요.'); return; }
+  const name = await promptModal('거래처 이름 변경', '', vendor.name);
+  if (!name) return;
+  vendor.name = name;
+  saveVendorProfiles();
+  renderVendorSelect();
+});
+document.getElementById('btnDeleteVendor').addEventListener('click', async () => {
+  const vendor = getSelectedVendor();
+  if (!vendor) { await alertModal('먼저 위 목록에서 거래처를 선택하세요.'); return; }
+  const ok = await confirmModal('거래처 삭제', `"${vendor.name}" 거래처를 삭제할까요? 전용 규칙도 함께 삭제돼요.`, '삭제', true);
+  if (!ok) return;
+  vendorProfiles = vendorProfiles.filter(v => v.id !== vendor.id);
+  saveVendorProfiles();
+  selectedVendorId = '';
+  localStorage.setItem(SELECTED_VENDOR_KEY, '');
+  renderVendorSelect();
+});
+document.getElementById('addVendorRuleRow').addEventListener('click', () => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.rules.push({ keyword: '', account: '', code: '', custCode: '', cust: '' });
+  saveVendorProfiles();
+  renderVendorRuleTable();
+});
+document.getElementById('vendorMainAccount').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.mainAccount = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorMainCode').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.mainCode = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorSettleCustCode').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.settleCustCode = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorSettleCust').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.settleCust = e.target.value;
+  saveVendorProfiles();
+});
+
+// 지금 활성화된 규칙 목록: 거래처가 선택돼 있으면 그 거래처 전용 규칙, 아니면 공통 규칙
+function activeRuleList() {
+  const vendor = getSelectedVendor();
+  return vendor ? vendor.rules : mappingRules;
+}
+function saveActiveRules() {
+  if (getSelectedVendor()) saveVendorProfiles(); else saveMappingRules();
+}
+function renderActiveRuleTable() {
+  if (getSelectedVendor()) renderVendorRuleTable(); else renderMappingTable();
+}
+
+// ---------- 매매기준율 파일 파싱 (서울외국환중개, EUC-KR HTML 위장 xls) ----------
+async function parseRateFile(file) {
+  const buf = await file.arrayBuffer();
+  let text;
+  try { text = new TextDecoder('euc-kr').decode(buf); }
+  catch(e) { text = new TextDecoder('utf-8').decode(buf); }
+  const doc = new DOMParser().parseFromString(text, 'text/html');
+  const trs = doc.querySelectorAll('tr');
+  const rateMap = {};
+  trs.forEach(tr => {
+    const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
+    if (cells.length < 3) return;
+    const dm = cells[0].match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
+    if (!dm) return;
+    const dateKey = `${dm[1]}-${dm[2]}-${dm[3]}`;
+    const cm = cells[1].match(/\(([A-Za-z]{3})\)/);
+    if (!cm) return;
+    const cur = cm[1].toUpperCase();
+    const rate = parseFloat(cells[2].replace(/,/g, ''));
+    if (isNaN(rate)) return;
+    if (!rateMap[cur]) rateMap[cur] = {};
+    rateMap[cur][dateKey] = rate;
+  });
+  return rateMap;
+}
+
+// 적요에 쓸 "USD2,201.6*@1,455.7" 형식 숫자 포맷 (천단위 콤마, 불필요한 0은 생략)
+function fmtFxNum(n) {
+  return Number(n).toLocaleString('en-US', { maximumFractionDigits: 4 });
+}
+
+function dateKeyFromDate(d) {
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
+
+function findRate(rateMap, cur, dateKey) {
+  if (!cur || !rateMap[cur]) return null;
+  const [yy, mm, dd] = dateKey.split('-').map(Number);
+  let d = new Date(yy, mm - 1, dd);
+  for (let i = 0; i < 10; i++) {
+    const key = dateKeyFromDate(d);
+    if (rateMap[cur][key] !== undefined) {
+      return { rate: rateMap[cur][key], usedDate: key, fallback: i > 0 };
+    }
+    d.setDate(d.getDate() - 1);
+  }
+  return null;
+}
+
+function findCol(headerRow, name) {
+  let idx = headerRow.findIndex(h => String(h).trim() === name);
+  if (idx === -1) idx = headerRow.findIndex(h => String(h).trim().includes(name));
+  return idx;
+}
+
+function parseDateCell(raw) {
+  if (raw instanceof Date && !isNaN(raw)) return raw;
+  let s = String(raw).trim();
+  s = s.replace(/\./g, '-').replace(/\//g, '-');
+  // 20260710 형태
+  if (/^\d{8}$/.test(s)) s = `${s.slice(0,4)}-${s.slice(4,6)}-${s.slice(6,8)}`;
+  const d = new Date(s);
+  return d;
+}
+
+// 표 위쪽/별도 셀에 적힌 "계좌번호: 110-xxx" 같은 문구를 찾아서 계좌번호를 추출
+function extractAccountNumber(rows, headerRowIdx) {
+  const scanRows = rows.slice(0, Math.max(headerRowIdx, 0) + 1);
+  for (let i = 0; i < scanRows.length; i++) {
+    const row = scanRows[i];
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] || '').trim();
+      if (!cell.includes('계좌번호') && !cell.includes('계좌 번호')) continue;
+      // 같은 셀 안에 "계좌번호: 110-xxx" 형태로 붙어있는 경우
+      let m = cell.match(/계좌\s*번호\s*[:：]?\s*([0-9][0-9\-]{5,})/);
+      if (m) return m[1];
+      // 라벨과 번호가 옆 셀에 나뉘어 있는 경우
+      for (let k = j + 1; k < row.length; k++) {
+        const nc = String(row[k] || '').trim();
+        if (/^[0-9][0-9\-]{5,}$/.test(nc)) return nc;
+      }
+      // 라벨과 번호가 아래 행에 나뉘어 있는 경우
+      if (scanRows[i + 1]) {
+        for (let k = 0; k < scanRows[i + 1].length; k++) {
+          const nc = String(scanRows[i + 1][k] || '').trim();
+          if (/^[0-9][0-9\-]{5,}$/.test(nc)) return nc;
+        }
+      }
+    }
+  }
+  return null;
+}
+
+// 파일 안에 "계좌번호" 라벨이 없을 때, 파일명에 적힌 숫자(예: "DRL-외환_110-222-333333.xlsx")를 계좌번호로 사용
+// 파일명에 숫자 계좌번호도 없으면(예: "기타-외환_.xls") 파일명 자체를 계좌 식별자로 사용해서
+// 같은 이름으로 여러 번 올린 파일들이 매번 "미확인"으로 흩어지지 않고 하나로 합쳐지게 함
+function extractAccountNumberFromFileName(fileName) {
+  if (!fileName) return null;
+  const m = String(fileName).match(/(\d[\d\-]{9,})/);
+  if (m) return m[1];
+  const cleaned = String(fileName)
+    .replace(/\.(xlsx?|xlsm|csv)$/i, '')
+    .replace(/\s*\(\d+\)$/, '') // 브라우저가 자동으로 붙이는 "(1)", "(2)" 등 제거
+    .replace(/[_\-\s]+$/, '')
+    .trim();
+  return cleaned || null;
+}
+
+// 파일 안에 "계좌명" 라벨이 있으면 그 값을, 없으면 파일명에서 계좌번호 앞부분 텍스트(예: "DRL-외환")를 계좌명으로 사용
+function extractAccountName(rows, headerRowIdx, fileName) {
+  const scanRows = rows.slice(0, Math.max(headerRowIdx, 0) + 1);
+  for (let i = 0; i < scanRows.length; i++) {
+    const row = scanRows[i];
+    for (let j = 0; j < row.length; j++) {
+      const cell = String(row[j] || '').trim();
+      if (!cell.includes('계좌명')) continue;
+      const m = cell.match(/계좌명\s*[:：]?\s*(.+)/);
+      if (m && m[1].trim()) return m[1].trim();
+      for (let k = j + 1; k < row.length; k++) {
+        const nc = String(row[k] || '').trim();
+        if (nc) return nc;
+      }
+    }
+  }
+  if (fileName) {
+    const m = String(fileName).match(/^(.*?)(\d[\d\-]{9,})/);
+    if (m && m[1]) {
+      const name = m[1].replace(/[_\-\s]+$/, '').trim();
+      if (name) return name;
+    }
+  }
+  return '';
+}
+
+// 통화별로 원본 행 순서를 유지한 채 누적 잔액을 검산 (거래후잔액 컬럼이 있을 때만)
+function verifyBalances(dataRows, cCur, cAmt, cBal, cGubun, cDate, cMemo) {
+  const warnings = [];
+  if (cBal === -1) return warnings;
+  const byCurrency = {};
+  dataRows.forEach((r, idx) => {
+    const curRaw = String(r[cCur] || '').trim();
+    const cm = curRaw.match(/[A-Za-z]{3}/);
+    const cur = cm ? cm[0].toUpperCase() : '통화불명';
+    (byCurrency[cur] = byCurrency[cur] || []).push({ idx, r });
+  });
+  Object.keys(byCurrency).forEach(cur => {
+    let prevBalance = null;
+    byCurrency[cur].forEach(item => {
+      const r = item.r;
+      const gubun = String(r[cGubun] || '').trim();
+      let amt = parseFloat(String(r[cAmt] || '').replace(/,/g, ''));
+      amt = isNaN(amt) ? 0 : Math.abs(amt);
+      const declared = parseFloat(String(r[cBal] || '').replace(/,/g, ''));
+      if (isNaN(declared)) return;
+      if (prevBalance !== null) {
+        const expected = gubun.includes('출금') ? prevBalance - amt : prevBalance + amt;
+        if (Math.abs(expected - declared) > 0.01) {
+          const dt = cDate !== -1 ? parseDateCell(r[cDate]) : null;
+          const dateStr = (dt && !isNaN(dt)) ? `${dt.getFullYear()}-${String(dt.getMonth()+1).padStart(2,'0')}-${String(dt.getDate()).padStart(2,'0')}` : '';
+          const memoStr = cMemo !== -1 ? String(r[cMemo] || '').trim() : '';
+          warnings.push({ date: dateStr, memo: memoStr, currency: cur, expected, declared, diff: declared - expected });
+        }
+      }
+      prevBalance = declared;
+    });
+  });
+  return warnings;
+}
+
+function processFxRows(rows, rateMap, fileName, vendor) {
+  let headerRowIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i].some(c => String(c).trim() === '거래일시')) { headerRowIdx = i; break; }
+  }
+  if (headerRowIdx === -1) return { out: null, error: '"거래일시" 컬럼을 찾을 수 없습니다.' };
+
+  const header = rows[headerRowIdx].map(h => String(h).trim());
+  const cDate = findCol(header, '거래일시');
+  const cGubun = findCol(header, '거래구분');
+  const cCur = findCol(header, '통화');
+  const cAmt = findCol(header, '거래외화금액');
+  const cMemo = findCol(header, '통장적요');
+  const cBal = findCol(header, '거래후잔액');
+
+  const dataRows = rows.slice(headerRowIdx + 1).filter(r => r.some(c => String(c).trim() !== ''));
+  const acctNo = extractAccountNumber(rows, headerRowIdx) || extractAccountNumberFromFileName(fileName);
+  const acctName = extractAccountName(rows, headerRowIdx, fileName);
+  const balanceWarnings = verifyBalances(dataRows, cCur, cAmt, cBal, cGubun, cDate, cMemo);
+
+  const out = [];
+  let issueCount = 0;
+
+  dataRows.forEach(r => {
+    const dt = parseDateCell(r[cDate]);
+    const gubun = String(r[cGubun] || '').trim();
+    const currencyRaw = String(r[cCur] || '').trim();
+    const memo = String(r[cMemo] || '').trim();
+    let amount = parseFloat(String(r[cAmt] || '').replace(/,/g, ''));
+    amount = Math.abs(isNaN(amount) ? 0 : amount);
+
+    let issue = false, note = '';
+
+    if (isNaN(dt)) {
+      out.push(blankIssueRow('날짜 인식 실패: ' + r[cDate], acctNo));
+      issueCount++;
+      return;
+    }
+    const y = dt.getFullYear(), m = dt.getMonth() + 1, d = dt.getDate();
+    const dateKey = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
+
+    const cm = currencyRaw.match(/[A-Za-z]{3}/);
+    const cur = cm ? cm[0].toUpperCase() : null;
+
+    const rateInfo = cur ? findRate(rateMap, cur, dateKey) : null;
+    if (!rateInfo) { issue = true; note += '환율매칭실패(' + (cur||'통화불명') + ') '; }
+    const rate = rateInfo ? rateInfo.rate : 0;
+    const krw = Math.round(amount * rate);
+    if (rateInfo) note += `환율 ${rate} (${rateInfo.usedDate}${rateInfo.fallback ? ', 직전영업일':''})`;
+
+    // 적요: 환율 매칭에 성공하면 "USD2,201.6*@1,455.7" 형식으로 자동 기재, 실패하면 원래 통장적요 유지
+    const memoDisplay = rateInfo ? `${cur || ''}${fmtFxNum(amount)}*@${fmtFxNum(rate)}` : memo;
+
+    let line1Side;
+    if (gubun.includes('입금') || gubun.includes('결산')) line1Side = 'dr';
+    else if (gubun.includes('출금')) line1Side = 'cr';
+    else { line1Side = null; issue = true; note += ' 거래구분 인식불가(' + gubun + ')'; }
+    const line2Side = line1Side === 'dr' ? 'cr' : (line1Side === 'cr' ? 'dr' : null);
+
+    // 거래구분에 "결산"이 있으면 이자결산으로 보고, 적요 규칙 매칭 없이 이자수익(901) + 거래처 등록에서 지정한 결산 거래처로 고정
+    const isSettle = gubun.includes('결산');
+
+    // 거래처 전용 규칙을 먼저 찾고, 없으면 공통 규칙에서 찾음 (대소문자 구분 없이 매칭 — 영문 상호명 대응)
+    const memoLower = memo.toLowerCase();
+    const vendorRule = vendor ? vendor.rules.find(rl => rl.keyword && memoLower.includes(rl.keyword.toLowerCase())) : null;
+    const rule = vendorRule || mappingRules.find(rl => rl.keyword && memoLower.includes(rl.keyword.toLowerCase()));
+    if (!isSettle && !rule) { issue = true; note += ' 상대계정 매칭규칙 없음'; }
+    if (issue) issueCount++;
+
+    out.push({
+      y, m, d,
+      gubun: line1Side === 'dr' ? '차변' : (line1Side === 'cr' ? '대변' : ''),
+      code: (vendor && vendor.mainCode) ? vendor.mainCode : '103',
+      account: (vendor && vendor.mainAccount) ? vendor.mainAccount : '보통예금',
+      custCode: '', cust: '',
+      dr: line1Side === 'dr' ? krw : '', cr: line1Side === 'cr' ? krw : '',
+      memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note, _issue: issue, role: 'main', acctNo
+    });
+    out.push({
+      y, m, d,
+      gubun: line2Side === 'dr' ? '차변' : (line2Side === 'cr' ? '대변' : ''),
+      code: isSettle ? '901' : (rule ? rule.code : ''),
+      account: isSettle ? '이자수익' : (rule ? rule.account : ''),
+      custCode: isSettle ? ((vendor && vendor.settleCustCode) || '') : (rule ? (rule.custCode || '') : ''),
+      cust: isSettle ? ((vendor && vendor.settleCust) || '') : (rule ? (rule.cust || '') : ''),
+      dr: line2Side === 'dr' ? krw : '', cr: line2Side === 'cr' ? krw : '',
+      memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'counterpart', acctNo
+    });
+  });
+
+  return { out, error: null, issueCount, acctNo, acctName, balanceWarnings };
+}
+
+function setupDropzone(dropId, inputId, listId, onChange) {
+  const drop = document.getElementById(dropId);
+  const input = document.getElementById(inputId);
+  const list = document.getElementById(listId);
+  let selectedFiles = []; // 여러 번에 걸쳐 고르거나 끌어다 놓은 파일을 계속 누적해서 보관
+
+  function fileKey(f) { return `${f.name}_${f.size}_${f.lastModified}`; }
+
+  function syncInputFiles() {
+    const dt = new DataTransfer();
+    selectedFiles.forEach(f => dt.items.add(f));
+    input.files = dt.files;
+    if (onChange) onChange();
+  }
+
+  function renderList() {
+    if (!selectedFiles.length) { list.innerHTML = ''; return; }
+    list.innerHTML = selectedFiles.map((f, i) =>
+      `<div class="file-row"><span>📄 ${f.name}</span><button type="button" class="remove-file" data-i="${i}" title="제거">×</button></div>`
+    ).join('') + `<button type="button" class="clear-all">전체 지우기</button>`;
+    list.querySelectorAll('.remove-file').forEach(btn => {
+      btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        selectedFiles.splice(parseInt(btn.dataset.i), 1);
+        syncInputFiles();
+        renderList();
+      });
+    });
+    const clearBtn = list.querySelector('.clear-all');
+    if (clearBtn) clearBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      selectedFiles = [];
+      syncInputFiles();
+      renderList();
+    });
+  }
+
+  function addFiles(newFiles) {
+    const existingKeys = new Set(selectedFiles.map(fileKey));
+    Array.from(newFiles).forEach(f => {
+      const k = fileKey(f);
+      if (!existingKeys.has(k)) { selectedFiles.push(f); existingKeys.add(k); }
+    });
+    syncInputFiles();
+    renderList();
+  }
+
+  drop.addEventListener('click', () => input.click());
+  input.addEventListener('change', () => { addFiles(input.files); });
+  ['dragenter','dragover'].forEach(evt => drop.addEventListener(evt, e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.add('dragover');
+  }));
+  drop.addEventListener('dragleave', e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
+  });
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.remove('dragover');
+    addFiles(e.dataTransfer.files);
+  });
+}
+// 외화계좌 파일에 있는 통화가 지금 올린 환율 파일에 아예 없는지 미리 확인 (파일을 고르거나 뺄 때마다 다시 검사)
+let rateCoverageSeq = 0;
+async function checkRateCoverage() {
+  const box = document.getElementById('rateCoverageWarning');
+  if (!box) return;
+  const mySeq = ++rateCoverageSeq;
+  const fxInput = document.getElementById('fxFiles');
+  const rateInput = document.getElementById('rateFiles');
+  if (!fxInput.files.length || !rateInput.files.length) { box.innerHTML = ''; return; }
+  try {
+    let rateMap = {};
+    for (const f of Array.from(rateInput.files)) {
+      const m = await parseRateFile(f);
+      for (const cur in m) rateMap[cur] = Object.assign(rateMap[cur] || {}, m[cur]);
+    }
+    const fxCurrencies = new Set();
+    for (const f of Array.from(fxInput.files)) {
+      const buf = await f.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+      const ws = wb.Sheets[wb.SheetNames[0]];
+      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      let headerRowIdx = -1;
+      for (let i = 0; i < rows.length; i++) {
+        if (rows[i].some(c => String(c).trim() === '거래일시')) { headerRowIdx = i; break; }
+      }
+      if (headerRowIdx === -1) continue;
+      const header = rows[headerRowIdx].map(h => String(h).trim());
+      const cCur = findCol(header, '통화');
+      if (cCur === -1) continue;
+      rows.slice(headerRowIdx + 1).forEach(r => {
+        const m = String(r[cCur] || '').trim().match(/[A-Za-z]{3}/);
+        if (m) fxCurrencies.add(m[0].toUpperCase());
+      });
+    }
+    if (mySeq !== rateCoverageSeq) return; // 그 사이에 파일이 또 바뀌었으면 이 결과는 버림
+    const rateCurrencies = new Set(Object.keys(rateMap));
+    const missing = Array.from(fxCurrencies).filter(c => !rateCurrencies.has(c));
+    if (missing.length) {
+      box.innerHTML = `<span class="badge warn">환율 파일 확인 필요</span> 외화계좌 파일에 <b>${missing.join(', ')}</b> 통화가 있는데, 올린 환율 파일에는 이 통화 데이터가 없어요. 해당 통화의 매매기준율 파일을 추가로 올려주세요.`;
+    } else if (fxCurrencies.size) {
+      box.innerHTML = `<span class="badge ok">환율 커버리지 확인됨</span> 외화계좌 파일의 통화(${Array.from(fxCurrencies).join(', ')})가 환율 파일에 모두 있어요.`;
+    } else {
+      box.innerHTML = '';
+    }
+  } catch (e) {
+    if (mySeq === rateCoverageSeq) box.innerHTML = '';
+  }
+}
+setupDropzone('fxDrop', 'fxFiles', 'fxFileList', checkRateCoverage);
+setupDropzone('rateDrop', 'rateFiles', 'rateFileList', checkRateCoverage);
+
+document.getElementById('btnProcess').addEventListener('click', async () => {
+  const fxInput = document.getElementById('fxFiles');
+  const rateInput = document.getElementById('rateFiles');
+  if (!fxInput.files.length) { alert('외화계좌 거래내역 엑셀을 선택해주세요.'); return; }
+  if (!rateInput.files.length) { alert('매매기준율 파일을 선택해주세요.'); return; }
+
+  let rateMap = {};
+  for (const f of Array.from(rateInput.files)) {
+    const m = await parseRateFile(f);
+    for (const cur in m) rateMap[cur] = Object.assign(rateMap[cur] || {}, m[cur]);
+  }
+  if (Object.keys(rateMap).length === 0) {
+    alert('매매기준율 파일에서 환율 데이터를 읽지 못했습니다. 파일 형식을 확인해주세요.');
+    return;
+  }
+
+  const vendor = getSelectedVendor();
+  let allOut = [];
+  let totalIssues = 0;
+  const acctOrder = []; // 계좌번호 최초 등장 순서 (그룹 정렬 기준)
+  const acctFileCount = {}; // 계좌별로 몇 개 파일에서 왔는지 (참고용)
+  const acctNameByKey = {}; // 계좌번호별 계좌명 (파일명/파일 내 "계좌명" 라벨에서 추출, 표시용)
+  const allBalanceWarnings = [];
+
+  for (const file of Array.from(fxInput.files)) {
+    const buf = await file.arrayBuffer();
+    const wb = XLSX.read(buf, { type: 'array', cellDates: true });
+    const ws = wb.Sheets[wb.SheetNames[0]];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const result = processFxRows(rows, rateMap, file.name, vendor);
+    if (result.error) { alert(`"${file.name}" 파일 처리 중 오류: ${result.error}`); continue; }
+    // 계좌번호를 못 찾은 파일은 서로 다른 계좌로 취급 (파일명 기준으로 구분, 잘못 합쳐지는 것 방지)
+    const acctKey = result.acctNo || `미확인 (${file.name})`;
+    result.out.forEach(row => { row.acctNo = acctKey; });
+    if (!acctOrder.includes(acctKey)) acctOrder.push(acctKey);
+    acctFileCount[acctKey] = (acctFileCount[acctKey] || 0) + 1;
+    if (result.acctName && !acctNameByKey[acctKey]) acctNameByKey[acctKey] = result.acctName;
+    allOut = allOut.concat(result.out);
+    totalIssues += result.issueCount;
+    (result.balanceWarnings || []).forEach(w => allBalanceWarnings.push({ ...w, fileName: file.name }));
+  }
+
+  // 계좌번호 앞에 붙일 표시용 라벨 (매칭/그룹핑에 쓰는 acctNo 자체는 그대로 둠)
+  allOut.forEach(row => {
+    const name = acctNameByKey[row.acctNo];
+    row.acctLabel = (name && name !== row.acctNo) ? `${name} ${row.acctNo}` : row.acctNo;
+  });
+
+  // 계좌번호별로 묶고, 같은 계좌 안에서는 거래일자 순으로 정렬
+  const acctPriority = {};
+  acctOrder.forEach((a, i) => { acctPriority[a] = i; });
+  allOut.sort((a, b) => {
+    const pa = acctPriority[a.acctNo] ?? 999;
+    const pb = acctPriority[b.acctNo] ?? 999;
+    if (pa !== pb) return pa - pb;
+    const da = new Date(a.y || 0, (a.m || 1) - 1, a.d || 0).getTime();
+    const db = new Date(b.y || 0, (b.m || 1) - 1, b.d || 0).getTime();
+    return da - db;
+  });
+
+  // 중복 업로드 감지: 같은 계좌+날짜+구분+금액+적요 조합이 두 번 이상 나오면 표시
+  const dupCounts = {};
+  allOut.forEach(row => {
+    if (row.role !== 'main') return;
+    const sig = `${row.acctNo}|${row.y}-${row.m}-${row.d}|${row.gubun}|${row.dr}|${row.cr}|${row.memoKey}`;
+    dupCounts[sig] = (dupCounts[sig] || 0) + 1;
+  });
+  let dupExtraCount = 0;
+  Object.values(dupCounts).forEach(c => { if (c > 1) dupExtraCount += (c - 1); });
+  allOut.forEach((row, i) => {
+    const sig = `${row.acctNo}|${row.y}-${row.m}-${row.d}|${row.gubun}|${row.dr}|${row.cr}|${row.memoKey}`;
+    const prev = allOut[i - 1];
+    const pairSig = row.role === 'counterpart'
+      ? (prev ? `${prev.acctNo}|${prev.y}-${prev.m}-${prev.d}|${prev.gubun}|${prev.dr}|${prev.cr}|${prev.memoKey}` : sig)
+      : sig;
+    if (dupCounts[pairSig] > 1) row._dup = true;
+  });
+
+  currentRows = allOut;
+  originalRows = JSON.parse(JSON.stringify(allOut));
+  renderSummary(allOut, totalIssues, acctOrder, acctFileCount, allBalanceWarnings, dupExtraCount, vendor ? vendor.name : '', acctNameByKey);
+  renderPreview(allOut);
+});
+
+// ---------- 적요별 빠른 분류 패널 ----------
+// row.memo(화면/다운로드에 실제로 찍히는 값)에서 사용자가 앞에 붙인 접두어만 역으로 추출
+// (row.fxTag가 자동 생성된 "USD127,605*@1,467.2" 꼬리 부분)
+function derivePrefix(row) {
+  const tag = row.fxTag || '';
+  if (!tag || !row.memo) return '';
+  if (row.memo === tag) return '';
+  if (row.memo.endsWith(tag)) return row.memo.slice(0, row.memo.length - tag.length).trim();
+  return '';
+}
+
+// 상대계정 편집 후 그 통장적요+계좌 그룹 전체의 "확인 필요" 표시를 다시 계산 (계정이 채워졌으면 해제)
+function refreshIssueForGroup(acctNo, memoKey) {
+  currentRows.forEach((row, i) => {
+    if (row.role === 'counterpart' && row.acctNo === acctNo && row.memoKey === memoKey) {
+      const mainRow = currentRows[i - 1];
+      const hasOtherIssue = !!(mainRow && mainRow.note && (mainRow.note.includes('환율매칭실패') || mainRow.note.includes('거래구분 인식불가')));
+      const nowFilled = !!(row.account && String(row.account).trim());
+      const stillIssue = hasOtherIssue || !nowFilled;
+      row._issue = stillIssue;
+      if (mainRow && mainRow.role === 'main') mainRow._issue = stillIssue;
+    }
+  });
+}
+
+// 통장적요 옆 "적요" 칸에 입력한 내용을 같은 거래(차변/대변 모두)의 적요 맨 앞에 붙임
+function applyNotePrefixToRows(g) {
+  currentRows.forEach(row => {
+    if (row.acctNo === g.acctNo && row.memoKey === g.memoKey) {
+      const tag = row.fxTag || row.memo || '';
+      row.memo = g.notePrefix ? `${g.notePrefix} ${tag}`.trim() : tag;
+    }
+  });
+}
+
+// 거래처가 선택돼 있으면 그 거래처 전용 규칙에, 아니면 공통 규칙에 저장
+function upsertRuleFromGroup(g) {
+  if (!g.memoKey) return;
+  const list = activeRuleList();
+  const existing = list.find(r => r.keyword === g.memoKey);
+  if (existing) {
+    existing.account = g.account; existing.code = g.code; existing.custCode = g.custCode; existing.cust = g.cust;
+  } else {
+    list.unshift({ keyword: g.memoKey, account: g.account, code: g.code, custCode: g.custCode, cust: g.cust });
+  }
+  saveActiveRules();
+}
+
+function removeRuleByKeyword(keyword) {
+  const vendor = getSelectedVendor();
+  if (vendor) {
+    vendor.rules = vendor.rules.filter(r => r.keyword !== keyword);
+    saveVendorProfiles();
+  } else {
+    mappingRules = mappingRules.filter(r => r.keyword !== keyword);
+    saveMappingRules();
+  }
+}
+
+// 상대계정(계정과목/코드/거래처)을 채우면 규칙을 항상 자동 저장, 지우면 규칙도 같이 삭제
+function autoSaveRuleForRow(row) {
+  if (!row.memoKey) return;
+  if (row.account && String(row.account).trim()) {
+    upsertRuleFromGroup({ memoKey: row.memoKey, account: row.account, code: row.code, custCode: row.custCode, cust: row.cust });
+  } else {
+    removeRuleByKeyword(row.memoKey);
+  }
+  renderActiveRuleTable();
+}
+
+function blankIssueRow(reasonText, acctNo) {
+  return { y:'', m:'', d:'', gubun:'', code:'', account:'', custCode:'', cust:'', dr:'', cr:'', memo: reasonText, memoKey: reasonText, note:'', _issue:true, role:'unknown', acctNo };
+}
+
+function renderSummary(rows, issueCount, acctOrder, acctFileCount, balanceWarnings, dupGroupCount, vendorName, acctNameByKey) {
+  const box = document.getElementById('summaryBox');
+  const total = rows.length;
+  acctOrder = acctOrder || [];
+  acctFileCount = acctFileCount || {};
+  acctNameByKey = acctNameByKey || {};
+  balanceWarnings = balanceWarnings || [];
+  dupGroupCount = dupGroupCount || 0;
+  const unmatched = acctOrder.filter(a => a.startsWith('미확인'));
+
+  const badges = [
+    `<span style="font-size:12.5px;color:var(--sub);white-space:nowrap">거래 ${total/2}건 · 계좌 ${acctOrder.length}개</span>`,
+    vendorName ? `<span class="badge ok">거래처: ${vendorName}</span>` : '',
+    `<span class="badge ${issueCount ? 'warn' : 'ok'}">${issueCount ? '확인 필요 ' + issueCount + '건' : '전부 자동 매칭'}</span>`,
+    balanceWarnings.length ? `<span class="badge warn">잔액불일치 ${balanceWarnings.length}건</span>` : '',
+    dupGroupCount ? `<span class="badge warn">중복의심 ${dupGroupCount}건</span>` : ''
+  ].filter(Boolean).join(' ');
+
+  const acctListHtml = acctOrder.map(a => {
+    const cnt = rows.filter(r => r.acctNo === a).length / 2;
+    const files = acctFileCount[a] || 1;
+    const label = (acctNameByKey[a] && acctNameByKey[a] !== a) ? `${acctNameByKey[a]} ${a}` : a;
+    return `<div>· ${label} — ${cnt}건${files > 1 ? ` (파일 ${files}개 병합됨)` : ''}</div>`;
+  }).join('');
+  const balanceWarningHtml = balanceWarnings.length
+    ? `<div style="margin-top:6px"><b>거래후잔액 불일치</b></div>` +
+      balanceWarnings.slice(0, 5).map(w =>
+        `<div style="font-size:12px;margin-top:2px">· "${w.fileName}" ${w.date || '날짜미상'}${w.memo ? ' (' + w.memo + ')' : ''} — ${w.currency} 계산값 ${fmtFxNum(w.expected)} / 실제 ${fmtFxNum(w.declared)} (차이 ${fmtFxNum(w.diff)})</div>`
+      ).join('') +
+      (balanceWarnings.length > 5 ? `<div style="font-size:12px;margin-top:2px">외 ${balanceWarnings.length - 5}건 더 있음</div>` : '')
+    : '';
+  const dupHtml = dupGroupCount
+    ? `<div style="margin-top:6px"><b>중복 의심 거래</b> ${dupGroupCount}건 — 같은 계좌·날짜·금액·적요를 가진 거래가 여러 번 나왔어요. 아래 표·미리보기에서 노란 줄을 확인해주세요.</div>`
+    : '';
+  const unmatchedHtml = unmatched.length
+    ? `<div style="margin-top:6px"><b>계좌번호를 자동으로 못 찾은 파일이 있어요</b> — 파일별로 따로 처리했어요.</div>`
+    : '';
+
+  box.innerHTML = `
+    <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+      ${badges}
+      <button class="toggle-link" id="btnToggleSummaryDetail" style="padding:0;margin-left:auto">자세히 ▾</button>
+    </div>
+    <div id="summaryDetail" style="display:none;margin-top:8px;font-size:12.5px;line-height:1.7;">
+      ${unmatchedHtml}
+      ${balanceWarningHtml}
+      ${dupHtml}
+      <div style="margin-top:6px">${acctListHtml}</div>
+    </div>
+  `;
+  const toggleBtn = document.getElementById('btnToggleSummaryDetail');
+  if (toggleBtn) {
+    toggleBtn.addEventListener('click', () => {
+      const detail = document.getElementById('summaryDetail');
+      const opening = detail.style.display === 'none';
+      detail.style.display = opening ? 'block' : 'none';
+      toggleBtn.textContent = opening ? '접기 ▲' : '자세히 ▾';
+    });
+  }
+}
+
+function updateBalanceCheck() {
+  const box = document.getElementById('balanceCheck');
+  if (!box) return;
+  let totalDr = 0, totalCr = 0;
+  currentRows.forEach(r => {
+    totalDr += Number(r.dr) || 0;
+    totalCr += Number(r.cr) || 0;
+  });
+  const fmt = n => n.toLocaleString('ko-KR');
+  const diff = totalDr - totalCr;
+  const ok = diff === 0;
+  box.innerHTML = `
+    차변 합계 <b>${fmt(totalDr)}</b>원 &nbsp;/&nbsp; 대변 합계 <b>${fmt(totalCr)}</b>원 &nbsp;
+    <span class="badge ${ok ? 'ok' : 'warn'}">${ok ? '차대변 일치' : `불일치 (차액 ${fmt(Math.abs(diff))}원)`}</span>
+  `;
+}
+
+const AUTO_FILL_FIELDS = ['account', 'code', 'custCode', 'cust'];
+
+// 차변/대변 금액에 천단위 콤마를 넣어서 보여주기 위한 포맷 (저장값 자체는 콤마 없는 숫자 그대로 유지)
+function fmtKrw(v) {
+  if (v === '' || v === null || v === undefined) return '';
+  const n = Number(String(v).replace(/,/g, ''));
+  if (isNaN(n)) return String(v);
+  return n.toLocaleString('ko-KR');
+}
+
+function matchesPreviewSearch(row, term) {
+  if (!term) return true;
+  const t = term.toLowerCase();
+  const dateStr = `${row.y}-${row.m}-${row.d}`;
+  return [row.acctLabel, row.acctNo, dateStr, row.gubun, row.code, row.account, row.custCode, row.cust, row.memo, row.memoKey, row.note]
+    .some(v => String(v ?? '').toLowerCase().includes(t));
+}
+
+function renderPreview(rows) {
+  const card = document.getElementById('previewCard');
+  const body = document.getElementById('previewBody');
+  card.style.display = 'block';
+  body.innerHTML = '';
+
+  const targetBox = document.getElementById('quickFixSaveTarget');
+  if (targetBox) {
+    const vendor = getSelectedVendor();
+    targetBox.textContent = vendor
+      ? `저장 위치: "${vendor.name}" 전용 규칙 (자동 저장)`
+      : `저장 위치: 공통 규칙 (자동 저장)`;
+  }
+
+  const searchInput = document.getElementById('previewSearch');
+  const term = searchInput ? searchInput.value.trim() : '';
+  const issueOnlyEl = document.getElementById('toggleIssueOnly');
+  const issueOnly = issueOnlyEl ? issueOnlyEl.checked : false;
+  let prevAcct = null;
+  let shown = 0;
+  rows.forEach((row, idx) => {
+    if (!matchesPreviewSearch(row, term)) return;
+    if (issueOnly && !row._issue) return;
+    shown++;
+    // 계좌번호가 바뀌는 지점에 그룹 구분 행 삽입 (다운로드 엑셀에는 포함되지 않음, 화면 표시용)
+    if (row.acctNo !== prevAcct) {
+      const acctRows = rows.filter(r => r.acctNo === row.acctNo);
+      const cnt = acctRows.length / 2;
+      const issueCnt = acctRows.filter(r => r._issue).length / 2;
+      const headerTr = document.createElement('tr');
+      headerTr.innerHTML = `<td colspan="14" style="text-align:left;background:var(--sage-bg);font-weight:700;color:#3d6653">계좌번호: ${row.acctLabel || row.acctNo || '미확인'} (${cnt}건${issueCnt ? `, 확인필요 ${issueCnt}건` : ''})</td>`;
+      body.appendChild(headerTr);
+      prevAcct = row.acctNo;
+    }
+    const tr = document.createElement('tr');
+    if (row._issue) tr.classList.add('issue-row');
+    if (row._dup) tr.classList.add('dup-row');
+    const fields = ['y','m','d','gubun','code','account','custCode','cust','dr','cr','memo'];
+    tr.innerHTML =
+      `<td style="text-align:left;color:var(--sub);font-size:11.5px">${row.memoKey || ''}</td>`
+      + `<td><input data-idx="${idx}" data-f="notePrefix" value="${derivePrefix(row) || ''}"></td>`
+      + fields.map(f => {
+        const display = (f === 'dr' || f === 'cr') ? fmtKrw(row[f]) : (row[f] ?? '');
+        return `<td><input data-idx="${idx}" data-f="${f}" value="${display}"></td>`;
+      }).join('')
+      + `<td class="note-col" style="color:var(--sub);font-size:11px">${row.note || ''}</td>`;
+    body.appendChild(tr);
+  });
+  if ((term || issueOnly) && shown === 0) {
+    const emptyTr = document.createElement('tr');
+    const msg = term ? `"${term}"에 해당하는 거래가 없어요.` : '확인이 필요한 거래가 없어요. 전부 자동 분류됐어요.';
+    emptyTr.innerHTML = `<td colspan="14" style="text-align:center;color:var(--sub);padding:16px">${msg}</td>`;
+    body.appendChild(emptyTr);
+  }
+  body.querySelectorAll('input[data-f]:not([data-f="notePrefix"])').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const f = inp.dataset.f;
+      currentRows[inp.dataset.idx][f] = (f === 'dr' || f === 'cr') ? inp.value.replace(/,/g, '') : inp.value;
+      if (f === 'dr' || f === 'cr') updateBalanceCheck();
+    });
+    // 차변/대변은 입력을 마치면(포커스 아웃) 콤마를 넣어 보기 좋게 다시 표시
+    inp.addEventListener('blur', () => {
+      const f = inp.dataset.f;
+      if (f === 'dr' || f === 'cr') inp.value = fmtKrw(currentRows[inp.dataset.idx][f]);
+    });
+    // 보통예금(계좌 자체) 줄은 적요와 상관없이 같은 계좌번호 전체에 공통으로 반영,
+    // 상대계정 줄은 기존처럼 같은 적요(통장적요)를 가진 행에만 반영 + 규칙 자동 저장
+    inp.addEventListener('change', () => {
+      const idx = parseInt(inp.dataset.idx);
+      const field = inp.dataset.f;
+      if (!AUTO_FILL_FIELDS.includes(field)) return;
+      const src = currentRows[idx];
+      let applied = 0;
+      if (src.role === 'main') {
+        currentRows.forEach((row, i) => {
+          if (i !== idx && row.role === 'main' && row.acctNo === src.acctNo) {
+            row[field] = src[field];
+            applied++;
+          }
+        });
+      } else {
+        if (src.memoKey) {
+          currentRows.forEach((row, i) => {
+            if (i !== idx && row.memoKey === src.memoKey && row.role === src.role && row.acctNo === src.acctNo) {
+              row[field] = src[field];
+              applied++;
+            }
+          });
+        }
+        refreshIssueForGroup(src.acctNo, src.memoKey);
+        autoSaveRuleForRow(src);
+      }
+      renderPreview(currentRows);
+    });
+  });
+  // 적요 접두어: 같은 계좌+통장적요를 가진 모든 거래(차변/대변 모두)의 적요 맨 앞에 반영
+  body.querySelectorAll('input[data-f="notePrefix"]').forEach(inp => {
+    inp.addEventListener('change', () => {
+      const idx = parseInt(inp.dataset.idx);
+      const row = currentRows[idx];
+      applyNotePrefixToRows({ acctNo: row.acctNo, memoKey: row.memoKey, notePrefix: inp.value });
+      renderPreview(currentRows);
+    });
+  });
+  updateBalanceCheck();
+}
+
+document.getElementById('btnDownload').addEventListener('click', () => {
+  if (!currentRows.length) { alert('먼저 변환을 실행해주세요.'); return; }
+  let totalDr = 0, totalCr = 0;
+  currentRows.forEach(r => { totalDr += Number(r.dr) || 0; totalCr += Number(r.cr) || 0; });
+  if (totalDr !== totalCr) {
+    const proceed = confirm(
+      `차변 합계(${totalDr.toLocaleString('ko-KR')}원)와 대변 합계(${totalCr.toLocaleString('ko-KR')}원)가 일치하지 않습니다.\n` +
+      `차액: ${Math.abs(totalDr - totalCr).toLocaleString('ko-KR')}원\n\n` +
+      `그래도 다운로드할까요?`
+    );
+    if (!proceed) return;
+  }
+  const header = ['년','월','일','구분','코드','계정과목','거래처코드','거래처','차변','대변','적요'];
+  const aoa = [header];
+  currentRows.forEach(r => {
+    aoa.push([
+      r.y, r.m, r.d, r.gubun, r.code, r.account, r.custCode, r.cust,
+      r.dr === '' ? '' : Number(r.dr),
+      r.cr === '' ? '' : Number(r.cr),
+      r.memo
+    ]);
+  });
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+  const wbOut = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbOut, ws, 'Sheet1');
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const vendor = getSelectedVendor();
+  const vendorPart = vendor ? `_${vendor.name.replace(/[\\/:*?"<>|]/g, '')}` : '';
+  XLSX.writeFile(wbOut, `일반전표입력${vendorPart}_${today}.xlsx`);
+});
+
+document.getElementById('previewSearch').addEventListener('input', () => {
+  if (currentRows.length) renderPreview(currentRows);
+});
+document.getElementById('btnClearSearch').addEventListener('click', () => {
+  document.getElementById('previewSearch').value = '';
+  if (currentRows.length) renderPreview(currentRows);
+});
+document.getElementById('toggleIssueOnly').addEventListener('change', () => {
+  if (currentRows.length) renderPreview(currentRows);
+});
+
+document.getElementById('btnReset').addEventListener('click', () => {
+  if (!originalRows.length) { alert('되돌릴 대상이 없어요. 먼저 변환을 실행해주세요.'); return; }
+  if (!confirm('지금까지 직접 수정한 내용이 사라지고, 방금 변환했던 상태로 되돌아가요. 계속할까요?')) return;
+  currentRows = JSON.parse(JSON.stringify(originalRows));
+  document.getElementById('previewSearch').value = '';
+  renderPreview(currentRows);
+});
+
+// 규칙 설정을 엑셀 3개 시트(공통규칙 / 거래처목록 / 거래처규칙)로 내보내기
+document.getElementById('btnExportSettings').addEventListener('click', () => {
+  const wb = XLSX.utils.book_new();
+
+  const commonRows = [['적요 키워드', '코드', '계정과목', '거래처코드', '거래처명']];
+  mappingRules.forEach(r => commonRows.push([r.keyword || '', r.code || '', r.account || '', r.custCode || '', r.cust || '']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(commonRows), '공통규칙');
+
+  const vendorListRows = [['거래처명', '보통예금 계정과목', '보통예금 코드', '결산 거래처코드', '결산 거래처명']];
+  vendorProfiles.forEach(v => vendorListRows.push([v.name || '', v.mainAccount || '', v.mainCode || '', v.settleCustCode || '', v.settleCust || '']));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(vendorListRows), '거래처목록');
+
+  const vendorRuleRows = [['거래처명', '적요 키워드', '코드', '계정과목', '거래처코드', '거래처명(상대)']];
+  vendorProfiles.forEach(v => {
+    (v.rules || []).forEach(r => vendorRuleRows.push([v.name || '', r.keyword || '', r.code || '', r.account || '', r.custCode || '', r.cust || '']));
+  });
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(vendorRuleRows), '거래처규칙');
+
+  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
+  XLSX.writeFile(wb, `외화예금_전표_설정_${today}.xlsx`);
+});
+
+document.getElementById('btnImportSettings').addEventListener('click', () => {
+  document.getElementById('importSettingsFile').click();
+});
+
+document.getElementById('importSettingsFile').addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  e.target.value = ''; // 같은 파일 재선택 시에도 change가 다시 발생하도록 초기화
+  if (!file) return;
+  try {
+    let newMappingRules = null;
+    let newVendorProfiles = null;
+
+    if (/\.json$/i.test(file.name)) {
+      // 예전에 만들어둔 JSON 백업 파일도 계속 불러올 수 있게 지원
+      const data = JSON.parse(await file.text());
+      if (Array.isArray(data.mappingRules)) newMappingRules = data.mappingRules;
+      if (Array.isArray(data.vendorProfiles)) newVendorProfiles = data.vendorProfiles;
+    } else {
+      const buf = await file.arrayBuffer();
+      const wb = XLSX.read(buf, { type: 'array' });
+      const sheetRows = (name) => {
+        const ws = wb.Sheets[name];
+        if (!ws) return [];
+        return XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' }).slice(1); // 헤더 행 제외
+      };
+      const cell = (row, i) => String(row[i] ?? '').trim();
+
+      newMappingRules = sheetRows('공통규칙')
+        .filter(r => cell(r, 0))
+        .map(r => ({ keyword: cell(r,0), code: cell(r,1), account: cell(r,2), custCode: cell(r,3), cust: cell(r,4) }));
+
+      const vendorMap = {};
+      const order = [];
+      let seq = 0;
+      const ensureVendor = (name) => {
+        if (!vendorMap[name]) {
+          vendorMap[name] = { id: 'v' + Date.now().toString(36) + (seq++) + Math.random().toString(36).slice(2, 5), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', rules: [] };
+          order.push(name);
+        }
+        return vendorMap[name];
+      };
+      sheetRows('거래처목록').forEach(r => {
+        const name = cell(r, 0);
+        if (!name) return;
+        const v = ensureVendor(name);
+        v.mainAccount = cell(r, 1);
+        v.mainCode = cell(r, 2);
+        v.settleCustCode = cell(r, 3);
+        v.settleCust = cell(r, 4);
+      });
+      sheetRows('거래처규칙').forEach(r => {
+        const name = cell(r, 0);
+        if (!name || !cell(r, 1)) return;
+        const v = ensureVendor(name);
+        v.rules.push({ keyword: cell(r,1), code: cell(r,2), account: cell(r,3), custCode: cell(r,4), cust: cell(r,5) });
+      });
+      if (order.length) newVendorProfiles = order.map(n => vendorMap[n]);
+    }
+
+    let imported = [];
+    if (Array.isArray(newMappingRules)) { mappingRules = newMappingRules; saveMappingRules(); imported.push('공통 규칙'); }
+    if (Array.isArray(newVendorProfiles)) { vendorProfiles = newVendorProfiles; selectedVendorId = ''; saveVendorProfiles(); imported.push('거래처 등록 목록'); }
+    if (!imported.length) { await alertModal('올바른 설정 파일이 아니에요. 내보내기로 받은 엑셀 형식 그대로 올려주세요.'); return; }
+    renderMappingTable();
+    renderVendorSelect();
+    await alertModal(`${imported.join(', ')}을(를) 불러왔어요.`);
+  } catch (err) {
+    await alertModal('설정 파일을 읽는 중 문제가 발생했어요.\n' + err.message);
+  }
+});
+
+loadMappingRules();
+ensureDefaultRule('환전', '보통예금', '103');
+renderMappingTable();
+loadVendorProfiles();
+renderVendorSelect();
+</script>
+</body>
+</html>
