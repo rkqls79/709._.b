@@ -2972,6 +2972,12 @@ body:has(.modal-bg.open) { overflow: hidden; }
     </div>
 
     <div class="card" style="margin-bottom:14px">
+      <div class="card-head"><h3>계정 · 동기화</h3><div class="spacer"></div>
+        <span class="badge" id="syncBadge">확인 중</span></div>
+      <div class="card-body" id="syncBody"></div>
+    </div>
+
+    <div class="card" style="margin-bottom:14px">
       <div class="card-head"><h3>알림</h3><div class="spacer"></div>
         <span class="badge" id="nfState">확인 중</span></div>
       <div class="card-body">
@@ -12276,6 +12282,67 @@ function renderWorkCal(items) {
 }
 
 /* ================= 설정 ================= */
+/* ---- 계정 · 동기화 ---- */
+let syncState = null;
+function renderSyncSettings() {
+  const box = $('#syncBody'), badge = $('#syncBadge');
+  if (!box) return;
+  const st = syncState || (window.LMSync ? window.LMSync.state() : null);
+
+  if (!st || !st.available) {
+    badge.textContent = '사용 안 함';
+    badge.className = 'badge';
+    box.innerHTML = `<div class="notice plain">${L.icon('bulb', 16)}
+      <div><b>지금은 이 브라우저에만 저장됩니다.</b><br>
+      ${L.esc((st && st.message) || '동기화 기능을 불러오는 중입니다.')}</div></div>
+      <p class="dim" style="font-size:12.5px;margin-top:10px">
+        기기를 옮길 때는 아래 <b>데이터</b>에서 백업 파일을 내보내고 불러오면 됩니다.</p>`;
+    return;
+  }
+
+  const tone = { idle: 'ok', syncing: 'accent', error: 'danger', offline: 'warn', off: '' }[st.status] || '';
+  const label = !st.user ? '로그인 안 함'
+    : st.status === 'syncing' ? '동기화 중'
+    : st.status === 'offline' ? '오프라인'
+    : st.status === 'error' ? '문제 발생'
+    : '동기화됨';
+  badge.textContent = label;
+  badge.className = 'badge ' + tone;
+
+  if (!st.user) {
+    box.innerHTML = `
+      <p class="dim" style="font-size:12.5px;margin-bottom:12px">
+        구글 계정으로 로그인하면 이 브라우저의 기록이 <b>내 계정에만</b> 저장되어,
+        휴대폰과 다른 PC에서도 이어서 쓸 수 있습니다. 로그인하지 않으면 지금처럼 이 브라우저에만 남습니다.</p>
+      <button class="btn primary" id="syncIn">${L.icon('user', 16)} 구글 계정으로 로그인</button>`;
+    return;
+  }
+
+  const when = st.lastAt ? new Date(st.lastAt) : null;
+  const ago = when ? (() => {
+    const m = Math.round((Date.now() - when.getTime()) / 60000);
+    if (m < 1) return '방금 전';
+    if (m < 60) return `${m}분 전`;
+    const h = Math.round(m / 60);
+    return h < 24 ? `${h}시간 전` : L.fmtKo(L.ymd(when));
+  })() : '아직 없음';
+
+  box.innerHTML = `
+    <dl class="kvlist" style="margin-bottom:12px">
+      <dt>계정</dt><dd>${L.esc(st.user.email || st.user.name || '구글 계정')}</dd>
+      <dt>마지막 동기화</dt><dd>${ago}${st.pending ? ' · <span style="color:var(--warn)">올릴 변경 있음</span>' : ''}</dd>
+      <dt>저장 위치</dt><dd class="mono" style="font-size:11.5px">users / ${L.esc(st.user.uid.slice(0, 8))}… / data</dd>
+    </dl>
+    ${st.message ? `<div class="notice ${st.status === 'error' ? 'warn' : 'plain'}" style="margin-bottom:12px">
+      ${L.icon('bulb', 16)}<div>${L.esc(st.message)}</div></div>` : ''}
+    <div class="inline">
+      <button class="btn" id="syncNow">지금 동기화</button>
+      <button class="btn ghost" id="syncOut">로그아웃</button>
+    </div>
+    <p class="dim" style="font-size:11.5px;margin-top:10px">
+      첨부 파일은 용량이 커서 클라우드에 올리지 않습니다. 기기마다 따로 보관됩니다.</p>`;
+}
+
 function renderNotifySettings() {
   const set = L.notifySettings();
   const perm = L.Notify.permission();
@@ -12315,6 +12382,7 @@ function renderScaleSettings() {
   $$('[data-scale-now]').forEach(el => { el.textContent = `${v}%`; });
 }
 function renderSettings() {
+  renderSyncSettings();
   renderNotifySettings();
   renderScaleSettings();
   $('#sName').value = DB.meta.name || '';
@@ -13368,6 +13436,13 @@ document.addEventListener('click', e => {
     holidaysChanged(); L.toast('되살렸습니다.');
     return;
   }
+  if (C('#syncIn')) { if (window.LMSync) window.LMSync.signIn(); return; }
+  if (C('#syncOut')) {
+    if (!confirm('로그아웃할까요?\n기록은 이 브라우저에 그대로 남습니다.')) return;
+    if (window.LMSync) window.LMSync.signOut();
+    return;
+  }
+  if (C('#syncNow')) { if (window.LMSync) window.LMSync.syncNow(); return; }
   if ((x = C('[data-scale-set]'))) { L.setScale(Number(x.dataset.scaleSet)); renderScaleSettings(); return; }
   if ((x = C('[data-goto]'))) return goto(x.dataset.goto);
 
@@ -13720,6 +13795,19 @@ renderAll();
 L.sideNote(`<div class="q">${L.esc(L.quoteOf(L.todayStr(), DB.meta.quotes || []))}</div>
   <div class="c">${L.fmtLong(L.todayStr())}</div>`);
 
+/* 동기화 상태가 바뀌면 설정 화면을 다시 그린다 */
+(function watchSync() {
+  const attach = () => {
+    if (!window.LMSync) return false;
+    window.LMSync.subscribe(st => { syncState = st; renderSyncSettings(); });
+    return true;
+  };
+  if (!attach()) {
+    let n = 0;
+    const t = setInterval(() => { if (attach() || ++n > 40) clearInterval(t); }, 150);
+  }
+})();
+
 /* 다른 화면에서 넘어온 링크: ?p=페이지&add=... */
 (function fromHub() {
   const pages = ['dash', 'cert', 'certlec', 'wish', 'worklearn', 'fit', 'work', 'recur',
@@ -13771,6 +13859,314 @@ var LM_APPS = {
       '<p style="margin-top:12px"><a href="index.html">홈으로</a></p></div></div>';
   }
 })();
+</script>
+
+<!-- =========================================================
+     파이어베이스 동기화 (선택 기능)
+     · 로그인하지 않으면 아무 일도 하지 않는다 — 앱은 그대로 동작한다
+     · 인터넷이 없거나 file:// 로 열면 조용히 꺼진다
+     · 저장 구조: users/{내 uid}/data/univ · users/{내 uid}/data/life
+       (기존 dashboard 컬렉션은 읽지도 쓰지도 않는다)
+     ========================================================= -->
+<script type="module">
+const SDK = 'https://www.gstatic.com/firebasejs/11.0.2/';
+const CONFIG = {
+  apiKey: "AIzaSyACrvoDNckwKofOWO2_6L8eN8dN_-zkw1A",
+  authDomain: "project-709b.firebaseapp.com",
+  projectId: "project-709b",
+  storageBucket: "project-709b.firebasestorage.app",
+  messagingSenderId: "446139391233",
+  appId: "1:446139391233:web:a229fbb157b15566204f00",
+};
+
+const KEYS = [
+  { key: 'lm.univ.v1', doc: 'univ', label: '학사' },
+  { key: 'lm.life.v1', doc: 'life', label: '개인 · 업무' },
+];
+const META_KEY = 'lm.sync.v1';          // { rev: {univ,life}, hash: {univ,life}, lastAt }
+const L = window.LM;
+
+/* ---------- 상태 ---------- */
+const state = {
+  available: false,        // SDK 를 불러올 수 있는 환경인가
+  ready: false,
+  user: null,              // { uid, email, name }
+  status: 'off',           // off | idle | syncing | error | offline
+  message: '',
+  lastAt: '',
+  pending: false,          // 올릴 것이 남아 있는가
+};
+const listeners = new Set();
+function emit() { listeners.forEach(fn => { try { fn(publicState()); } catch (e) { /* 무시 */ } }); }
+function publicState() { return Object.assign({}, state); }
+
+/* ---------- 잡동사니 ---------- */
+function meta() {
+  try { return Object.assign({ rev: {}, hash: {}, lastAt: '' }, JSON.parse(localStorage.getItem(META_KEY) || '{}')); }
+  catch (e) { return { rev: {}, hash: {}, lastAt: '' }; }
+}
+function saveMeta(m) { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) { /* 무시 */ } }
+/** 짧은 지문 — 내용이 바뀌었는지만 알면 되므로 가벼운 해시로 충분하다 */
+function fingerprint(str) {
+  let h = 5381;
+  for (let i = 0; i < str.length; i++) h = ((h << 5) + h + str.charCodeAt(i)) | 0;
+  return `${str.length}:${h}`;
+}
+function localJson(key) { return localStorage.getItem(key) || ''; }
+function stamp(ms) {
+  if (!ms) return '';
+  const d = new Date(ms);
+  const p2 = n => String(n).padStart(2, '0');
+  return `${d.getMonth() + 1}/${d.getDate()} ${p2(d.getHours())}:${p2(d.getMinutes())}`;
+}
+function deviceName() {
+  const ua = navigator.userAgent;
+  if (/Android/i.test(ua)) return '안드로이드';
+  if (/iPhone|iPad/i.test(ua)) return '아이폰 · 아이패드';
+  if (/Mac/i.test(ua)) return '맥';
+  if (/Windows/i.test(ua)) return '윈도우 PC';
+  return '기기';
+}
+
+/* ---------- 본체 ---------- */
+let fb = null;             // { auth, db, api }
+let unsub = [];
+let timers = {};
+let applying = false;      // 원격 내용을 반영하는 중 (되올리기 방지)
+
+async function load() {
+  if (!/^https?:$/.test(location.protocol)) {
+    state.message = '파일을 직접 열어서(file://) 구글 로그인이 막혀 있습니다. '
+      + '이 폴더의 "차곡차곡 실행.bat" 을 더블클릭해 http://localhost:8123 으로 여시면 로그인할 수 있습니다.';
+    emit();
+    return false;
+  }
+  try {
+    const [appMod, authMod, fsMod] = await Promise.all([
+      import(SDK + 'firebase-app.js'),
+      import(SDK + 'firebase-auth.js'),
+      import(SDK + 'firebase-firestore.js'),
+    ]);
+    const app = appMod.initializeApp(CONFIG);
+    let db;
+    try {
+      db = fsMod.initializeFirestore(app, {
+        localCache: fsMod.persistentLocalCache({ tabManager: fsMod.persistentMultipleTabManager() }),
+      });
+    } catch (e) {
+      db = fsMod.getFirestore(app);      // 저장소를 못 쓰는 브라우저면 메모리로
+    }
+    fb = { app, db, auth: authMod.getAuth(app), A: authMod, F: fsMod };
+    state.available = true;
+    state.ready = true;
+    fb.A.onAuthStateChanged(fb.auth, u => {
+      stopWatch();
+      state.user = u ? { uid: u.uid, email: u.email || '', name: u.displayName || '' } : null;
+      state.status = u ? 'syncing' : 'off';
+      state.message = u ? '' : '';
+      emit();
+      if (u) startWatch();
+    });
+    return true;
+  } catch (e) {
+    console.warn('동기화 준비 실패:', e);
+    state.message = '동기화 기능을 불러오지 못했습니다. 인터넷 연결을 확인해 주세요.';
+    emit();
+    return false;
+  }
+}
+
+function docRef(name) {
+  return fb.F.doc(fb.db, 'users', state.user.uid, 'data', name);
+}
+
+/** 원격 내용을 이 브라우저에 적용 */
+function applyRemote(entry, data) {
+  applying = true;
+  try {
+    localStorage.setItem(entry.key, data.json);
+    const m = meta();
+    m.rev[entry.doc] = data.rev || 0;
+    m.hash[entry.doc] = fingerprint(data.json);
+    m.lastAt = Date.now();
+    saveMeta(m);
+    state.lastAt = m.lastAt;
+  } finally { applying = false; }
+}
+
+/** 이 브라우저 내용을 올린다 */
+async function push(entry, reason) {
+  if (!state.user) return;
+  const json = localJson(entry.key);
+  if (!json) return;
+  if (json.length > 900000) {
+    state.status = 'error';
+    state.message = `${entry.label} 데이터가 너무 커서(${Math.round(json.length / 1024)}KB) 올릴 수 없습니다. 오래된 기록을 정리해 주세요.`;
+    emit();
+    return;
+  }
+  const m = meta();
+  const rev = (m.rev[entry.doc] || 0) + 1;
+  state.status = 'syncing'; emit();
+  try {
+    await fb.F.setDoc(docRef(entry.doc), {
+      json, rev, updatedAt: Date.now(), device: deviceName(),
+    });
+    m.rev[entry.doc] = rev;
+    m.hash[entry.doc] = fingerprint(json);
+    m.lastAt = Date.now();
+    saveMeta(m);
+    state.lastAt = m.lastAt;
+    state.pending = false;
+    state.status = 'idle';
+    state.message = '';
+  } catch (e) {
+    console.warn('올리기 실패:', e);
+    state.status = navigator.onLine ? 'error' : 'offline';
+    state.message = navigator.onLine
+      ? '클라우드에 저장하지 못했습니다. 보안 규칙을 확인해 주세요.'
+      : '인터넷이 끊겨 있습니다. 연결되면 자동으로 올립니다.';
+  }
+  emit();
+}
+
+/** 원격 · 로컬이 서로 다를 때 어느 쪽을 살릴지 정한다 */
+function decide(entry, remote) {
+  const m = meta();
+  const localStr = localJson(entry.key);
+  const localHash = fingerprint(localStr);
+  const seenHash = m.hash[entry.doc];
+  const seenRev = m.rev[entry.doc] || 0;
+
+  if (!remote) return localStr ? 'push' : 'none';           // 클라우드에 아직 없음
+  const remoteNew = (remote.rev || 0) !== seenRev;
+  const localNew = seenHash === undefined ? !!localStr : localHash !== seenHash;
+
+  if (!remoteNew && !localNew) return 'none';
+  if (remoteNew && !localNew) return 'pull';
+  if (!remoteNew && localNew) return 'push';
+  if (remote.json === localStr) return 'mark';              // 내용이 같으면 표시만 맞춘다
+  return 'ask';
+}
+
+let reloadTimer = null;
+function scheduleReload(msg) {
+  if (L && L.toast) L.toast(msg);
+  clearTimeout(reloadTimer);
+  reloadTimer = setTimeout(function again() {
+    const busy = document.querySelector('.modal-bg.open')
+      || ['INPUT', 'TEXTAREA', 'SELECT'].includes((document.activeElement || {}).tagName);
+    if (busy) { reloadTimer = setTimeout(again, 3000); return; }
+    location.reload();
+  }, 1200);
+}
+
+function startWatch() {
+  for (const entry of KEYS) {
+    const un = fb.F.onSnapshot(docRef(entry.doc), snap => {
+      const remote = snap.exists() ? snap.data() : null;
+      const act = decide(entry, remote);
+      if (act === 'none') { state.status = 'idle'; state.lastAt = meta().lastAt; emit(); return; }
+      if (act === 'push') { push(entry, 'first'); return; }
+      if (act === 'mark') {
+        const m = meta();
+        m.rev[entry.doc] = remote.rev || 0;
+        m.hash[entry.doc] = fingerprint(remote.json);
+        m.lastAt = Date.now(); saveMeta(m);
+        state.status = 'idle'; state.lastAt = m.lastAt; emit();
+        return;
+      }
+      if (act === 'pull') {
+        applyRemote(entry, remote);
+        state.status = 'idle'; emit();
+        scheduleReload(`다른 기기에서 바꾼 ${entry.label} 기록을 받았습니다. 화면을 새로 고칩니다.`);
+        return;
+      }
+      // 양쪽 다 바뀐 경우 — 사용자에게 묻는다
+      const ok = confirm(
+        `${entry.label} 기록이 이 기기와 클라우드에서 서로 다릅니다.\n\n` +
+        `클라우드: ${stamp(remote.updatedAt)} · ${remote.device || '다른 기기'}에서 수정\n` +
+        `이 기기: 마지막 동기화 이후 변경됨\n\n` +
+        `[확인] 클라우드 기록을 가져옵니다 (이 기기 변경은 사라집니다)\n` +
+        `[취소] 이 기기 기록으로 클라우드를 덮어씁니다`);
+      if (ok) {
+        applyRemote(entry, remote);
+        scheduleReload(`클라우드의 ${entry.label} 기록을 가져왔습니다.`);
+      } else {
+        const m = meta();
+        m.rev[entry.doc] = remote.rev || 0;      // 최신 rev 위에 덮어쓰도록
+        saveMeta(m);
+        push(entry, 'overwrite');
+      }
+    }, err => {
+      console.warn('동기화 감시 실패:', err);
+      state.status = 'error';
+      state.message = err && /permission/i.test(err.message || '')
+        ? '접근이 거부되었습니다. Firestore 보안 규칙에 users 규칙을 추가해 주세요.'
+        : '클라우드와 연결하지 못했습니다.';
+      emit();
+    });
+    unsub.push(un);
+  }
+}
+function stopWatch() { unsub.forEach(fn => { try { fn(); } catch (e) { /* 무시 */ } }); unsub = []; }
+
+/* ---------- 저장이 일어나면 자동으로 올린다 ---------- */
+function hookStore() {
+  if (!L || !L.Store || L.Store.__synced) return;
+  const orig = L.Store.save.bind(L.Store);
+  L.Store.save = function (key, value) {
+    const ok = orig(key, value);
+    if (ok && !applying) {
+      const entry = KEYS.find(k => k.key === key);
+      if (entry && state.user) {
+        state.pending = true; emit();
+        clearTimeout(timers[entry.doc]);
+        timers[entry.doc] = setTimeout(() => push(entry, 'local'), 1500);
+      }
+    }
+    return ok;
+  };
+  L.Store.__synced = true;
+}
+
+/* ---------- 바깥에 내보내는 것 ---------- */
+window.LMSync = {
+  state: publicState,
+  subscribe(fn) { listeners.add(fn); fn(publicState()); return () => listeners.delete(fn); },
+  async signIn() {
+    if (!fb) { L && L.toast && L.toast(state.message || '동기화를 쓸 수 없는 환경입니다.'); return; }
+    try {
+      const provider = new fb.A.GoogleAuthProvider();
+      await fb.A.signInWithPopup(fb.auth, provider);
+    } catch (e) {
+      console.warn('로그인 실패:', e);
+      const code = (e && e.code) || '';
+      L && L.toast && L.toast(
+        code.includes('popup-blocked') ? '팝업이 차단되었습니다. 주소창의 팝업 허용을 켜 주세요.'
+        : code.includes('popup-closed') ? '로그인 창이 닫혔습니다.'
+        : code.includes('unauthorized-domain') ? '이 주소가 파이어베이스 승인 도메인에 없습니다.'
+        : '로그인하지 못했습니다.');
+    }
+  },
+  async signOut() {
+    if (!fb) return;
+    stopWatch();
+    try { await fb.A.signOut(fb.auth); } catch (e) { /* 무시 */ }
+    L && L.toast && L.toast('로그아웃했습니다. 기록은 이 브라우저에 그대로 있습니다.');
+  },
+  /** 지금 바로 올리기 */
+  async syncNow() {
+    if (!state.user) return;
+    for (const entry of KEYS) await push(entry, 'manual');
+    L && L.toast && L.toast('클라우드에 저장했습니다.');
+  },
+};
+
+hookStore();
+load();
+window.addEventListener('online', () => { if (state.user) { state.status = 'idle'; emit(); } });
+window.addEventListener('offline', () => { if (state.user) { state.status = 'offline'; emit(); } });
 </script>
 </body>
 </html>
