@@ -393,6 +393,9 @@ textarea { resize: vertical; min-height: 68px; }
 input[type="checkbox"] { width: 17px; height: 17px; min-height: 0; accent-color: var(--accent); cursor: pointer; margin: 0; }
 .form-grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fit, minmax(min(160px, 100%), 1fr)); }
 .form-grid .span2 { grid-column: span 2; }
+/* 두세 자리 숫자를 넣는 칸 — 넓은 화면에서 칸이 300px 로 늘어나면 어지럽다 */
+.form-grid.nums { grid-template-columns: repeat(auto-fit, minmax(0, 152px)); justify-content: start; }
+@media (max-width: 380px) { .form-grid.nums { grid-template-columns: minmax(0, 1fr); } }
 .inline { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
 
 /* ---------- 11. 표 ---------- */
@@ -1399,21 +1402,42 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 .courselist select.area { width: 74px; }
 .courselist select.area.unset { color: var(--text-3); border-style: dashed; }
 
-/* 구분별 졸업 요건 — 전공 · 교양 · 일반 한 줄씩 */
-.areqs { display: flex; flex-direction: column; gap: 9px; }
-.areq { display: grid; grid-template-columns: 58px 104px minmax(60px, 1fr) 132px; gap: 10px; align-items: center; }
-.areq .num { font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums; }
+/* 구분별 졸업 요건 — 전공 · 교양 · 일반 한 줄씩.
+   한 줄을 읽기 좋은 폭(640px)에 묶어 둔다. 넓은 화면에서 막대가 끝까지
+   늘어나면 6px 짜리 선이 화면을 가로지르며 어지러워진다. */
+.areqs { display: flex; flex-direction: column; gap: 2px; max-width: 640px; }
+.areq {
+  display: grid; grid-template-columns: 52px 84px 168px minmax(0, 1fr);
+  gap: 12px; align-items: center; padding: 7px 0;
+}
+.areq + .areq { border-top: 1px solid var(--border); }
+.areq .nm .badge { width: 100%; justify-content: center; }
+.areq .num { font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; }
 .areq .num small { margin-left: 2px; font-size: 11px; color: var(--text-3); font-weight: 500; }
-.areq .tail { font-size: 11.5px; color: var(--text-3); }
-.areq .tail small { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500; color: var(--text-3); }
+.areq .bar { width: 100%; }
+.areq .tail { font-size: 12px; color: var(--text-2); }
+.areq .tail small { display: block; margin-top: 1px; font-size: 10.5px; font-weight: 500; color: var(--text-3); }
 .areq .tail.ok { color: var(--ok); font-weight: 650; }
 .areq .tail.warn { color: var(--warn); }
-.areq.total { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px; }
-.areq.total .num { font-size: 15px; }
+.areq .free { font-size: 11.5px; color: var(--text-3); }
+.areq.total { border-top: 1.5px solid var(--border-strong); margin-top: 4px; padding-top: 11px; }
+.areq.total .nm b { font-size: 13px; }
+.areq.total .num { font-size: 15.5px; }
 @media (max-width: 700px) {
-  .areq { grid-template-columns: 58px 1fr; row-gap: 6px; }
-  .areq .bar { grid-column: 1 / -1; }
-  .areq .tail { grid-column: 1 / -1; }
+  /* 휴대폰 — 첫 줄에 [구분][학점][남은 학점], 둘째 줄에 막대.
+     자리를 이름으로 지정한다. 그냥 두면 막대가 한 줄을 다 먹고 남은 글자가
+     첫 칸(50px)으로 밀려 네 줄로 접힌다. */
+  .areqs { max-width: none; }
+  .areq {
+    grid-template-columns: 50px auto minmax(0, 1fr);
+    grid-template-areas: "nm num tail" "bar bar bar";
+    row-gap: 7px; padding: 10px 0;
+  }
+  .areq .nm { grid-area: nm; }
+  .areq .num { grid-area: num; text-align: left; }
+  .areq .tail { grid-area: tail; text-align: right; }
+  .areq .bar { grid-area: bar; }
+  .areq .free { grid-area: bar; text-align: left; }   /* 막대가 없는 줄 — 막대 자리에 문구를 둔다 */
 }
 .courselist .pt { width: 30px; text-align: right; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .courselist .none { padding: 14px 10px; text-align: center; font-size: 12px; color: var(--text-3); }
@@ -2346,7 +2370,7 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       <div class="card-head"><h3>졸업 요건</h3><div class="spacer"></div>
         <span class="dim" style="font-size:12px">입력하면 바로 저장됩니다</span></div>
       <div class="card-body">
-        <div class="form-grid" style="margin-bottom:14px">
+        <div class="form-grid nums" style="margin-bottom:16px">
           <label class="field"><span>편입 인정학점</span><input type="number" id="dTransfer" min="0" max="200"></label>
           <label class="field"><span>졸업 필요학점</span><input type="number" id="dGrad" min="0" max="300"></label>
           <label class="field"><span>전공 최소학점</span><input type="number" id="dNeedMajor" min="0" max="300"></label>
@@ -2440,8 +2464,8 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
     <div class="card" style="margin-bottom:14px">
       <div class="card-head"><h3>학적 정보</h3></div>
       <div class="card-body">
-        <div class="form-grid">
-          <label class="field"><span>이름</span><input type="text" id="mName"></label>
+        <div class="form-grid nums">
+          <label class="field" style="min-width:180px"><span>이름</span><input type="text" id="mName"></label>
           <label class="field"><span>학과</span><input type="text" id="mMajor"></label>
           <label class="field"><span>편입 인정학점</span><input type="number" id="mTransfer" min="0" max="200"></label>
           <label class="field"><span>└ 그중 전공</span><input type="number" id="mTransferMajor" min="0" max="200"></label>
@@ -9630,15 +9654,17 @@ function renderDegree() {
   const subjects = cr => `${PER}학점 기준 ${Math.ceil(cr / PER)}과목`;
   /** 구분 한 줄 — 이수 / 최소학점 · 남은 학점(과목 수) */
   const areaRow = (key, label, done, min, note) => {
-    const pct = min ? L.pct(done, min) : (done ? 100 : 0);
     const lack = Math.max(0, min - done);
-    return `<div class="areq ${lack === 0 ? 'done' : ''}">
+    const pct = min ? Math.min(100, L.pct(done, min)) : 0;
+    return `<div class="areq">
       <span class="nm"><span class="badge ${AREA_TONE[key] || ''}">${label}</span></span>
       <span class="num"><b>${done}</b>${min ? ` / ${min}` : ''}<small>학점</small></span>
-      <span class="bar ${lack === 0 ? 'ok' : (AREA_TONE[key] || 'accent')}"><i style="width:${Math.min(100, pct)}%"></i></span>
-      <span class="tail ${lack ? 'warn' : 'ok'}">${min
+      ${min
+        ? `<span class="bar ${lack === 0 ? 'ok' : (AREA_TONE[key] || 'accent')}"><i style="width:${pct}%"></i></span>`
+        : '<span class="free">최소 요건 없음</span>'}
+      <span class="tail ${min ? (lack ? 'warn' : 'ok') : ''}">${min
         ? (lack ? `${lack}학점 남음<small>${subjects(lack)}</small>` : '충족')
-        : (note || '요건 없음')}</span>
+        : (note || '')}</span>
     </div>`;
   };
   $('#gradBody').innerHTML = `
@@ -9646,14 +9672,15 @@ function renderDegree() {
     <div class="areqs">
       ${areaRow('major', '전공', rq.got.major, rq.needMajor)}
       ${areaRow('liberal', '교양', rq.got.liberal, rq.needLiberal)}
-      ${areaRow('etc', '일반', rq.got.etc, 0, `전공 · 교양이 아닌 나머지${rq.needEtc ? ` (총학점 채우기용 ${rq.needEtc}학점)` : ''}`)}
+      ${areaRow('etc', '일반', rq.got.etc, 0,
+        `전공 · 교양이 아닌 나머지${rq.needEtc ? `<small>총학점 채우기에 최대 ${rq.needEtc}학점</small>` : ''}`)}
       ${rq.got.none ? areaRow('', '미지정', rq.got.none, 0, '구분을 정하면 전공 · 교양 요건에 반영됩니다') : ''}
       <div class="areq total">
         <span class="nm"><b>합계</b></span>
         <span class="num"><b>${rq.total}</b> / ${rq.need}<small>학점</small></span>
         <span class="bar ${rq.left === 0 ? 'ok' : 'purple'}"><i style="width:${Math.min(100, L.pct(rq.total, rq.need))}%"></i></span>
         <span class="tail ${rq.left ? 'warn' : 'ok'}">${rq.left
-          ? `${rq.left}학점 남음<small>${subjects(rq.left)}</small>` : '충족'}</span>
+          ? `${rq.left}학점 남음<small>${subjects(rq.left)}</small>` : '졸업 학점 충족'}</span>
       </div>
     </div>
     ${rq.earned.noneCount ? `<p class="notice warn" style="margin-top:12px;font-size:12.5px">
@@ -9662,13 +9689,8 @@ function renderDegree() {
     ${rq.overTransfer ? `<p class="notice danger" style="margin-top:12px;font-size:12.5px">
       ${L.icon('bell', 15)}<span>편입 인정학점의 전공 + 교양(${rq.transfer.major + rq.transfer.liberal}학점)이
       전체 편입 인정학점(${rq.transfer.all}학점)보다 많습니다. 학사 설정에서 확인해 주세요.</span></p>` : ''}
-    <div class="inline" style="font-size:12.5px;margin-top:12px">
-      <span class="badge accent">편입 인정 ${rq.transfer.all}학점</span>
-      <span class="badge purple">방통대 취득 ${got}학점</span>
-      <span class="badge">잔여 ${rq.left}학점</span>
-      <div style="flex:1"></div>
-      <span class="dim">졸업 필요 ${rq.need}학점</span>
-    </div>
+    <p class="dim" style="font-size:12px;margin-top:11px">
+      합계 ${rq.total}학점 = 편입 인정 <b>${rq.transfer.all}</b> + 방통대 취득 <b>${got}</b></p>
     ${left > 0 && remainTerms > 0 ? `<p class="dim" style="font-size:12.5px;margin-top:12px">
       남은 <b>${remainTerms}개 학기</b>에 학기당 평균 <b>${perTerm}학점</b>을 취득하면 졸업 요건을 채웁니다.
       ${perTerm > 24
