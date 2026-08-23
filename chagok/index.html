@@ -1333,14 +1333,26 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 .dayrow .mn:hover { background: var(--surface-3); color: var(--text); }
 .dayempty { padding: 9px 15px 13px; font-size: 12.5px; color: var(--text-3); display: flex; align-items: center; gap: 7px; }
 
-.weekgrid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); gap: 1px; background: var(--border); border: 1px solid var(--border); border-radius: var(--r); overflow: hidden; }
-.weekgrid > div { background: var(--surface); min-height: 190px; padding: 8px; display: flex; flex-direction: column; gap: 3px; }
-.weekgrid > div.out { background: var(--surface-2); }
-.weekgrid > div.sel { background: var(--accent-soft); }
-.weekgrid .wd { font-size: 11.5px; font-weight: 700; color: var(--text-2); display: flex; gap: 5px; align-items: center; }
-.weekgrid .wd.sun { color: var(--danger); }
-.weekgrid .wd.sat { color: var(--accent); }
-@media (max-width: 860px) { .weekgrid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .weekgrid > div { min-height: 120px; } }
+.weeklist { display: flex; flex-direction: column; }
+.weeklist .wrow {
+  display: flex; align-items: flex-start; gap: 12px; padding: 10px 15px;
+  border-top: 1px solid var(--border); cursor: pointer;
+}
+.weeklist .wrow:first-child { border-top: 0; }
+.weeklist .wrow:hover { background: var(--surface-2); }
+.weeklist .wrow.sel { background: var(--accent-soft); }
+.weeklist .wd { flex: 0 0 62px; display: flex; align-items: center; gap: 5px; white-space: nowrap; }
+.weeklist .wd b { font-size: 16px; font-variant-numeric: tabular-nums; }
+.weeklist .wd i { font-style: normal; font-size: 11.5px; color: var(--text-3); }
+.weeklist .wd.sun b, .weeklist .wd.sun i { color: var(--danger); }
+.weeklist .wd.sat b, .weeklist .wd.sat i { color: var(--accent); }
+.weeklist .wrow.today .wd b {
+  background: var(--accent); color: var(--on-accent); border-radius: 50%;
+  display: inline-grid; place-items: center; width: 24px; height: 24px; font-size: 13px;
+}
+.weeklist .wev { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: flex-start; gap: 4px; }
+.weeklist .wev .evline { font-size: 12px; padding: 2px 4px; }
+.weeklist .wev .dim { font-size: 11.5px; }
 
 @media (max-width: 1080px) { .picklist { max-height: none; } }
 @media (max-width: 700px) {
@@ -1352,7 +1364,7 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 /* 통합 일정 — 드래그로 날짜 옮기기 */
 .evline.movable { cursor: grab; }
 .evline.dragging, .dayrow .bd.dragging { opacity: .45; }
-.cal .cell.dropok, .weekgrid > div.dropok { outline: 2px dashed var(--accent); outline-offset: -3px; background: var(--accent-soft); }
+.cal .cell.dropok, .weeklist .wrow.dropok { outline: 2px dashed var(--accent); outline-offset: -3px; background: var(--accent-soft); }
 .dayrow .bd[draggable="true"] { cursor: grab; }
 
 /* ---------- 24. 학기별 성적 카드 (성적 · 졸업) ---------- */
@@ -1743,10 +1755,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
   .notice.link .spacer { display: none; }
   .notice.link > .ic:last-child { position: absolute; right: 12px; top: 14px; }
   .notice.link { position: relative; padding-right: 34px; }
-  .calfilters { display: none; width: 100%; }
-  body.cal-filters-open .calfilters { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
-  body.cal-filters-open .calfilters select,
-  body.cal-filters-open .calfilters input[type="date"] { width: 100%; }
+  .calfilters { width: 100%; }
 
   /* 달력 — 제목 대신 아이콘만, 자세한 내용은 아래 목록에서 */
   .cal.soft { grid-auto-rows: minmax(58px, 1fr); }
@@ -1765,7 +1774,6 @@ body:has(.modal-bg.open) { overflow: hidden; }
   /* 선택한 날 목록이 주인공 */
   .daygroup > .gh { padding: 11px 15px; min-height: 46px; }
   .dayrow { padding: 9px 15px 11px; }
-  .weekgrid > div { min-height: 130px; }
 
   /* 자격증 상태표 — 단계 6칸 대신 막대 하나로 */
   #certTable th:nth-child(n+2):nth-child(-n+7),
@@ -1790,6 +1798,93 @@ body:has(.modal-bg.open) { overflow: hidden; }
   .cal.soft .evline .ic { width: 12px; height: 12px; }
   body.cal-filters-open .calfilters { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ---------- 25g. 통합 일정 — 달력 바 · 필터 · 상세 시트 ---------- */
+/* 달력 바 오른쪽의 요약 문구 (화면 제목줄에서 옮겨 왔다) */
+.calmeta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
+
+/* 필터는 접어 둔다 — 무엇이 걸렸는지는 아래 칩으로 보여준다 */
+.calfilters { display: none; }
+body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: flex-end; }
+.calfilters .cf { display: flex; flex-direction: column; gap: 4px; }
+.calfilters .cf > span { font-size: 11px; color: var(--text-3); font-weight: 600; }
+.calfilters .cf > select, .calfilters .cf > input[type="date"] { width: auto; }
+.calchips { display: flex; flex-wrap: wrap; gap: 6px; }
+.calchips:empty { display: none; }
+.calchips .chip .x { color: var(--text-3); font-weight: 700; }
+.calchips .chip.on .x { color: inherit; opacity: .75; }
+
+/* 지연 배너 — 한 줄로 (길면 줄임표) */
+#overdueBanner .notice.link { padding: 10px 14px; }
+#overdueBanner .notice.link > span:not(.spacer) {
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+
+/* 범례 — 한 줄로 눕히고 넘치면 옆으로 밀어 본다 */
+.callegend { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
+.callegend::-webkit-scrollbar { height: 0; }
+.callegend > span { flex: 0 0 auto; }
+
+/* 칸 전체가 스크롤되는 오른쪽 칸 — 카드를 창 높이에 맞춰 누르면 상자만 줄고
+   내용은 제 높이를 그대로 지켜서 카드 밖으로 삐져나온다(목록 마지막 줄이 잘리고
+   "+ 다른 일정 추가" 가 카드 아래로 떨어지던 증상). 카드는 줄이지 않는다. */
+@media (min-width: 1000px) {
+  body.fitview .fitcols > .fitscroll > .card { flex: none; }
+}
+
+/* 월 보기 — 남은 높이에 6주가 딱 맞게 들어간다 (카드 안쪽 스크롤이 없어진다).
+   달력과 목록이 좌우로 나뉘는 폭에서만 — 세로로 쌓이면 달력에 줄 높이가 모자란다. */
+@media (min-width: 1181px) {
+  body.fitview.cal-month .schedwrap > .card > .card-body {
+    display: flex; flex-direction: column; overflow: hidden; max-height: none;
+  }
+  body.fitview.cal-month .schedwrap > .card > .card-body > #calBody { flex: 1; min-height: 0; }
+  body.fitview.cal-month #calBody > .cal.soft { height: 100%; grid-auto-rows: minmax(0, 1fr); }
+  body.fitview.cal-month #calBody .evline { padding: 0 3px; line-height: 1.35; }
+}
+
+/* 달력과 목록이 세로로 쌓이는 폭 — 창 높이에 억지로 밀어 넣으면 달력이 눌린다.
+   이 구간만 페이지를 그대로 스크롤하게 풀어 준다. */
+@media (min-width: 1000px) and (max-width: 1180px) {
+  body.fitview .wrap > .page.active:has(.schedwrap) { overflow-y: auto; }
+  body.fitview .schedwrap.fitmain { flex: none; }
+  body.fitview .schedwrap > .card > .card-body { overflow: visible; max-height: none; }
+  body.fitview .schedwrap .fitscroll { overflow: visible; }
+}
+
+/* 휴대폰 — 고른 일정의 상세를 아래에서 올라오는 시트로 */
+@media (max-width: 700px) {
+  .calbar .calmeta { flex: 1 1 100%; order: 5; text-align: center; }
+  .calbar .calchips { order: 6; flex: 1 1 100%; }
+  .calbar .calchips .chip { flex: 0 0 auto; }
+  body.cal-filters-open .calfilters {
+    display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
+  }
+  .calfilters .cf > select, .calfilters .cf > input[type="date"] { width: 100%; }
+
+  #overdueBanner .notice.link { flex-wrap: nowrap; padding: 11px 32px 11px 13px; }
+  #overdueBanner .notice.link > span:not(.spacer) { flex: 1 1 auto; font-size: 12px; }
+  #overdueBanner .notice.link > .ic:last-child { top: 50%; transform: translateY(-50%); }
+
+  .sheet-scrim {
+    position: fixed; inset: 0; z-index: 94; background: rgba(15, 18, 14, .34);
+    animation: fadein 160ms ease;
+  }
+  @keyframes fadein { from { opacity: 0; } to { opacity: 1; } }
+  body.ev-open #evDetail {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 95;
+    max-height: 84vh; max-height: 84dvh; overflow-y: auto; -webkit-overflow-scrolling: touch;
+    border-radius: var(--r-lg) var(--r-lg) 0 0; border-bottom: 0;
+    box-shadow: var(--shadow-2); animation: sheetup 220ms ease;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
+  }
+  body.ev-open #evDetail > .card-head {
+    position: sticky; top: 0; z-index: 2; background: var(--surface);
+    border-radius: var(--r-lg) var(--r-lg) 0 0;
+  }
+  body.ev-open { overflow: hidden; }
+}
+@media (min-width: 701px) { .sheet-scrim { display: none; } }
 
 @media (max-width: 440px) {
   .g4 .stat .ico { display: none; }
@@ -1935,10 +2030,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
   <section class="page active" id="page-main">
 
     <div class="page-head">
-      <div>
-        <h2>통합 일정</h2>
-        <p class="sub" id="pageSub"></p>
-      </div>
+      <div><h2>통합 일정</h2></div>
     </div>
 
     <div class="calbar">
@@ -1954,24 +2046,26 @@ body:has(.modal-bg.open) { overflow: hidden; }
         <button type="button" data-view="day" aria-pressed="false">일</button>
       </div>
       <div class="spacer"></div>
-      <button class="btn sm m-only" id="filterToggle" aria-expanded="false" aria-controls="calFilters">필터</button>
+      <span class="calmeta" id="pageSub"></span>
+      <button class="btn sm" id="filterToggle" aria-expanded="false" aria-controls="calFilters">필터</button>
       <div class="calfilters" id="calFilters">
-        <select id="fGroup" aria-label="일정 종류"></select>
-        <select id="fOwner" aria-label="출처"></select>
-        <select id="fStatus" aria-label="상태">
+        <label class="cf"><span>일정 종류</span><select id="fGroup" aria-label="일정 종류"></select></label>
+        <label class="cf"><span>출처</span><select id="fOwner" aria-label="출처"></select></label>
+        <label class="cf"><span>상태</span><select id="fStatus" aria-label="상태">
           <option value="all">전체 상태</option>
           <option value="open">미완료</option>
           <option value="done">완료</option>
           <option value="overdue">지연</option>
-        </select>
-        <select id="fPri" aria-label="우선순위">
+        </select></label>
+        <label class="cf"><span>우선순위</span><select id="fPri" aria-label="우선순위">
           <option value="all">전체 우선순위</option>
           <option value="high">중요</option>
           <option value="normal">보통</option>
           <option value="low">낮음</option>
-        </select>
-        <input type="date" id="jumpDate" aria-label="날짜로 이동">
+        </select></label>
+        <label class="cf"><span>날짜로 이동</span><input type="date" id="jumpDate" aria-label="날짜로 이동"></label>
       </div>
+      <div class="calchips" id="filterChips"></div>
     </div>
 
     <div id="overdueBanner" style="margin-bottom:12px"></div>
@@ -1997,9 +2091,10 @@ body:has(.modal-bg.open) { overflow: hidden; }
           </div>
         </section>
 
-        <section class="card" id="evDetail"></section>
+        <section class="card" id="evDetail" hidden></section>
       </div>
     </div>
+    <div class="sheet-scrim" id="evScrim" hidden></div>
 
   </section>
 </main>
@@ -6468,7 +6563,9 @@ let cursor = (() => { const d = new Date(); return { y: d.getFullYear(), m: d.ge
 let sel = today;
 let evSel = '';
 const filters = { group: 'all', owner: 'all', status: 'all', pri: 'all' };
+const STATUS_LABEL = { open: '미완료', done: '완료', overdue: '지연' };
 const collapsed = {};
+let showEmptyGroups = false;     // 0건 분류는 기본으로 감춘다
 
 /* ================= 일정 모으기 ================= */
 function courseLecturesOf(c) { return Array.isArray(c.lectureItems) ? c.lectureItems : []; }
@@ -6634,6 +6731,13 @@ function render() {
   EVall = collect(from, to);
   EV = EVall.filter(passFilter);
 
+  // 월 보기에서만 달력을 남은 높이에 맞춘다 (주 · 일 보기는 길어질 수 있어 스크롤을 남긴다)
+  document.body.classList.toggle('cal-month', view === 'month');
+  // 휴대폰에서는 고른 일정의 상세가 아래에서 올라오는 시트로 열린다
+  document.body.classList.toggle('ev-open', !!evSel);
+  const scrim = $('#evScrim');
+  if (scrim) scrim.hidden = !evSel;
+
   renderFilters();
   renderTitle();
   renderBanner();
@@ -6664,6 +6768,18 @@ function renderFilters() {
   o.value = filters.owner;
   $('#fStatus').value = filters.status;
   $('#fPri').value = filters.pri;
+
+  // 걸린 조건만 칩으로 보여준다 — 셀렉트를 펼치지 않아도 알 수 있게
+  const chips = [];
+  if (filters.group !== 'all') chips.push(['group', GROUP_LABEL[filters.group]]);
+  if (filters.owner !== 'all') chips.push(['owner', filters.owner]);
+  if (filters.status !== 'all') chips.push(['status', STATUS_LABEL[filters.status] || filters.status]);
+  if (filters.pri !== 'all') chips.push(['pri', (L.PRIORITY[filters.pri] || {}).label || filters.pri]);
+  $('#filterChips').innerHTML = chips.map(([k, t]) =>
+    `<button type="button" class="chip on" data-filter-clear="${k}" title="이 조건 지우기">${L.esc(t)}<span class="x"> ✕</span></button>`).join('')
+    + (chips.length > 1 ? '<button type="button" class="chip" data-filter-reset>모두 지우기</button>' : '');
+  const ft = $('#filterToggle');
+  if (ft) ft.textContent = chips.length ? `필터 ${chips.length}` : '필터';
 }
 
 function renderTitle() {
@@ -6674,9 +6790,9 @@ function renderTitle() {
   } else $('#calTitle').textContent = L.fmtLong(sel);
 
   const open = EV.filter(e => e.toggle && !e.done);
-  const overdue = open.filter(e => e.date < today);
+  // 지연 건수는 바로 아래 배너가 말해 주므로 여기서는 겹쳐 쓰지 않는다
   $('#pageSub').textContent =
-    `${view === 'month' ? '이번 달' : view === 'week' ? '이번 주' : '오늘'} 일정 ${EV.length}건 · 남은 일 ${open.length}건${overdue.length ? ` · 지연 ${overdue.length}건` : ''}`;
+    `${view === 'month' ? '이번 달' : view === 'week' ? '이번 주' : '오늘'} 일정 ${EV.length}건 · 남은 일 ${open.length}건`;
 }
 
 function renderBanner() {
@@ -6685,8 +6801,8 @@ function renderBanner() {
     .sort((a, b) => a.date.localeCompare(b.date));
   if (!od.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<button type="button" class="notice danger link" data-ev-jump="${L.esc(od[0].key)}">
-      ${L.icon('bell', 16)}<b>지연된 일정 ${od.length}건</b>
-      <span style="opacity:.85">— 가장 오래된 것: ${L.esc(od[0].title)} (${L.ddayLabel(od[0].date)})</span>
+      ${L.icon('bell', 16)}<b>지연 ${od.length}건</b>
+      <span style="opacity:.85">${L.esc(od[0].title)} · ${L.ddayLabel(od[0].date)}</span>
       <span class="spacer"></span>${L.icon('chev', 15)}</button>`;
 }
 
@@ -6744,13 +6860,49 @@ function moveEvent(key, date) {
   L.toast(`${L.fmtKo(date)} 로 옮겼습니다.`);
 }
 /** 달력 한 칸에 몇 건까지 보여 줄지 (휴대폰은 아이콘만 나와 더 담긴다) */
-function calMax() { return window.matchMedia('(max-width: 700px)').matches ? 5 : 3; }
+/** 달력 한 칸에 넣을 줄 수 — 데스크톱은 칸 높이를 재서 정한다 (한 달이 한 화면에 들어오게) */
+function calMax() {
+  if (window.matchMedia('(max-width: 700px)').matches) return 5;   // 휴대폰은 제목 없이 아이콘만
+  const fit = document.body.classList.contains('fitview') && window.matchMedia('(min-width: 1181px)').matches;
+  if (!fit) return 3;
+  const body = document.querySelector('.schedwrap > .card > .card-body');
+  const h = body ? body.clientHeight : 0;
+  if (!h) return 3;
+  const legend = document.getElementById('calLegend');
+  const rowH = (h - (legend ? legend.offsetHeight : 0) - 34) / 6;   // 34 = 요일 머리글
+  return Math.max(1, Math.min(6, Math.floor((rowH - 24) / 18)));
+}
+
+/** 계산이 한 줄 어긋나도 잘리지 않게 — 칸을 넘어가는 줄은 감추고 "+N" 에 더한다 */
+function trimCells() {
+  if (window.matchMedia('(max-width: 700px)').matches) return;     // 휴대폰은 칸이 늘어난다
+  for (const cell of $$('#calBody .cal .cell')) {
+    const more = cell.querySelector('.more');
+    if (!more) continue;
+    let rest = Number(more.dataset.rest) || 0;
+    const setMore = () => {
+      more.hidden = !rest;
+      more.textContent = rest ? `+${rest}` : '';
+    };
+    setMore();
+    const limit = cell.getBoundingClientRect().bottom - 4;         // 4 = 칸 아래 여백
+    const lines = Array.from(cell.querySelectorAll('.evline'));
+    for (let i = lines.length - 1; i >= 0; i--) {
+      const last = more.hidden ? lines[i] : more;
+      if (last.getBoundingClientRect().bottom <= limit) break;
+      lines[i].hidden = true;
+      rest++;
+      setMore();
+    }
+  }
+}
 /** 달력에서는 습관을 숨긴다 (매일 반복이라 화면을 덮는다 — 습관만 골라 보면 표시) */
 function calEvents(date) {
   return EV.filter(e => e.date === date && (filters.group === 'habit' || e.group !== 'habit' || e.cat === '운동 기록'));
 }
 
 function renderMonth() {
+  const cap = calMax();
   let html = ['일', '월', '화', '수', '목', '금', '토']
     .map((d, i) => `<div class="dow ${i === 0 ? 'sun' : i === 6 ? 'sat' : ''}">${d}</div>`).join('');
   // 일요일 시작으로 맞춘다
@@ -6765,11 +6917,12 @@ function renderMonth() {
     html += `<div class="cell ${out ? 'out' : ''} ${s === today ? 'today' : ''} ${s === sel ? 'sel' : ''}" data-day="${s}">
       <div class="d ${d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : ''}">
         <b>${d.getDate()}</b>${hol ? `<span class="hol">${L.esc(hol)}</span>` : ''}</div>
-      ${list.slice(0, calMax()).map(evLine).join('')}
-      ${list.length > calMax() ? `<div class="more">+${list.length - calMax()}</div>` : ''}
+      ${list.slice(0, cap).map(evLine).join('')}
+      <div class="more" data-rest="${Math.max(0, list.length - cap)}" hidden></div>
     </div>`;
   }
   $('#calBody').innerHTML = `<div class="cal soft" id="calGrid" style="border-radius:0;border:0;border-bottom:1px solid var(--border)">${html}</div>`;
+  trimCells();
 }
 
 function renderWeek() {
@@ -6779,13 +6932,16 @@ function renderWeek() {
     const s = L.addDays(r.start, i);
     const d = L.parse(s);
     const list = calEvents(s);
-    html += `<div class="${s === sel ? 'sel' : ''} ${s === today ? '' : ''}" data-day="${s}">
-      <div class="wd ${d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : ''}">
-        ${L.WD[d.getDay()]} ${d.getDate()}${s === today ? ' <span class="badge ok">오늘</span>' : ''}</div>
-      ${list.length ? list.map(evLine).join('') : '<div class="dim" style="font-size:11px">일정 없음</div>'}
+    const hol = L.holidayName(s);
+    const wd = d.getDay() === 0 ? 'sun' : d.getDay() === 6 ? 'sat' : '';
+    html += `<div class="wrow ${s === sel ? 'sel' : ''} ${s === today ? 'today' : ''}" data-day="${s}">
+      <div class="wd ${wd}"><b>${d.getDate()}</b><i>(${L.WD[d.getDay()]})</i></div>
+      <div class="wev">
+        ${hol ? `<span class="badge danger">${L.esc(hol)}</span>` : ''}
+        ${list.length ? list.map(evLine).join('') : (hol ? '' : '<span class="dim">일정 없음</span>')}</div>
     </div>`;
   }
-  $('#calBody').innerHTML = `<div style="padding:14px"><div class="weekgrid">${html}</div></div>`;
+  $('#calBody').innerHTML = `<div class="weeklist">${html}</div>`;
 }
 
 function renderDay() {
@@ -6815,7 +6971,7 @@ function renderDay() {
 function renderLegend() {
   $('#calLegend').innerHTML = GROUPS.map(g =>
     `<span>${L.icon(g.ico, 14)}${g.label}</span>`).join('')
-    + `<span class="dim" style="margin-left:auto">습관은 오른쪽 목록에서 확인합니다</span>`;
+    + `<span class="dim">습관은 날짜별 목록에서 확인합니다</span>`;
 }
 
 /* ---- 선택한 날짜 패널 ---- */
@@ -6826,9 +6982,11 @@ function renderDayPanel() {
 
   const list = EV.filter(e => e.date === sel);
   const box = $('#dayGroups');
-  const groups = GROUPS.filter(g => filters.group === 'all' || filters.group === g.key);
-  box.innerHTML = groups.map(g => {
-    const items = list.filter(e => e.group === g.key);
+  const groups = GROUPS.filter(g => filters.group === 'all' || filters.group === g.key)
+    .map(g => ({ g, items: list.filter(e => e.group === g.key) }));
+  const shown = showEmptyGroups ? groups : groups.filter(x => x.items.length);
+  const hidden = groups.length - shown.length;
+  const rows = shown.map(({ g, items }) => {
     const open = collapsed[g.key] === undefined ? items.length > 0 : collapsed[g.key] !== true;
     return `<div class="daygroup">
       <button type="button" class="gh" data-group-toggle="${g.key}" aria-expanded="${open}">
@@ -6840,6 +6998,11 @@ function renderDayPanel() {
         : `<div class="dayempty">${L.icon('cal', 14)}<span>등록된 일정이 없습니다.</span></div>`) : ''}
     </div>`;
   }).join('');
+  box.innerHTML = (rows || `<div class="dayempty" style="padding:20px 15px">
+      ${L.icon('cal', 15)}<span>이 날짜에 표시할 일정이 없습니다.</span></div>`)
+    + (hidden || showEmptyGroups ? `<div class="dayempty" style="padding:6px 15px 10px">
+        <button type="button" class="btn ghost sm" data-show-empty>${showEmptyGroups
+          ? '비어 있는 분류 접기' : `비어 있는 분류 ${hidden}개 보기`}</button></div>` : '');
 }
 function dayRow(e) {
   const pri = L.PRIORITY[e.priority] || L.PRIORITY.normal;
@@ -6865,18 +7028,16 @@ function dayRow(e) {
 function renderDetail() {
   const box = $('#evDetail');
   const e = EVall.find(x => x.key === evSel) || null;
-  if (!e) {
-    box.innerHTML = `<div class="card-head"><h3>선택 일정 상세</h3></div>
-      <div class="card-body"><p class="dim" style="font-size:12.5px">일정을 고르면 마감일 · 우선순위 · 상태 · 메모를 여기에서 바로 고칠 수 있습니다.</p></div>`;
-    return;
-  }
+  if (!e) { box.hidden = true; box.innerHTML = ''; return; }   // 고른 것이 없으면 자리를 비워 둔다
+  box.hidden = false;
   const pri = L.PRIORITY[e.priority] || L.PRIORITY.normal;
   const od = e.toggle && !e.done && e.date < today;
   const editable = e.toggle !== 'habit' && e.cat !== '운동 기록';
   box.innerHTML = `
     <div class="card-head"><h3>선택 일정 상세</h3><div class="spacer"></div>
       ${e.toggle === 'lifeevent' ? `<button class="btn sm" data-ev-edit="${L.esc(e.baseId)}">${L.icon('edit', 14)} 수정</button>`
-        : e.href ? `<a class="btn sm" href="${e.href}">${L.icon('edit', 14)} 수정</a>` : ''}</div>
+        : e.href ? `<a class="btn sm" href="${e.href}">${L.icon('edit', 14)} 수정</a>` : ''}
+      <button class="iconbtn m-only" data-ev-close aria-label="상세 닫기">${L.icon('x', 18)}</button></div>
     <div class="card-body">
       <div class="inline" style="gap:7px;margin-bottom:10px">
         ${L.icon(e.ico, 16)}<b style="font-size:14.5px">${L.esc(e.title)}</b>
@@ -7065,6 +7226,13 @@ document.addEventListener('click', e => {
   let x;
 
   if (C('[data-close]')) return closeModals();
+  if (C('[data-ev-close]')) { evSel = ''; render(); return; }
+  if ((x = C('[data-filter-clear]'))) { filters[x.dataset.filterClear] = 'all'; render(); return; }
+  if (C('[data-filter-reset]')) {
+    filters.group = filters.owner = filters.status = filters.pri = 'all';
+    render(); return;
+  }
+  if (C('[data-show-empty]')) { showEmptyGroups = !showEmptyGroups; renderDayPanel(); return; }
   if ((x = C('[data-ev-jump]'))) {
     const target = EVall.find(v => v.key === x.dataset.evJump);
     if (target) {
@@ -7072,6 +7240,7 @@ document.addEventListener('click', e => {
       const d = L.parse(sel);
       cursor = { y: d.getFullYear(), m: d.getMonth() };
       render();
+      revealDetail();
     }
     return;
   }
@@ -7081,6 +7250,7 @@ document.addEventListener('click', e => {
     const target = EVall.find(v => v.key === evSel);
     if (target) sel = target.date;
     render();
+    revealDetail();
     return;
   }
   if ((x = C('[data-group-toggle]'))) {
@@ -7154,6 +7324,13 @@ function scrollToDay() {
   const card = box.closest('.card');
   if (card) setTimeout(() => card.scrollIntoView({ behavior: 'smooth', block: 'start' }), 30);
 }
+/** 데스크톱 — 상세가 오른쪽 칸 밖으로 밀려 있으면 보이는 데까지만 끌어온다 */
+function revealDetail() {
+  if (isPhone()) return;                       // 휴대폰은 시트로 올라오므로 필요 없다
+  const box = document.getElementById('evDetail');
+  if (!box || box.hidden) return;
+  setTimeout(() => box.scrollIntoView({ block: 'nearest', behavior: 'smooth' }), 30);
+}
 
 $('#btnPrev').addEventListener('click', () => {
   if (view === 'month') { cursor.m--; if (cursor.m < 0) { cursor.m = 11; cursor.y--; } sel = pickInMonth(); }
@@ -7209,8 +7386,41 @@ $('#eDelete').addEventListener('click', () => {
   saveLife(); closeModals(); render(); L.toast('삭제했습니다.');
 });
 document.addEventListener('keydown', e => {
-  if (e.key === 'Escape') closeModals();
+  if (e.key === 'Escape') {
+    closeModals();
+    if (evSel && isPhone()) { evSel = ''; render(); }
+  }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter' && $('#evModal').classList.contains('open')) saveEv();
+});
+
+/* 상세 시트 — 어두운 배경을 누르면 닫는다 */
+const evScrim = $('#evScrim');
+if (evScrim) evScrim.addEventListener('click', () => { evSel = ''; render(); });
+
+/* 휴대폰 — 달력을 좌우로 밀어 지난 달 · 다음 달 (세로 스크롤과 겹치지 않게 각도를 본다) */
+(function swipe() {
+  const area = $('#calBody');
+  if (!area) return;
+  let x0 = 0, y0 = 0, t0 = 0;
+  area.addEventListener('touchstart', e => {
+    if (e.touches.length !== 1) { t0 = 0; return; }
+    x0 = e.touches[0].clientX; y0 = e.touches[0].clientY; t0 = Date.now();
+  }, { passive: true });
+  area.addEventListener('touchend', e => {
+    if (!t0) return;
+    const t = e.changedTouches[0];
+    const dx = t.clientX - x0, dy = t.clientY - y0, dt = Date.now() - t0;
+    t0 = 0;
+    if (dt > 600 || Math.abs(dx) < 60 || Math.abs(dx) < Math.abs(dy) * 1.6) return;
+    $(dx < 0 ? '#btnNext' : '#btnPrev').click();
+  }, { passive: true });
+})();
+
+/* 창 크기가 바뀌면 칸 높이가 달라진다 — 줄 수를 다시 계산해 그린다 */
+let calResizeTimer = null;
+window.addEventListener('resize', () => {
+  clearTimeout(calResizeTimer);
+  calResizeTimer = setTimeout(render, 160);
 });
 
 /* ================= 셸 ================= */
