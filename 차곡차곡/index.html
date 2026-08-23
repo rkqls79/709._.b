@@ -12318,6 +12318,7 @@ function renderSyncSettings() {
     return;
   }
 
+  const 비어있음 = !localStorage.getItem('lm.univ.v1') && !localStorage.getItem('lm.life.v1');
   const when = st.lastAt ? new Date(st.lastAt) : null;
   const ago = when ? (() => {
     const m = Math.round((Date.now() - when.getTime()) / 60000);
@@ -12325,12 +12326,13 @@ function renderSyncSettings() {
     if (m < 60) return `${m}분 전`;
     const h = Math.round(m / 60);
     return h < 24 ? `${h}시간 전` : L.fmtKo(L.ymd(when));
-  })() : '아직 없음';
+  })() : (비어있음 ? '올릴 기록이 아직 없습니다' : '곧 올라갑니다');
 
   box.innerHTML = `
     <dl class="kvlist" style="margin-bottom:12px">
       <dt>계정</dt><dd>${L.esc(st.user.email || st.user.name || '구글 계정')}</dd>
       <dt>마지막 동기화</dt><dd>${ago}${st.pending ? ' · <span style="color:var(--warn)">올릴 변경 있음</span>' : ''}</dd>
+      ${비어있음 ? '<dt>안내</dt><dd style="font-weight:500;color:var(--text-2)">일정·메모 등 무엇이든 하나 저장하면 그때 자동으로 올라갑니다.</dd>' : ''}
       <dt>저장 위치</dt><dd class="mono" style="font-size:11.5px">users / ${L.esc(st.user.uid.slice(0, 8))}… / data</dd>
     </dl>
     ${st.message ? `<div class="notice ${st.status === 'error' ? 'warn' : 'plain'}" style="margin-bottom:12px">
@@ -14158,7 +14160,12 @@ window.LMSync = {
   /** 지금 바로 올리기 */
   async syncNow() {
     if (!state.user) return;
-    for (const entry of KEYS) await push(entry, 'manual');
+    const 있는것 = KEYS.filter(e => localJson(e.key));
+    if (!있는것.length) {
+      L && L.toast && L.toast('올릴 기록이 아직 없습니다. 일정이나 메모를 하나 저장해 보세요.');
+      return;
+    }
+    for (const entry of 있는것) await push(entry, 'manual');
     L && L.toast && L.toast('클라우드에 저장했습니다.');
   },
 };
