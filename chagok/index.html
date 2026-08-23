@@ -1396,6 +1396,25 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 .courselist .nm small { display: block; font-weight: 500; font-size: 10.5px; color: var(--text-3); }
 .courselist input[type="number"] { width: 58px; min-height: 30px; padding: 3px 6px; font-size: 12px; text-align: right; }
 .courselist select { width: 104px; min-height: 30px; padding: 3px 6px; font-size: 12px; }
+.courselist select.area { width: 74px; }
+.courselist select.area.unset { color: var(--text-3); border-style: dashed; }
+
+/* 구분별 졸업 요건 — 전공 · 교양 · 일반 한 줄씩 */
+.areqs { display: flex; flex-direction: column; gap: 9px; }
+.areq { display: grid; grid-template-columns: 58px 104px minmax(60px, 1fr) 132px; gap: 10px; align-items: center; }
+.areq .num { font-size: 13.5px; text-align: right; font-variant-numeric: tabular-nums; }
+.areq .num small { margin-left: 2px; font-size: 11px; color: var(--text-3); font-weight: 500; }
+.areq .tail { font-size: 11.5px; color: var(--text-3); }
+.areq .tail small { display: block; margin-top: 2px; font-size: 10.5px; font-weight: 500; color: var(--text-3); }
+.areq .tail.ok { color: var(--ok); font-weight: 650; }
+.areq .tail.warn { color: var(--warn); }
+.areq.total { border-top: 1px solid var(--border); padding-top: 10px; margin-top: 2px; }
+.areq.total .num { font-size: 15px; }
+@media (max-width: 700px) {
+  .areq { grid-template-columns: 58px 1fr; row-gap: 6px; }
+  .areq .bar { grid-column: 1 / -1; }
+  .areq .tail { grid-column: 1 / -1; }
+}
 .courselist .pt { width: 30px; text-align: right; font-size: 11.5px; color: var(--text-3); font-variant-numeric: tabular-nums; }
 .courselist .none { padding: 14px 10px; text-align: center; font-size: 12px; color: var(--text-3); }
 .termcard > footer { display: flex; gap: 7px; padding: 0 15px 14px; flex-wrap: wrap; }
@@ -2330,6 +2349,8 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
         <div class="form-grid" style="margin-bottom:14px">
           <label class="field"><span>편입 인정학점</span><input type="number" id="dTransfer" min="0" max="200"></label>
           <label class="field"><span>졸업 필요학점</span><input type="number" id="dGrad" min="0" max="300"></label>
+          <label class="field"><span>전공 최소학점</span><input type="number" id="dNeedMajor" min="0" max="300"></label>
+          <label class="field"><span>교양 최소학점</span><input type="number" id="dNeedLiberal" min="0" max="300"></label>
           <label class="field"><span>평점 만점</span><select id="dScale">
             <option value="4.5">4.5 만점</option><option value="4.3">4.3 만점</option><option value="4">4.0 만점</option>
           </select></label>
@@ -2423,7 +2444,11 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
           <label class="field"><span>이름</span><input type="text" id="mName"></label>
           <label class="field"><span>학과</span><input type="text" id="mMajor"></label>
           <label class="field"><span>편입 인정학점</span><input type="number" id="mTransfer" min="0" max="200"></label>
+          <label class="field"><span>└ 그중 전공</span><input type="number" id="mTransferMajor" min="0" max="200"></label>
+          <label class="field"><span>└ 그중 교양</span><input type="number" id="mTransferLiberal" min="0" max="200"></label>
           <label class="field"><span>졸업 필요학점</span><input type="number" id="mGrad" min="0" max="300"></label>
+          <label class="field"><span>전공 최소학점</span><input type="number" id="mNeedMajor" min="0" max="300"></label>
+          <label class="field"><span>교양 최소학점</span><input type="number" id="mNeedLiberal" min="0" max="300"></label>
           <label class="field"><span>평점 만점</span>
             <select id="mScale"><option value="4.5">4.5 만점</option><option value="4.3">4.3 만점</option><option value="4">4.0 만점</option></select>
           </label>
@@ -2574,6 +2599,14 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
         <label class="field"><span>시청 완료 차시</span><input type="number" id="cWatched" min="0" max="60"></label>
         <label class="field"><span>출석수업 과목</span>
           <select id="cType"><option value="general">아니오 (일반)</option><option value="attend">예 (출석수업/대체시험)</option></select>
+        </label>
+        <label class="field"><span>이수 구분</span>
+          <select id="cArea">
+            <option value="">미지정</option>
+            <option value="major">전공</option>
+            <option value="liberal">교양</option>
+            <option value="etc">일반</option>
+          </select>
         </label>
         <label class="field"><span>취득 성적</span><select id="cGrade"></select></label>
       </div>
@@ -5999,7 +6032,8 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
     return {
       meta: {
         name: '', major: '', gpaScale: '4.5',
-        transferCredits: 70, gradCredits: 140, targetGpa: 4.0,
+        transferCredits: 70, transferMajor: 0, transferLiberal: 0,
+        gradCredits: 130, needMajor: 69, needLiberal: 24, targetGpa: 4.0,
         currentTerm: '2026-2',
       },
       terms: [
@@ -6305,7 +6339,18 @@ function gradeInfo() {
   let pts = 0, cr = 0;
   for (const c of (univ.courses || [])) if (c.grade in tbl) { pts += tbl[c.grade] * (Number(c.credits) || 0); cr += Number(c.credits) || 0; }
   const gpa = cr ? Math.round((pts / cr) * 100) / 100 : null;
-  return { total, need, pct: L.pct(total, need), gpa };
+  // 구분별 최소학점 — 총학점을 채워도 전공 · 교양이 모자라면 졸업할 수 없다
+  const m = univ.meta;
+  const area = { major: Number(m.transferMajor) || 0, liberal: Number(m.transferLiberal) || 0 };
+  for (const c of (univ.courses || [])) {
+    if (!(c.grade && c.grade !== 'F')) continue;
+    if (c.area === 'major' || c.area === 'liberal') area[c.area] += Number(c.credits) || 0;
+  }
+  const lack = [];
+  const needMajor = Number(m.needMajor) || 0, needLiberal = Number(m.needLiberal) || 0;
+  if (needMajor > area.major) lack.push(`전공 ${needMajor - area.major}`);
+  if (needLiberal > area.liberal) lack.push(`교양 ${needLiberal - area.liberal}`);
+  return { total, need, pct: L.pct(total, need), gpa, lack };
 }
 function fitInfo() {
   const wr = L.weekRange();
@@ -6364,7 +6409,12 @@ function renderStats() {
       label: '졸업 진행률', icon: 'award', tone: 'purple',
       href: g ? 'index.html?app=progress' : 'index.html?app=univ&p=settings',
       value: g ? `${g.pct}<small>%</small>` : '—',
-      foot: g ? `${g.total} / ${g.need}학점${g.gpa !== null ? ` · 평점 ${g.gpa.toFixed(2)}` : ''}` : '학사 설정에서 졸업 요건을 입력하세요',
+      // 모자란 구분이 있으면 평점 대신 그것을 알려 준다 (더 급한 정보다)
+      foot: g
+        ? `${g.total} / ${g.need}학점${g.lack && g.lack.length
+            ? ` · ${g.lack.join(' · ')} 부족`
+            : g.gpa !== null ? ` · 평점 ${g.gpa.toFixed(2)}` : ''}`
+        : '학사 설정에서 졸업 요건을 입력하세요',
       bar: g ? g.pct : 0,
     });
 }
@@ -8861,6 +8911,50 @@ function earnedCredits(list) {
   return list.reduce((a, c) => a + (c.grade && c.grade !== 'F' ? (Number(c.credits) || 0) : 0), 0);
 }
 
+/* ================= 이수 구분 (전공 · 교양 · 일반) =================
+   졸업하려면 총학점만 채우면 되는 게 아니라 전공 · 교양의 최소학점도 각각 채워야 한다.
+   '일반'은 전공도 교양도 아닌 나머지로, 총학점을 채우는 데 쓴다. */
+const AREA_LABEL = { major: '전공', liberal: '교양', etc: '일반' };
+const AREA_TONE = { major: 'purple', liberal: 'accent', etc: '' };
+function areaOf(c) { return AREA_LABEL[c && c.area] ? c.area : ''; }
+
+/** 구분별 취득학점 (F 는 이수로 보지 않는다) · 구분을 정하지 않은 과목은 따로 모은다 */
+function creditsByArea(list) {
+  const out = { major: 0, liberal: 0, etc: 0, none: 0, noneCount: 0 };
+  for (const c of (list || [])) {
+    if (!(c.grade && c.grade !== 'F')) continue;
+    const cr = Number(c.credits) || 0;
+    const a = areaOf(c);
+    if (a) out[a] += cr; else { out.none += cr; out.noneCount++; }
+  }
+  return out;
+}
+
+/** 졸업 요건 현황 — 편입 인정학점도 구분별로 나눠 더한다 */
+function gradReq() {
+  const m = DB.meta || {};
+  const need = Number(m.gradCredits) || 0;
+  const needMajor = Number(m.needMajor) || 0;
+  const needLiberal = Number(m.needLiberal) || 0;
+  const tAll = Number(m.transferCredits) || 0;
+  const tMajor = Number(m.transferMajor) || 0;
+  const tLiberal = Number(m.transferLiberal) || 0;
+  const tEtc = Math.max(0, tAll - tMajor - tLiberal);
+  const e = creditsByArea(DB.courses);
+  const got = { major: e.major + tMajor, liberal: e.liberal + tLiberal, etc: e.etc + tEtc, none: e.none };
+  const total = got.major + got.liberal + got.etc + got.none;
+  return {
+    need, needMajor, needLiberal, needEtc: Math.max(0, need - needMajor - needLiberal),
+    got, total, left: Math.max(0, need - total),
+    earned: e, transfer: { all: tAll, major: tMajor, liberal: tLiberal, etc: tEtc },
+    overTransfer: tMajor + tLiberal > tAll,
+    lack: {
+      major: Math.max(0, needMajor - got.major),
+      liberal: Math.max(0, needLiberal - got.liberal),
+    },
+  };
+}
+
 /* ================= 렌더: 대시보드 ================= */
 function renderDash() {
   const tid = curTermId(), tm = term(tid);
@@ -9204,6 +9298,8 @@ function renderCourses() {
       ${open ? `<div class="accbody">
         <div class="inline" style="margin-bottom:10px;flex-wrap:wrap">
           <span class="badge">${c.credits || 0}학점</span>
+          ${areaOf(c) ? `<span class="badge ${AREA_TONE[areaOf(c)] || ''}">${AREA_LABEL[areaOf(c)]}</span>`
+            : '<span class="badge" title="이수 구분을 정하지 않았습니다">구분 미지정</span>'}
           ${c.type === 'attend' ? '<span class="badge warn">출석수업</span>' : ''}
           ${scoreBadges(c)}
           <div style="flex:1;min-width:10px"></div>
@@ -9524,24 +9620,54 @@ function renderDegree() {
   /* 졸업 요건 입력칸 */
   $('#dTransfer').value = DB.meta.transferCredits;
   $('#dGrad').value = DB.meta.gradCredits;
+  $('#dNeedMajor').value = DB.meta.needMajor ?? 0;
+  $('#dNeedLiberal').value = DB.meta.needLiberal ?? 0;
   $('#dScale').value = String(DB.meta.gpaScale);
   $('#dTarget').value = DB.meta.targetGpa;
 
-  const tCredits = Number(DB.meta.transferCredits) || 0;
-  const tPct = need ? Math.round((tCredits / need) * 100) : 0;
-  const gPct = need ? Math.round((got / need) * 100) : 0;
+  const rq = gradReq();
+  const PER = 3;                                   // 과목 하나 = 3학점 기준으로 과목 수를 환산한다
+  const subjects = cr => `${PER}학점 기준 ${Math.ceil(cr / PER)}과목`;
+  /** 구분 한 줄 — 이수 / 최소학점 · 남은 학점(과목 수) */
+  const areaRow = (key, label, done, min, note) => {
+    const pct = min ? L.pct(done, min) : (done ? 100 : 0);
+    const lack = Math.max(0, min - done);
+    return `<div class="areq ${lack === 0 ? 'done' : ''}">
+      <span class="nm"><span class="badge ${AREA_TONE[key] || ''}">${label}</span></span>
+      <span class="num"><b>${done}</b>${min ? ` / ${min}` : ''}<small>학점</small></span>
+      <span class="bar ${lack === 0 ? 'ok' : (AREA_TONE[key] || 'accent')}"><i style="width:${Math.min(100, pct)}%"></i></span>
+      <span class="tail ${lack ? 'warn' : 'ok'}">${min
+        ? (lack ? `${lack}학점 남음<small>${subjects(lack)}</small>` : '충족')
+        : (note || '요건 없음')}</span>
+    </div>`;
+  };
   $('#gradBody').innerHTML = `
-    <div class="sec-title">졸업 요건 진행률</div>
-    <div style="display:flex;height:22px;border-radius:8px;overflow:hidden;background:var(--border);margin-bottom:10px">
-      <div style="width:${tPct}%;background:var(--accent);opacity:.55"></div>
-      <div style="width:${gPct}%;background:var(--purple)"></div>
+    <div class="sec-title">구분별 졸업 요건</div>
+    <div class="areqs">
+      ${areaRow('major', '전공', rq.got.major, rq.needMajor)}
+      ${areaRow('liberal', '교양', rq.got.liberal, rq.needLiberal)}
+      ${areaRow('etc', '일반', rq.got.etc, 0, `전공 · 교양이 아닌 나머지${rq.needEtc ? ` (총학점 채우기용 ${rq.needEtc}학점)` : ''}`)}
+      ${rq.got.none ? areaRow('', '미지정', rq.got.none, 0, '구분을 정하면 전공 · 교양 요건에 반영됩니다') : ''}
+      <div class="areq total">
+        <span class="nm"><b>합계</b></span>
+        <span class="num"><b>${rq.total}</b> / ${rq.need}<small>학점</small></span>
+        <span class="bar ${rq.left === 0 ? 'ok' : 'purple'}"><i style="width:${Math.min(100, L.pct(rq.total, rq.need))}%"></i></span>
+        <span class="tail ${rq.left ? 'warn' : 'ok'}">${rq.left
+          ? `${rq.left}학점 남음<small>${subjects(rq.left)}</small>` : '충족'}</span>
+      </div>
     </div>
-    <div class="inline" style="font-size:12.5px">
-      <span class="badge accent">편입 인정 ${tCredits}학점</span>
+    ${rq.earned.noneCount ? `<p class="notice warn" style="margin-top:12px;font-size:12.5px">
+      ${L.icon('bulb', 15)}<span>이수 구분을 정하지 않은 과목이 <b>${rq.earned.noneCount}과목 ${rq.got.none}학점</b> 있습니다.
+      아래 학기 카드에서 <b>구분</b>을 골라 주면 전공 · 교양 요건에 반영됩니다.</span></p>` : ''}
+    ${rq.overTransfer ? `<p class="notice danger" style="margin-top:12px;font-size:12.5px">
+      ${L.icon('bell', 15)}<span>편입 인정학점의 전공 + 교양(${rq.transfer.major + rq.transfer.liberal}학점)이
+      전체 편입 인정학점(${rq.transfer.all}학점)보다 많습니다. 학사 설정에서 확인해 주세요.</span></p>` : ''}
+    <div class="inline" style="font-size:12.5px;margin-top:12px">
+      <span class="badge accent">편입 인정 ${rq.transfer.all}학점</span>
       <span class="badge purple">방통대 취득 ${got}학점</span>
-      <span class="badge">잔여 ${left}학점</span>
+      <span class="badge">잔여 ${rq.left}학점</span>
       <div style="flex:1"></div>
-      <span class="dim">졸업 필요 ${need}학점</span>
+      <span class="dim">졸업 필요 ${rq.need}학점</span>
     </div>
     ${left > 0 && remainTerms > 0 ? `<p class="dim" style="font-size:12.5px;margin-top:12px">
       남은 <b>${remainTerms}개 학기</b>에 학기당 평균 <b>${perTerm}학점</b>을 취득하면 졸업 요건을 채웁니다.
@@ -9597,6 +9723,12 @@ function renderDegree() {
             const pt = c.grade && c.grade in tbl ? tbl[c.grade] : null;
             return `<li id="grade-${c.id}">
               <span class="nm">${L.esc(c.name)}${c.prof ? `<small>${L.esc(c.prof)}</small>` : ''}</span>
+              <select class="area ${areaOf(c) ? '' : 'unset'}" data-deg-area="${c.id}"
+                aria-label="${L.esc(c.name)} 이수 구분" title="이수 구분">
+                <option value="" ${areaOf(c) ? '' : 'selected'}>구분?</option>
+                ${Object.entries(AREA_LABEL).map(([k, v]) =>
+                  `<option value="${k}" ${areaOf(c) === k ? 'selected' : ''}>${v}</option>`).join('')}
+              </select>
               <input type="number" min="0" max="9" step="1" value="${Number(c.credits) || 0}"
                 data-deg-credit="${c.id}" aria-label="${L.esc(c.name)} 학점" title="학점">
               <select data-deg-grade="${c.id}" aria-label="${L.esc(c.name)} 성적" title="취득 성적">
@@ -9622,7 +9754,11 @@ function renderSettings() {
   $('#mName').value = DB.meta.name || '';
   $('#mMajor').value = DB.meta.major || '';
   $('#mTransfer').value = DB.meta.transferCredits;
+  $('#mTransferMajor').value = DB.meta.transferMajor ?? 0;
+  $('#mTransferLiberal').value = DB.meta.transferLiberal ?? 0;
   $('#mGrad').value = DB.meta.gradCredits;
+  $('#mNeedMajor').value = DB.meta.needMajor ?? 0;
+  $('#mNeedLiberal').value = DB.meta.needLiberal ?? 0;
   $('#mScale').value = String(DB.meta.gpaScale);
   $('#mTarget').value = DB.meta.targetGpa;
 
@@ -10226,6 +10362,7 @@ function openCourse(id) {
   $('#cLectures').value = c ? c.lectures : 15;
   $('#cWatched').value = c ? c.watched : 0;
   $('#cType').value = c ? c.type : 'general';
+  $('#cArea').value = c ? areaOf(c) : '';
   $('#wMid').value = c ? c.weights.mid : 30;
   $('#wAttend').value = c ? c.weights.attend : 0;
   $('#wFinal').value = c ? c.weights.final : 70;
@@ -10249,6 +10386,7 @@ function saveCourse() {
     lectures: Number($('#cLectures').value) || 0,
     watched: Number($('#cWatched').value) || 0,
     type: $('#cType').value,
+    area: $('#cArea').value,
     grade: $('#cGrade').value,
     weights: { mid: Number($('#wMid').value) || 0, attend: Number($('#wAttend').value) || 0, final: Number($('#wFinal').value) || 0 },
     scores: { mid: num('#sMid'), attend: num('#sAttend'), final: num('#sFinal') },
@@ -10616,6 +10754,11 @@ document.addEventListener('change', e => {
     if (c) { c.grade = el.value; save(); renderAll(); L.toast(el.value ? `성적을 ${el.value} 로 저장했습니다.` : '성적을 지웠습니다.'); }
     return;
   }
+  if (el.dataset.degArea) {
+    const c = course(el.dataset.degArea);
+    if (c) { c.area = el.value; save(); renderAll(); }
+    return;
+  }
   if (el.dataset.degCredit) {
     const c = course(el.dataset.degCredit);
     if (c) { c.credits = L.clamp(Math.round(Number(el.value) || 0), 0, 9); save(); renderAll(); }
@@ -10629,12 +10772,18 @@ document.addEventListener('change', e => {
   // 설정: 학적 정보 (설정 화면과 성적·졸업 화면에서 함께 쓴다)
   const metaMap = {
     mName: 'name', mMajor: 'major', mTransfer: 'transferCredits',
-    mGrad: 'gradCredits', mScale: 'gpaScale', mTarget: 'targetGpa',
-    dTransfer: 'transferCredits', dGrad: 'gradCredits', dScale: 'gpaScale', dTarget: 'targetGpa',
+    mTransferMajor: 'transferMajor', mTransferLiberal: 'transferLiberal',
+    mGrad: 'gradCredits', mNeedMajor: 'needMajor', mNeedLiberal: 'needLiberal',
+    mScale: 'gpaScale', mTarget: 'targetGpa',
+    dTransfer: 'transferCredits', dGrad: 'gradCredits',
+    dNeedMajor: 'needMajor', dNeedLiberal: 'needLiberal',
+    dScale: 'gpaScale', dTarget: 'targetGpa',
   };
   if (metaMap[el.id]) {
     const k = metaMap[el.id];
-    DB.meta[k] = ['transferCredits', 'gradCredits', 'targetGpa'].includes(k) ? Number(el.value) || 0 : el.value;
+    const numeric = ['transferCredits', 'transferMajor', 'transferLiberal',
+      'gradCredits', 'needMajor', 'needLiberal', 'targetGpa'];
+    DB.meta[k] = numeric.includes(k) ? Number(el.value) || 0 : el.value;
     save(); renderAll(); return;
   }
 
