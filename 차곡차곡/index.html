@@ -12332,7 +12332,11 @@ function renderSyncSettings() {
     <dl class="kvlist" style="margin-bottom:12px">
       <dt>계정</dt><dd>${L.esc(st.user.email || st.user.name || '구글 계정')}</dd>
       <dt>마지막 동기화</dt><dd>${ago}${st.pending ? ' · <span style="color:var(--warn)">올릴 변경 있음</span>' : ''}</dd>
-      ${비어있음 ? '<dt>안내</dt><dd style="font-weight:500;color:var(--text-2)">일정·메모 등 무엇이든 하나 저장하면 그때 자동으로 올라갑니다.</dd>' : ''}
+      ${비어있음 ? `<dt>안내</dt><dd style="font-weight:500;color:var(--text-2)">
+        일정·메모 등 무엇이든 하나 저장하면 그때 자동으로 올라갑니다.<br>
+        <span style="color:var(--text-3)">다른 창(파일 직접 열기 등)에 적어 둔 기록이 있다면
+        브라우저가 저장 공간을 따로 쓰기 때문에 여기서는 보이지 않습니다.
+        그 창에서 <b>데이터 → 백업 파일 내보내기</b> 한 뒤 여기서 <b>불러오기</b> 하세요.</span></dd>` : ''}
       <dt>저장 위치</dt><dd class="mono" style="font-size:11.5px">users / ${L.esc(st.user.uid.slice(0, 8))}… / data</dd>
     </dl>
     ${st.message ? `<div class="notice ${st.status === 'error' ? 'warn' : 'plain'}" style="margin-bottom:12px">
@@ -13904,8 +13908,13 @@ function publicState() { return Object.assign({}, state); }
 
 /* ---------- 잡동사니 ---------- */
 function meta() {
-  try { return Object.assign({ rev: {}, hash: {}, lastAt: '' }, JSON.parse(localStorage.getItem(META_KEY) || '{}')); }
-  catch (e) { return { rev: {}, hash: {}, lastAt: '' }; }
+  let m;
+  try { m = Object.assign({ uid: '', rev: {}, hash: {}, lastAt: '' }, JSON.parse(localStorage.getItem(META_KEY) || '{}')); }
+  catch (e) { m = { uid: '', rev: {}, hash: {}, lastAt: '' }; }
+  // 다른 계정으로 로그인했다면 이전 계정의 판단 기준을 그대로 쓰면 안 된다
+  if (state.user && m.uid && m.uid !== state.user.uid) m = { uid: state.user.uid, rev: {}, hash: {}, lastAt: '' };
+  if (state.user) m.uid = state.user.uid;
+  return m;
 }
 function saveMeta(m) { try { localStorage.setItem(META_KEY, JSON.stringify(m)); } catch (e) { /* 무시 */ } }
 /** 짧은 지문 — 내용이 바뀌었는지만 알면 되므로 가벼운 해시로 충분하다 */
@@ -13936,11 +13945,34 @@ let unsub = [];
 let timers = {};
 let applying = false;      // 원격 내용을 반영하는 중 (되올리기 방지)
 
+/** 파일을 직접 열었을 때(file://) 화면 위에 경고를 붙인다 */
+function showFileWarning() {
+  const put = () => {
+    const wrap = document.querySelector('.wrap');
+    if (!wrap || document.getElementById('fileWarn')) return true;
+    const box = document.createElement('div');
+    box.id = 'fileWarn';
+    box.className = 'notice warn';
+    box.style.cssText = 'margin-bottom:14px;flex:none';
+    box.innerHTML = '<div><b>이 창의 기록은 여기에만 저장됩니다.</b><br>'
+      + '파일을 직접 열면(file://) 브라우저가 저장 공간을 따로 쓰기 때문에, '
+      + '<b>로그인 · 동기화 · 첨부 · 알림</b>이 모두 막히고 다른 창에서는 이 기록이 보이지 않습니다.<br>'
+      + '이 폴더의 <b>차곡차곡 실행.bat</b> 을 더블클릭해서 여세요. '
+      + '이미 여기에 적어 둔 것이 있다면 <b>설정 → 데이터 → 백업 파일 내보내기</b> 로 옮길 수 있습니다.</div>';
+    wrap.insertBefore(box, wrap.firstChild);
+    return true;
+  };
+  if (put()) return;
+  let n = 0;
+  const t = setInterval(() => { if (put() || ++n > 40) clearInterval(t); }, 150);
+}
+
 async function load() {
   if (!/^https?:$/.test(location.protocol)) {
     state.message = '파일을 직접 열어서(file://) 구글 로그인이 막혀 있습니다. '
       + '이 폴더의 "차곡차곡 실행.bat" 을 더블클릭해 http://localhost:8123 으로 여시면 로그인할 수 있습니다.';
     emit();
+    showFileWarning();
     return false;
   }
   try {
@@ -13964,6 +13996,7 @@ async function load() {
     fb.A.onAuthStateChanged(fb.auth, u => {
       stopWatch();
       state.user = u ? { uid: u.uid, email: u.email || '', name: u.displayName || '' } : null;
+      state.lastAt = u ? (meta().lastAt || '') : '';
       state.status = u ? 'syncing' : 'off';
       state.message = u ? '' : '';
       emit();
@@ -14067,6 +14100,13 @@ function startWatch() {
   for (const entry of KEYS) {
     const un = fb.F.onSnapshot(docRef(entry.doc), snap => {
       const remote = snap.exists() ? snap.data() : null;
+      // 아직 서버 응답을 못 받은 캐시 결과로 "클라우드가 비었다"고 단정하면
+      // 이 기기 내용으로 남의 최신 기록을 덮어쓸 수 있다 — 서버 응답을 기다린다
+      if (!remote && snap.metadata && snap.metadata.fromCache) {
+        state.status = navigator.onLine ? 'syncing' : 'offline';
+        emit();
+        return;
+      }
       const act = decide(entry, remote);
       if (act === 'none') { state.status = 'idle'; state.lastAt = meta().lastAt; emit(); return; }
       if (act === 'push') { push(entry, 'first'); return; }
