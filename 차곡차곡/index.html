@@ -13945,6 +13945,37 @@ let unsub = [];
 let timers = {};
 let applying = false;      // 원격 내용을 반영하는 중 (되올리기 방지)
 
+/**
+ * 새 기기에서 처음 열면 빈 화면만 보인다 — 로그인하면 이어서 볼 수 있다고 알려 준다.
+ * 기록이 하나도 없고 · 로그인도 안 한 · 홈 화면일 때만 한 번 보여 준다.
+ */
+function maybeInviteSignIn() {
+  if (state.user) { const b = document.getElementById('signInHint'); if (b) b.remove(); return; }
+  const 비어있음 = !localStorage.getItem('lm.univ.v1') && !localStorage.getItem('lm.life.v1');
+  if (!비어있음 || !state.available) return;
+  let key = '';
+  try { key = new URLSearchParams(location.search).get('app') || 'hub'; } catch (e) { key = 'hub'; }
+  if (key !== 'hub') return;
+
+  const put = () => {
+    const wrap = document.querySelector('.wrap');
+    if (!wrap || document.getElementById('signInHint')) return true;
+    const box = document.createElement('div');
+    box.id = 'signInHint';
+    box.className = 'notice info';
+    box.style.cssText = 'margin-bottom:14px;flex:none';
+    box.innerHTML = '<div><b>다른 기기에서 쓰던 기록이 있나요?</b><br>'
+      + '이 기기에는 아직 저장된 내용이 없습니다. '
+      + '<a href="index.html?app=life&p=settings">설정 → 계정 · 동기화</a> 에서 '
+      + '구글 계정으로 로그인하면 이어서 볼 수 있습니다.</div>';
+    wrap.insertBefore(box, wrap.firstChild);
+    return true;
+  };
+  if (put()) return;
+  let n = 0;
+  const t = setInterval(() => { if (put() || ++n > 40) clearInterval(t); }, 150);
+}
+
 /** 파일을 직접 열었을 때(file://) 화면 위에 경고를 붙인다 */
 function showFileWarning() {
   const put = () => {
@@ -14000,6 +14031,7 @@ async function load() {
       state.status = u ? 'syncing' : 'off';
       state.message = u ? '' : '';
       emit();
+      maybeInviteSignIn();
       if (u) startWatch();
     });
     return true;
