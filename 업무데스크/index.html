@@ -719,37 +719,7 @@ body[data-theme="dark"] .memo-note { background:#2a2a38; border-color:#44445a; b
           <textarea
             class="id-memo-area"
             id="id-memo-area"
-            placeholder="내용을 입력하세요">▸ 대한세무법인 대표번호 : 1566-4845 / 129-81-68431
-▸ 국세청 홈택스 : U16004 / [삭제된 자격정보]
-▸ 건강보험edi : [삭제된 자격정보]/ [삭제된 자격정보]
-▸ 국민연금edi : [삭제된 자격정보] / [삭제된 자격정보]
-▸ 더존 세금계산서 발행
- 아이디 [삭제된 자격정보] / 비밀번호 [삭제된 자격정보]
-▸ [삭제된 자격정보] 와이파이: 비밀번호 1298168431
-▸ 주차권발행
-http://bdbyc.iptime.org
-아이디 : [삭제된 자격정보] 비밀번호 1234
-▸ 더존 클라우드 팩스
-회사아이디 [삭제된 자격정보]
-직원아이디 담당자이름
-비밀번호 [삭제된 자격정보]
-▸ 비즈플러스 (케이티통화메니저)
-www.ktpcp.com
-아이디 : 직통번호(0317838877)@kt.com
-비밀번호 [삭제된 자격정보]
-▸ 모두싸인
-https://app.modusign.co.kr
-아이디 : tax@taxdh.net
-비밀번호 : [삭제된 자격정보]
-▸ 계좌번호
-341-057820-01-014 기업은행_대한세무법인
-비밀번호: 0701
-▸ 위하고 송이사님 아이디: [삭제된 자격정보]
-▸ 알리고
-아이디 : [삭제된 자격정보] /비번 : [삭제된 자격정보]
-▸ 현금영수증 발행
-http://taxadmin.uplus.co.kr
-[삭제된 자격정보]/ [삭제된 자격정보]</textarea>
+            placeholder="내용을 입력하세요"></textarea>
         </div>
       </div>
 
@@ -1753,7 +1723,7 @@ updateCompletion();
 /* ── ID 메모 자동저장 + 검색 ── */
 const idMemoEl = document.getElementById('id-memo-area');
 if (idMemoEl) {
-  const _idDefault = "\u25b8 \ub300\ud55c\uc138\ubb34\ubc95\uc778 \ub300\ud45c\ubc88\ud638 : 1566-4845 / 129-81-68431\n\u25b8 \uad6d\uc138\uccad \ud648\ud0dd\uc2a4 : U16004 / [삭제된 자격정보]\n\u25b8 \uac74\uac15\ubcf4\ud5d8edi : [삭제된 자격정보]/ [삭제된 자격정보]\n\u25b8 \uad6d\ubbfc\uc5f0\uae08edi : [삭제된 자격정보] / [삭제된 자격정보]\n\u25b8 \ub354\uc874 \uc138\uae08\uacc4\uc0b0\uc11c \ubc1c\ud589\n \uc544\uc774\ub514 [삭제된 자격정보] / \ube44\ubc00\ubc88\ud638 [삭제된 자격정보]\n\u25b8 [삭제된 자격정보] \uc640\uc774\ud30c\uc774: \ube44\ubc00\ubc88\ud638 1298168431\n\u25b8 \uc8fc\ucc28\uad8c\ubc1c\ud589\nhttp://bdbyc.iptime.org\n\uc544\uc774\ub514 : [삭제된 자격정보] \ube44\ubc00\ubc88\ud638 1234\n\u25b8 \ub354\uc874 \ud074\ub77c\uc6b0\ub4dc \ud329\uc2a4\n\ud68c\uc0ac\uc544\uc774\ub514 [삭제된 자격정보]\n\uc9c1\uc6d0\uc544\uc774\ub514 \ub2f4\ub2f9\uc790\uc774\ub984\n\ube44\ubc00\ubc88\ud638 [삭제된 자격정보]\n\u25b8 \ube44\uc988\ud50c\ub7ec\uc2a4 (\ucf00\uc774\ud2f0\ud1b5\ud654\uba54\ub2c8\uc800)\nwww.ktpcp.com\n\uc544\uc774\ub514 : \uc9c1\ud1b5\ubc88\ud638(0317838877)@kt.com\n\ube44\ubc00\ubc88\ud638 [삭제된 자격정보]\n\u25b8 \ubaa8\ub450\uc2f8\uc778\nhttps://app.modusign.co.kr\n\uc544\uc774\ub514 : tax@taxdh.net\n\ube44\ubc00\ubc88\ud638 : [삭제된 자격정보]\n\u25b8 \uacc4\uc88c\ubc88\ud638\n341-057820-01-014 \uae30\uc5c5\uc740\ud589_\ub300\ud55c\uc138\ubb34\ubc95\uc778\n\ube44\ubc00\ubc88\ud638: 0701\n\u25b8 \uc704\ud558\uace0 \uc1a1\uc774\uc0ac\ub2d8 \uc544\uc774\ub514: [삭제된 자격정보]\n\u25b8 \uc54c\ub9ac\uace0\n\uc544\uc774\ub514 : [삭제된 자격정보] /\ube44\ubc88 : [삭제된 자격정보]\n\u25b8 \ud604\uae08\uc601\uc218\uc99d \ubc1c\ud589\nhttp://taxadmin.uplus.co.kr\n[삭제된 자격정보]/ [삭제된 자격정보]";
+  const _idDefault = "";
   // 기억된 비밀번호로 자동 해제 시도
   idMemoInit(_idDefault);
   idMemoEl.addEventListener('input', async () => {
