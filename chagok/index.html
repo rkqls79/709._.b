@@ -2413,7 +2413,7 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
   <!-- ================= 설정 ================= -->
   <section class="page" id="page-settings">
     <div class="page-head">
-      <div><h2>설정</h2><p class="sub">학적 정보와 졸업 요건, 학기 구성.</p></div>
+      <div><h2>학사 설정</h2><p class="sub">학적 정보와 졸업 요건, 학기 구성.</p></div>
     </div>
 
     <div class="card" style="margin-bottom:14px">
@@ -4329,6 +4329,7 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       { app: 'univ', page: 'sched', label: '과제 · 시험', icon: 'note' },
       { app: 'univ', page: 'degree', label: '성적 · 졸업', icon: 'award' },
       { app: 'univ', page: 'files', label: '자료실', icon: 'folder' },
+      { app: 'univ', page: 'settings', label: '학사 설정', icon: 'gear' },
     ] },
     { key: 'cert', label: '자격증 관리', items: [
       { app: 'life', page: 'cert', label: '자격증', icon: 'cert' },
@@ -4618,24 +4619,36 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       else if (h && h.href) location.href = h.href;
     });
 
-    /* 알림 = 7일 내 임박 */
+    /* 알림 = 이미 지난 것(지연) + 7일 내 임박 */
     const aBtn = document.getElementById('alertBtn');
     const aPop = document.getElementById('alertPop');
     function refreshAlerts() {
-      let items = [];
-      try { items = (cfg.index ? cfg.index() : []) 
-        .filter(x => x.date && !x.done && dday(x.date) !== null && dday(x.date) >= 0 && dday(x.date) <= 7)
-        .sort((a, b) => a.date.localeCompare(b.date)).slice(0, 12);
-      } catch (err) { console.warn('알림 색인 계산 실패:', err); items = []; }
+      let late = [], soon = [], lateTotal = 0;
+      try {
+        const pool = (cfg.index ? cfg.index() : [])
+          .filter(x => x.date && !x.done && dday(x.date) !== null);
+        const byDate = (a, b) => a.date.localeCompare(b.date);
+        // 이미 지난 기한을 먼저 — 그중에서도 최근에 놓친 것부터 (아직 손쓸 수 있는 것)
+        const lateAll = pool.filter(x => dday(x.date) < 0).sort((a, b) => b.date.localeCompare(a.date));
+        lateTotal = lateAll.length;
+        late = lateAll.slice(0, 6);
+        soon = pool.filter(x => dday(x.date) >= 0 && dday(x.date) <= 7).sort(byDate).slice(0, 12);
+      } catch (err) { console.warn('알림 색인 계산 실패:', err); late = []; soon = []; lateTotal = 0; }
+      const items = late.concat(soon);
       aBtn.classList.toggle('dot', items.length > 0);
-      aBtn.setAttribute('aria-label', items.length ? `임박 알림 ${items.length}건` : '임박 알림 없음');
-      aPop.innerHTML = items.length
-        ? `<div class="pop-title">7일 내 ${items.length}건</div>` + items.map((h, i) =>
-          `<button type="button" class="pop-row" data-alert="${i}">
-             <span class="badge ${dday(h.date) <= 2 ? 'danger' : dday(h.date) <= 5 ? 'warn' : ''} mono">${ddayLabel(h.date)}</span>
+      aBtn.setAttribute('aria-label', items.length ? `알림 ${items.length}건` : '알림 없음');
+      const row = (h, i) => {
+        const d = dday(h.date);
+        return `<button type="button" class="pop-row" data-alert="${i}">
+             <span class="badge ${d < 0 || d <= 2 ? 'danger' : d <= 5 ? 'warn' : ''} mono">${ddayLabel(h.date)}</span>
              <span class="pop-t">${esc(h.t)}</span>
-             <span class="pop-s">${fmtKo(h.date)}${h.s ? ' · ' + esc(h.s) : ''}</span></button>`).join('')
-        : '<div class="pop-empty">7일 내 임박한 일정이 없습니다.</div>';
+             <span class="pop-s">${fmtKo(h.date)}${h.s ? ' · ' + esc(h.s) : ''}</span></button>`;
+      };
+      let html = '';
+      if (late.length) html += `<div class="pop-title">지난 기한 ${lateTotal}건${lateTotal > late.length ? ` · 최근 ${late.length}건` : ''}</div>`
+        + late.map((h, i) => row(h, i)).join('');
+      if (soon.length) html += `<div class="pop-title">7일 내 ${soon.length}건</div>` + soon.map((h, i) => row(h, late.length + i)).join('');
+      aPop.innerHTML = html || '<div class="pop-empty">지난 기한도, 7일 내 일정도 없습니다.</div>';
       aPop._hits = items;
     }
     aBtn.addEventListener('click', e => {
@@ -5844,9 +5857,15 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
   /** 데이터 id 로 화면에서 찾아 강조 */
   function flashById(id) {
     if (!id) return false;
-    for (const a of FLASH_ATTRS) {
-      const el = document.querySelector(`[${a}="${String(id).replace(/"/g, '')}"]`);
-      if (el) return flash(el);
+    const clean = String(id).replace(/"/g, '');
+    // 같은 항목이 여러 화면에 그려져 있다 — 지금 보고 있는 화면의 것을 찾아야 한다.
+    // (꺼져 있는 화면의 것을 집으면 강조도 스크롤도 눈에 보이지 않는다)
+    for (const scope of [document.querySelector('.page.active'), document]) {
+      if (!scope) continue;
+      for (const a of FLASH_ATTRS) {
+        const el = scope.querySelector(`[${a}="${clean}"]`);
+        if (el && el.offsetParent !== null) return flash(el);
+      }
     }
     return false;
   }
@@ -6342,18 +6361,19 @@ function renderStats() {
       bar: f.pct,
     }) +
     statCard({
-      label: '졸업 진행률', icon: 'award', href: 'index.html?app=progress', tone: 'purple',
+      label: '졸업 진행률', icon: 'award', tone: 'purple',
+      href: g ? 'index.html?app=progress' : 'index.html?app=univ&p=settings',
       value: g ? `${g.pct}<small>%</small>` : '—',
-      foot: g ? `${g.total} / ${g.need}학점${g.gpa !== null ? ` · 평점 ${g.gpa.toFixed(2)}` : ''}` : '학사관리에서 설정하세요',
+      foot: g ? `${g.total} / ${g.need}학점${g.gpa !== null ? ` · 평점 ${g.gpa.toFixed(2)}` : ''}` : '학사 설정에서 졸업 요건을 입력하세요',
       bar: g ? g.pct : 0,
     });
 }
 
 /* ================= 방통대 학사관리 ================= */
 const UNIV_TILES = [
-  ['index.html?app=univ&p=sched', 'cal', '학사 일정', '학사 캘린더 확인하기'],
-  ['index.html?app=univ&p=courses', 'book', '수업 / 과제', '강의와 과제 한눈에 보기'],
-  ['index.html?app=univ&p=degree', 'award', '성적 / 졸업', '성적 확인과 졸업 요건 관리'],
+  ['index.html?app=univ&p=sched', 'note', '과제 · 시험', '마감이 가까운 순서로 보기'],
+  ['index.html?app=univ&p=courses', 'book', '대학 강의', '강의와 진도 한눈에 보기'],
+  ['index.html?app=univ&p=degree', 'award', '성적 · 졸업', '성적 확인과 졸업 요건 관리'],
   ['index.html?app=univ&p=files', 'folder', '자료실', '강의자료와 학습자료 모음'],
 ];
 function renderUniv() {
@@ -6705,6 +6725,13 @@ function collect(from, to, opt) {
   return out;
 }
 
+/* ================= 공통 판단 ================= */
+/** 지연으로 볼 일정 — 습관은 지난 날짜라도 지연이 아니다.
+    (매일 돌아오는 체크이고, 최근 2주는 되돌려 체크할 수 있게 남겨 둔 기록이다) */
+function isOverdue(e) { return !!e.toggle && !e.done && e.group !== 'habit' && e.date < today; }
+/** 달력에 그리는 일정 — 습관은 매일 반복이라 화면을 덮으므로 기본으로 감춘다 */
+function inCal(e) { return filters.group === 'habit' || e.group !== 'habit' || e.cat === '운동 기록'; }
+
 /* ================= 필터 ================= */
 function passFilter(e) {
   if (filters.group !== 'all' && e.group !== filters.group) return false;
@@ -6712,7 +6739,7 @@ function passFilter(e) {
   if (filters.pri !== 'all' && (e.priority || 'normal') !== filters.pri) return false;
   if (filters.status === 'open' && e.done) return false;
   if (filters.status === 'done' && !e.done) return false;
-  if (filters.status === 'overdue' && !(e.toggle && !e.done && e.date < today)) return false;
+  if (filters.status === 'overdue' && !isOverdue(e)) return false;
   return true;
 }
 
@@ -6796,17 +6823,18 @@ function renderTitle() {
     $('#calTitle').textContent = `${L.fmtKo(r.start)} ~ ${L.fmtKo(r.end)}`;
   } else $('#calTitle').textContent = L.fmtLong(sel);
 
-  const open = EV.filter(e => e.toggle && !e.done);
-  // 지연 건수는 바로 아래 배너가 말해 주므로 여기서는 겹쳐 쓰지 않는다
+  // 달력에 보이는 일정만 센다 — 습관까지 넣으면 수백 건이 되어 뜻이 사라진다
+  const shown = EV.filter(inCal);
+  const open = shown.filter(e => e.toggle && !e.done);
+  // 지연 건수는 옆의 칩이 말해 주므로 여기서는 겹쳐 쓰지 않는다
   $('#pageSub').textContent =
-    `${view === 'month' ? '이번 달' : view === 'week' ? '이번 주' : '오늘'} 일정 ${EV.length}건 · 남은 일 ${open.length}건`;
+    `${view === 'month' ? '이번 달' : view === 'week' ? '이번 주' : '오늘'} 일정 ${shown.length}건 · 남은 일 ${open.length}건`;
 }
 
 /** 지연 알림 — 넓은 띠 대신 달력 바의 작은 칩. 누르면 가장 오래된 것으로 이동한다 */
 function renderBanner() {
   const box = $('#overdueChip');
-  const od = EV.filter(e => e.toggle && !e.done && e.date < today)
-    .sort((a, b) => a.date.localeCompare(b.date));
+  const od = EV.filter(isOverdue).sort((a, b) => a.date.localeCompare(b.date));
   if (!od.length) { box.innerHTML = ''; return; }
   box.innerHTML = `<button type="button" class="chip danger" data-ev-jump="${L.esc(od[0].key)}"
     title="가장 오래된 지연: ${L.esc(od[0].title)} (${L.ddayLabel(od[0].date)}) — 누르면 그 날짜로 이동합니다">
@@ -6815,7 +6843,7 @@ function renderBanner() {
 
 /** 달력 한 칸에 들어가는 일정 줄 */
 function evLine(e) {
-  const od = e.toggle && !e.done && e.date < today;
+  const od = isOverdue(e);
   const movable = canMove(e);
   return `<button type="button" class="evline ${e.done ? 'done' : ''} ${od ? 'od' : ''} ${movable ? 'movable' : ''}"
     data-ev="${L.esc(e.key)}" ${movable ? 'draggable="true"' : ''}
@@ -6903,10 +6931,7 @@ function trimCells() {
     }
   }
 }
-/** 달력에서는 습관을 숨긴다 (매일 반복이라 화면을 덮는다 — 습관만 골라 보면 표시) */
-function calEvents(date) {
-  return EV.filter(e => e.date === date && (filters.group === 'habit' || e.group !== 'habit' || e.cat === '운동 기록'));
-}
+function calEvents(date) { return EV.filter(e => e.date === date && inCal(e)); }
 
 function renderMonth() {
   const cap = calMax();
@@ -7013,7 +7038,7 @@ function renderDayPanel() {
 }
 function dayRow(e) {
   const pri = L.PRIORITY[e.priority] || L.PRIORITY.normal;
-  const od = e.toggle && !e.done && e.date < today;
+  const od = isOverdue(e);
   return `<div class="dayrow ${e.done ? 'done' : ''} ${e.key === evSel ? 'on' : ''}">
     ${e.toggle ? `<input type="checkbox" data-ev-toggle="${L.esc(e.key)}" ${e.done ? 'checked' : ''} aria-label="${L.esc(e.title)} 완료 처리">`
       : `<span class="ic src">${L.icon(e.ico, 15)}</span>`}
@@ -7038,7 +7063,7 @@ function renderDetail() {
   if (!e) { box.hidden = true; box.innerHTML = ''; return; }   // 고른 것이 없으면 자리를 비워 둔다
   box.hidden = false;
   const pri = L.PRIORITY[e.priority] || L.PRIORITY.normal;
-  const od = e.toggle && !e.done && e.date < today;
+  const od = isOverdue(e);
   const editable = e.toggle !== 'habit' && e.cat !== '운동 기록';
   box.innerHTML = `
     <div class="card-head"><h3>선택 일정 상세</h3><div class="spacer"></div>
@@ -13302,6 +13327,7 @@ function openWo(id) {
 }
 function saveWo() {
   if (!$('#oDate').value) { L.toast('날짜를 입력하세요.'); return; }
+  if (!$('#oType').value.trim()) { L.toast('운동 종류를 입력하세요.'); $('#oType').focus(); return; }
   const data = {
     date: $('#oDate').value, type: $('#oType').value.trim(),
     minutes: Number($('#oMin').value) || 0, memo: $('#oMemo').value.trim(),
@@ -13327,6 +13353,9 @@ function saveBody() {
   if (!$('#bDate').value) { L.toast('날짜를 입력하세요.'); return; }
   const num = sel => $(sel).value === '' ? null : Number($(sel).value);
   const data = { date: $('#bDate').value, weight: num('#bWeight'), fat: num('#bFat'), muscle: num('#bMuscle') };
+  if (data.weight === null && data.fat === null && data.muscle === null) {
+    L.toast('체중 · 체지방 · 근육량 중 하나는 입력하세요.'); $('#bWeight').focus(); return;
+  }
   if (editBody) Object.assign(DB.fitness.body.find(x => x.id === editBody), data);
   else DB.fitness.body.push(Object.assign({ id: L.uid() }, data));
   save(); closeModals(); renderAll(); L.toast('기록했습니다.');
@@ -14073,6 +14102,23 @@ L.sideNote(`<div class="q">${L.esc(L.quoteOf(L.todayStr(), DB.meta.quotes || [])
      worklearn: () => openWish(null, 'work'), workout: () => openWo(null),
      work: () => openWork(null), recur: () => openRecur(null), goal: () => openGoal(null),
      memo: () => openMemo(null), habit: () => openHabit(null) })[add]?.();
+
+  /* 특정 항목을 보러 왔는데 '지난 기한 숨기기 · 완료 숨기기'에 걸려 안 보이면 필터를 풀어 준다.
+     (알림이나 홈에서 지난 신고기한을 눌렀을 때 빈 목록이 나오던 문제) */
+  (function revealFocus() {
+    const id = L.param('focus');
+    if (!id) return;
+    const el = document.querySelector(`[data-work="${String(id).replace(/"/g, '')}"]`);
+    if (!el && !/^tax-/.test(id)) return;              // 세무 · 업무 항목이 아니면 건드리지 않는다
+    let changed = false;
+    const y = /^tax-(\d{4})-/.exec(id);               // 다른 해의 기한이면 그 해로 옮긴다
+    if (y && Number(y[1]) !== Number(DB.work.year)) { DB.work.year = Number(y[1]); changed = true; }
+    if ((!el || el.offsetParent === null) && (DB.work.hidePast || DB.work.hideDone)) {
+      DB.work.hidePast = false; DB.work.hideDone = false; changed = true;
+    }
+    if (changed) { save(); renderWork(); }
+  })();
+
   L.flashFocusParam();
 })();
 }
