@@ -560,6 +560,8 @@ table.tbl td select, table.tbl td input[type="text"], table.tbl td input[type="d
 .hero h1 { font-family: var(--serif); font-size: 29px; font-weight: 400; display: flex; align-items: center; gap: 10px; }
 .hero h1 .ic { color: var(--accent-2); }
 .hero .sub { color: var(--text-2); margin-top: 7px; font-size: 13.5px; }
+/* 오늘의 한마디 — 카드 하나를 쓰지 않고 인사 밑에 한 줄로 둔다 */
+.hero .qline { color: var(--accent); margin-top: 7px; font-family: var(--serif); font-size: 13.5px; }
 .hero .art { flex: none; }
 @media (max-width: 900px) { .hero .art { display: none; } }
 
@@ -659,13 +661,6 @@ table.tbl td select, table.tbl td input[type="text"], table.tbl td input[type="d
 .habit:disabled:hover { background: transparent; }
 .hcell:disabled { opacity: .32; cursor: not-allowed; border-style: dashed; }
 .hcell:disabled:hover { background: var(--surface); }
-
-/* 한마디 — 기본은 은은하게, 보조 정보 취급 */
-.quote blockquote { margin: 0; font-family: var(--serif); font-size: 16px; line-height: 1.7; color: var(--accent); }
-.quote figcaption { margin-top: 9px; font-size: 11.5px; color: var(--text-2); }
-.quote.subtle { background: var(--surface); box-shadow: none; }
-.quote.subtle blockquote { font-size: 13.5px; color: var(--text-2); }
-.quote.subtle .card-head h3 { font-size: 12px; color: var(--text-3); font-weight: 650; }
 
 /* ---------- 20. 허브: 페이지 전체 스크롤(카드 내부 스크롤 금지) ---------- */
 .hub { align-items: stretch; }
@@ -1632,6 +1627,24 @@ img, video, svg, canvas { max-width: 100%; }
   .pop-wide { width: min(300px, 88vw); }
 }
 
+/* ---------- 25g. 휴대폰 홈 — 무엇을 먼저 보여줄지 ---------- */
+/* 타일 두 장은 사실 '메뉴'다. 휴대폰에는 하단 탭바와 서랍이 이미 있으니
+   오늘 봐야 하는 것(일정 · 습관 · 목표)을 위로 올리고 타일은 아래로 내린다.
+   .hub 와 .grid 는 배경도 테두리도 없는 순수 격자라, display:contents 로
+   껍데기만 걷어내면 안쪽 카드가 .fit 의 형제가 되어 순서만 바꿀 수 있다. */
+@media (max-width: 700px) {
+  .wrap > .fit > .hub, .wrap > .fit > .grid.g2 { display: contents; }
+  #cardSched { order: 1; }
+  #cardHabit { order: 2; }
+  #cardGoal { order: 3; }
+  #cardUniv { order: 4; }
+  #cardLife { order: 5; }
+
+  /* 타일 — 아래로 내려간 만큼 설명문을 빼고 높이도 줄인다 */
+  .tile { min-height: 64px; padding: 10px 11px; }
+  .tile .d { display: none; }
+}
+
 /* 서랍 · 모달이 열려 있는 동안에는 뒤 화면을 붙잡아 둔다 */
 @media (max-width: 1024px) {
   body.nav-open { overflow: hidden; }
@@ -1683,6 +1696,14 @@ body:has(.modal-bg.open) { overflow: hidden; }
   .botnav .on { color: var(--accent); }
   .botnav .on .ic { transform: translateY(-1px); }
   .botnav a:active, .botnav button:active { background: var(--surface-2); }
+
+  /* 상단바가 현재 위치를 이미 들고 있다 — 본문의 같은 제목은 눈에서만 감춘다
+     (화면 낭독기에는 제목이 그대로 남는다) */
+  .page-head h2.dup-title {
+    position: absolute; width: 1px; height: 1px; margin: -1px;
+    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+  }
+  .page-head:has(h2.dup-title) { margin-bottom: 10px; }
 
   /* 사이드바 서랍이 하단바 위로 오도록 */
   .side { z-index: 90; }
@@ -1819,6 +1840,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
       <div class="txt">
         <h1 id="hi">안녕하세요</h1>
         <p class="sub" id="dateLine"></p>
+        <p class="qline" id="heroQuote"></p>
       </div>
       <svg class="art" width="200" height="96" viewBox="0 0 200 96" fill="none" aria-hidden="true">
         <rect x="6" y="78" width="188" height="2" rx="1" fill="var(--border)"/>
@@ -1835,13 +1857,13 @@ body:has(.modal-bg.open) { overflow: hidden; }
     </section>
 
     <!-- 2) 핵심 현황 -->
-    <section class="grid g4" id="stats" aria-label="핵심 현황" style="margin-top:14px"></section>
+    <section class="grid g4" id="stats" aria-label="핵심 현황"></section>
 
     <!-- 3~5) 본문 -->
-    <div class="hub" style="margin-top:14px">
+    <div class="hub">
 
       <!-- 방통대 학사관리 -->
-      <section class="card">
+      <section class="card" id="cardUniv">
         <div class="card-head">
           <h3>방통대 학사관리</h3><div class="spacer"></div>
           <a class="btn ghost sm" href="index.html?app=univ">전체 보기</a>
@@ -1853,7 +1875,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
       </section>
 
       <!-- 개인 인생관리 -->
-      <section class="card">
+      <section class="card" id="cardLife">
         <div class="card-head">
           <h3>개인 인생관리</h3><div class="spacer"></div>
           <a class="btn ghost sm" href="index.html?app=life">전체 보기</a>
@@ -1865,7 +1887,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
       </section>
 
       <!-- 다가오는 일정 -->
-      <section class="card">
+      <section class="card" id="cardSched">
         <div class="card-head">
           <h3>다가오는 일정</h3><div class="spacer"></div>
           <span class="badge" id="schedBadge"></span>
@@ -1878,10 +1900,10 @@ body:has(.modal-bg.open) { overflow: hidden; }
 
     </div>
 
-    <!-- 6) 하단: 습관 / 월간 목표 / 한마디 -->
-    <div class="grid g3" style="margin-top:14px">
+    <!-- 6) 하단: 습관 / 월간 목표 (한마디는 맨 위 인사 아래 한 줄로 옮겼다) -->
+    <div class="grid g2">
 
-      <section class="card">
+      <section class="card" id="cardHabit">
         <div class="card-head">
           <h3>습관 체크</h3><div class="spacer"></div>
           <span class="badge ok" id="habitBadge"></span>
@@ -1889,22 +1911,12 @@ body:has(.modal-bg.open) { overflow: hidden; }
         <div class="card-body"><div class="habits" id="habits"></div></div>
       </section>
 
-      <section class="card">
+      <section class="card" id="cardGoal">
         <div class="card-head">
           <h3>월간 목표</h3><div class="spacer"></div>
           <select id="goalMonth" style="width:auto" aria-label="월 선택"></select>
         </div>
         <div class="card-body" id="goalBody"></div>
-      </section>
-
-      <section class="card quote">
-        <div class="card-head"><h3>오늘의 한마디</h3></div>
-        <div class="card-body">
-          <figure style="margin:0">
-            <blockquote id="quoteText"></blockquote>
-            <figcaption id="quoteCap"></figcaption>
-          </figure>
-        </div>
       </section>
 
     </div>
@@ -4560,7 +4572,19 @@ body:has(.modal-bg.open) { overflow: hidden; }
       if (e.key === '/' && document.activeElement === document.body) { e.preventDefault(); sInput.focus(); }
     });
 
+    dedupeTitle();
     return { aside, header, shell };
+  }
+
+  /** 상단 위치 표시(#crumb)와 본문 제목(.page-head h2)이 같은 글자면 본문 쪽을 감춘다.
+      문자열을 비교하므로 '대시보드'처럼 위치 표시와 다른 제목은 그대로 남는다.
+      감추는 것은 CSS(.dup-title)가 하고, 휴대폰에서만 실제로 사라진다. */
+  function dedupeTitle() {
+    const crumb = document.querySelector('#crumb b');
+    const now = crumb ? crumb.textContent.trim() : '';
+    document.querySelectorAll('.page-head h2').forEach(h2 => {
+      h2.classList.toggle('dup-title', !!now && h2.textContent.trim() === now);
+    });
   }
 
   /* =========================================================
@@ -4627,6 +4651,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
     if (!el || !SHELL) return;
     const [up, now] = navCrumb(SHELL.app, page);
     el.innerHTML = `${up ? `<span class="up">${esc(up)}</span>${icon('chev', 14)}` : ''}<b>${esc(now)}</b>`;
+    dedupeTitle();
     // 활성 항목이 접힌 그룹 안에 있으면 펼쳐 보여준다
     const btn = document.querySelector(`#tabs .tab[data-page="${page}"]`);
     const sub = btn && btn.closest('.nav-sub');
@@ -5903,7 +5928,7 @@ body:has(.modal-bg.open) { overflow: hidden; }
     LIFE_EVENT_REPEAT, lifeEventDates, lifeEventDone, setLifeEventDone, eventKey,
     mountShell, navBadges, navActive, sideNote, refreshAlerts,
     applyFitView, FIT_PAGES, fitSidebar,
-    navHref, navCrumb, NAV_TOP, NAV_GROUPS, QUICK_ADD,
+    navHref, navCrumb, dedupeTitle, NAV_TOP, NAV_GROUPS, QUICK_ADD,
     RECUR_FREQ, recurLabel, recurOccurrences, applyDone,
     parseLecturePaste, lectureFromRow, looseDate, stripLecNo,
     readSpreadsheet, rowsToText, xlsxSupported,
@@ -6283,9 +6308,10 @@ function renderSched() {
   const end = L.addDays(today, 30);
   const soon = notDone.filter(e => L.dday(e.date) >= 0).sort((a, b) => a.date.localeCompare(b.date));
   const within30 = soon.filter(e => e.date <= end);
+  const cap = window.matchMedia('(max-width: 700px)').matches ? 5 : 8;
   let list, badgeText;
-  if (within30.length) { list = within30.slice(0, 8); badgeText = `30일 내 ${within30.length}건`; }
-  else if (soon.length) { list = soon.slice(0, 5); badgeText = '다음 예정 일정'; }
+  if (within30.length) { list = within30.slice(0, cap); badgeText = `30일 내 ${within30.length}건`; }
+  else if (soon.length) { list = soon.slice(0, Math.min(cap, 5)); badgeText = '다음 예정 일정'; }
   else { list = []; badgeText = '없음'; }
   $('#schedBadge').textContent = badgeText;
   $('#schedList').innerHTML = list.length ? list.map(schedRow).join('')
@@ -6345,10 +6371,9 @@ function renderGoals() {
 }
 $('#goalMonth').addEventListener('change', e => { goalMonth = e.target.value; renderGoals(); });
 
-/* ================= 한마디 ================= */
+/* ================= 한마디 — 인사 아래 한 줄 ================= */
 function renderQuote() {
-  $('#quoteText').textContent = L.quoteOf(today, (life.meta && life.meta.quotes) || []);
-  $('#quoteCap').textContent = `${L.parse(today).getMonth() + 1}월 ${L.parse(today).getDate()}일의 문장`;
+  $('#heroQuote').textContent = `“${L.quoteOf(today, (life.meta && life.meta.quotes) || [])}”`;
 }
 
 /* ================= 렌더 총괄 ================= */
@@ -13855,6 +13880,7 @@ var LM_APPS = {
 
   try {
     LM_APPS[key].boot();
+    if (window.LM && window.LM.dedupeTitle) window.LM.dedupeTitle();
   } catch (err) {
     console.error('화면을 여는 중 오류가 발생했습니다:', err);
     var box = document.querySelector('.wrap') || document.body;
