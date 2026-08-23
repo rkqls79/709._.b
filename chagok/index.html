@@ -1715,14 +1715,6 @@ body:has(.modal-bg.open) { overflow: hidden; }
   .botnav .on .ic { transform: translateY(-1px); }
   .botnav a:active, .botnav button:active { background: var(--surface-2); }
 
-  /* 상단바가 현재 위치를 이미 들고 있다 — 본문의 같은 제목은 눈에서만 감춘다
-     (화면 낭독기에는 제목이 그대로 남는다) */
-  .page-head h2.dup-title {
-    position: absolute; width: 1px; height: 1px; margin: -1px;
-    overflow: hidden; clip-path: inset(50%); white-space: nowrap;
-  }
-  .page-head:has(h2.dup-title) { margin-bottom: 10px; }
-
   /* 사이드바 서랍이 하단바 위로 오도록 */
   .side { z-index: 90; }
   .scrim { z-index: 85; }
@@ -1799,6 +1791,16 @@ body:has(.modal-bg.open) { overflow: hidden; }
   body.cal-filters-open .calfilters { grid-template-columns: minmax(0, 1fr); }
 }
 
+/* ---------- 25g-a. 화면 제목 중복 ---------- */
+/* 상단바(스티키)가 현재 위치를 늘 들고 있으므로, 본문에 같은 글자가 또 나오면 감춘다.
+   글자가 다른 화면(예: 상단 '학사 대시보드' ↔ 본문 '3학년 2학기')은 그대로 남는다.
+   지우지 않고 눈에서만 감추는 이유: 화면 낭독기에는 제목이 하나 있어야 한다. */
+.page-head h2.dup-title {
+  position: absolute; width: 1px; height: 1px; margin: -1px;
+  overflow: hidden; clip-path: inset(50%); white-space: nowrap;
+}
+.page-head:has(h2.dup-title) { margin-bottom: 10px; }
+
 /* ---------- 25g. 통합 일정 — 달력 바 · 필터 · 상세 시트 ---------- */
 /* 달력 바 오른쪽의 요약 문구 (화면 제목줄에서 옮겨 왔다) */
 .calmeta { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; }
@@ -1814,11 +1816,14 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
 .calchips .chip .x { color: var(--text-3); font-weight: 700; }
 .calchips .chip.on .x { color: inherit; opacity: .75; }
 
-/* 지연 배너 — 한 줄로 (길면 줄임표) */
-#overdueBanner .notice.link { padding: 10px 14px; }
-#overdueBanner .notice.link > span:not(.spacer) {
-  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+/* 지연 알림 칩 — 조용하게, 그러나 누를 수 있게 */
+.calchip:empty { display: none; }
+.calchip .chip.danger {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 30px; padding: 4px 11px;
+  border-color: var(--danger); background: var(--danger-soft); color: var(--danger);
 }
+.calchip .chip.danger:hover { background: var(--danger); color: var(--on-accent); }
+.calchip .chip.danger .ic { color: currentColor; }
 
 /* 범례 — 한 줄로 눕히고 넘치면 옆으로 밀어 본다 */
 .callegend { flex-wrap: nowrap; overflow-x: auto; scrollbar-width: none; }
@@ -1835,6 +1840,12 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
 /* 월 보기 — 남은 높이에 6주가 딱 맞게 들어간다 (카드 안쪽 스크롤이 없어진다).
    달력과 목록이 좌우로 나뉘는 폭에서만 — 세로로 쌓이면 달력에 줄 높이가 모자란다. */
 @media (min-width: 1181px) {
+  /* 카드는 칸 높이만큼 늘어나는데 본문이 따라 늘지 않아 아래에 빈 자리가 남고
+     달력이 그만큼 쪼그라들었다. 본문이 카드를 채우게 한다. */
+  body.fitview .schedwrap > .card > .card-body { flex: 1; }
+  /* 주 · 일 보기는 내용이 짧다 — 카드를 늘리지 않고 내용에 맞춘다.
+     내용이 길면 창을 넘지 않게 상한을 두고 카드 안에서 스크롤한다. */
+  body.fitview:not(.cal-month) .schedwrap > .card { align-self: start; max-height: 100%; }
   body.fitview.cal-month .schedwrap > .card > .card-body {
     display: flex; flex-direction: column; overflow: hidden; max-height: none;
   }
@@ -1854,17 +1865,14 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
 
 /* 휴대폰 — 고른 일정의 상세를 아래에서 올라오는 시트로 */
 @media (max-width: 700px) {
-  .calbar .calmeta { flex: 1 1 100%; order: 5; text-align: center; }
+  .calbar .calmeta { flex: 1 1 auto; order: 5; }
+  .calbar .calchip { order: 5; flex: 0 0 auto; }
   .calbar .calchips { order: 6; flex: 1 1 100%; }
   .calbar .calchips .chip { flex: 0 0 auto; }
   body.cal-filters-open .calfilters {
     display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px;
   }
   .calfilters .cf > select, .calfilters .cf > input[type="date"] { width: 100%; }
-
-  #overdueBanner .notice.link { flex-wrap: nowrap; padding: 11px 32px 11px 13px; }
-  #overdueBanner .notice.link > span:not(.spacer) { flex: 1 1 auto; font-size: 12px; }
-  #overdueBanner .notice.link > .ic:last-child { top: 50%; transform: translateY(-50%); }
 
   .sheet-scrim {
     position: fixed; inset: 0; z-index: 94; background: rgba(15, 18, 14, .34);
@@ -2047,6 +2055,7 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       </div>
       <div class="spacer"></div>
       <span class="calmeta" id="pageSub"></span>
+      <span class="calchip" id="overdueChip"></span>
       <button class="btn sm" id="filterToggle" aria-expanded="false" aria-controls="calFilters">필터</button>
       <div class="calfilters" id="calFilters">
         <label class="cf"><span>일정 종류</span><select id="fGroup" aria-label="일정 종류"></select></label>
@@ -2067,8 +2076,6 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       </div>
       <div class="calchips" id="filterChips"></div>
     </div>
-
-    <div id="overdueBanner" style="margin-bottom:12px"></div>
 
     <div class="schedwrap fitmain fitcols">
       <section class="card">
@@ -6795,15 +6802,15 @@ function renderTitle() {
     `${view === 'month' ? '이번 달' : view === 'week' ? '이번 주' : '오늘'} 일정 ${EV.length}건 · 남은 일 ${open.length}건`;
 }
 
+/** 지연 알림 — 넓은 띠 대신 달력 바의 작은 칩. 누르면 가장 오래된 것으로 이동한다 */
 function renderBanner() {
-  const box = $('#overdueBanner');
+  const box = $('#overdueChip');
   const od = EV.filter(e => e.toggle && !e.done && e.date < today)
     .sort((a, b) => a.date.localeCompare(b.date));
   if (!od.length) { box.innerHTML = ''; return; }
-  box.innerHTML = `<button type="button" class="notice danger link" data-ev-jump="${L.esc(od[0].key)}">
-      ${L.icon('bell', 16)}<b>지연 ${od.length}건</b>
-      <span style="opacity:.85">${L.esc(od[0].title)} · ${L.ddayLabel(od[0].date)}</span>
-      <span class="spacer"></span>${L.icon('chev', 15)}</button>`;
+  box.innerHTML = `<button type="button" class="chip danger" data-ev-jump="${L.esc(od[0].key)}"
+    title="가장 오래된 지연: ${L.esc(od[0].title)} (${L.ddayLabel(od[0].date)}) — 누르면 그 날짜로 이동합니다">
+    ${L.icon('bell', 13)}지연 ${od.length}</button>`;
 }
 
 /** 달력 한 칸에 들어가는 일정 줄 */
