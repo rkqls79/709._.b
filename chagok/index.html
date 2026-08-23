@@ -1402,6 +1402,26 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 .courselist select.area { width: 74px; }
 .courselist select.area.unset { color: var(--text-3); border-style: dashed; }
 
+/* 졸업 요건 카드 — 넓은 화면에서는 왼쪽에 요건 표, 오른쪽에 설명을 둔다.
+   한쪽으로 몰리지 않게 남는 폭을 설명이 받는다. */
+.gradwrap {
+  display: grid; grid-template-columns: minmax(0, 640px) minmax(240px, 340px);
+  gap: 32px; align-items: start;
+  /* 아주 넓은 화면에서 한쪽으로 몰리지 않게 — 읽기 좋은 폭으로 묶어 가운데 정렬 */
+  max-width: 1012px; margin: 0 auto;
+}
+.gradside { display: flex; flex-direction: column; gap: 12px; padding-top: 21px; }
+.gradsum {
+  border: 1px solid var(--border); border-radius: var(--r); background: var(--surface-2);
+  padding: 11px 13px; font-size: 12.5px;
+}
+.gradsum b { display: block; font-size: 14px; margin-bottom: 3px; }
+.gradsum span { color: var(--text-3); }
+@media (max-width: 1100px) {
+  .gradwrap { grid-template-columns: minmax(0, 1fr); gap: 16px; }
+  .gradside { padding-top: 0; }
+}
+
 /* 구분별 졸업 요건 — 전공 · 교양 · 일반 한 줄씩.
    한 줄을 읽기 좋은 폭(640px)에 묶어 둔다. 넓은 화면에서 막대가 끝까지
    늘어나면 6px 짜리 선이 화면을 가로지르며 어지러워진다. */
@@ -1577,7 +1597,10 @@ img, video, svg, canvas { max-width: 100%; }
   /* 여백 — 좌우 16px, 섹션 사이 24px */
   .wrap { padding: 14px 16px calc(78px + env(safe-area-inset-bottom, 0px)); }
   .grid { gap: 12px; }
-  .card > .card-head { padding: 15px 16px 11px; gap: 7px; }
+  /* 카드 제목줄 — 좁은 화면에서 제목이 컨트롤에 밀려 한 글자씩 접히던 것을 막는다.
+     제목은 제 폭을 지키고, 넘치는 컨트롤이 아래 줄로 내려간다. */
+  .card > .card-head { padding: 15px 16px 11px; gap: 7px; flex-wrap: wrap; row-gap: 9px; }
+  .card > .card-head > h3 { flex: 0 0 auto; }
   .card > .card-body { padding: 0 16px 16px; }
   .card > .card-body.tight { padding: 0 0 4px; }
 
@@ -2368,17 +2391,21 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
     <div class="fitmain fitscroll">
     <div class="card" style="margin-bottom:14px">
       <div class="card-head"><h3>졸업 요건</h3><div class="spacer"></div>
-        <span class="dim" style="font-size:12px">입력하면 바로 저장됩니다</span></div>
+        <button class="btn sm ghost" id="gradEditBtn" aria-expanded="false" aria-controls="gradEdit">요건 값 수정</button></div>
       <div class="card-body">
-        <div class="form-grid nums" style="margin-bottom:16px">
-          <label class="field"><span>편입 인정학점</span><input type="number" id="dTransfer" min="0" max="200"></label>
-          <label class="field"><span>졸업 필요학점</span><input type="number" id="dGrad" min="0" max="300"></label>
-          <label class="field"><span>전공 최소학점</span><input type="number" id="dNeedMajor" min="0" max="300"></label>
-          <label class="field"><span>교양 최소학점</span><input type="number" id="dNeedLiberal" min="0" max="300"></label>
-          <label class="field"><span>평점 만점</span><select id="dScale">
-            <option value="4.5">4.5 만점</option><option value="4.3">4.3 만점</option><option value="4">4.0 만점</option>
-          </select></label>
-          <label class="field"><span>목표 평점</span><input type="number" id="dTarget" min="0" max="4.5" step="0.1"></label>
+        <div id="gradEdit" hidden style="margin:0 auto 18px;max-width:1012px">
+          <div class="form-grid nums">
+            <label class="field"><span>편입 인정학점</span><input type="number" id="dTransfer" min="0" max="200"></label>
+            <label class="field"><span>졸업 필요학점</span><input type="number" id="dGrad" min="0" max="300"></label>
+            <label class="field"><span>전공 최소학점</span><input type="number" id="dNeedMajor" min="0" max="300"></label>
+            <label class="field"><span>교양 최소학점</span><input type="number" id="dNeedLiberal" min="0" max="300"></label>
+            <label class="field"><span>평점 만점</span><select id="dScale">
+              <option value="4.5">4.5 만점</option><option value="4.3">4.3 만점</option><option value="4">4.0 만점</option>
+            </select></label>
+            <label class="field"><span>목표 평점</span><input type="number" id="dTarget" min="0" max="4.5" step="0.1"></label>
+          </div>
+          <p class="dim" style="font-size:12px;margin-top:9px">입력하면 바로 저장됩니다.
+            편입 인정학점의 전공 · 교양 구분은 <b>학사 설정</b>에서 나눌 수 있습니다.</p>
         </div>
         <div id="gradBody"></div>
       </div>
@@ -9668,6 +9695,8 @@ function renderDegree() {
     </div>`;
   };
   $('#gradBody').innerHTML = `
+    <div class="gradwrap">
+    <div class="gradmain">
     <div class="sec-title">구분별 졸업 요건</div>
     <div class="areqs">
       ${areaRow('major', '전공', rq.got.major, rq.needMajor)}
@@ -9683,20 +9712,26 @@ function renderDegree() {
           ? `${rq.left}학점 남음<small>${subjects(rq.left)}</small>` : '졸업 학점 충족'}</span>
       </div>
     </div>
-    ${rq.earned.noneCount ? `<p class="notice warn" style="margin-top:12px;font-size:12.5px">
+    </div>
+    <div class="gradside">
+    ${rq.earned.noneCount ? `<p class="notice warn" style="font-size:12.5px">
       ${L.icon('bulb', 15)}<span>이수 구분을 정하지 않은 과목이 <b>${rq.earned.noneCount}과목 ${rq.got.none}학점</b> 있습니다.
       아래 학기 카드에서 <b>구분</b>을 골라 주면 전공 · 교양 요건에 반영됩니다.</span></p>` : ''}
-    ${rq.overTransfer ? `<p class="notice danger" style="margin-top:12px;font-size:12.5px">
+    ${rq.overTransfer ? `<p class="notice danger" style="font-size:12.5px">
       ${L.icon('bell', 15)}<span>편입 인정학점의 전공 + 교양(${rq.transfer.major + rq.transfer.liberal}학점)이
       전체 편입 인정학점(${rq.transfer.all}학점)보다 많습니다. 학사 설정에서 확인해 주세요.</span></p>` : ''}
-    <p class="dim" style="font-size:12px;margin-top:11px">
-      합계 ${rq.total}학점 = 편입 인정 <b>${rq.transfer.all}</b> + 방통대 취득 <b>${got}</b></p>
-    ${left > 0 && remainTerms > 0 ? `<p class="dim" style="font-size:12.5px;margin-top:12px">
+    <div class="gradsum">
+      <b>합계 ${rq.total}학점</b>
+      <span>편입 인정 ${rq.transfer.all} + 방통대 취득 ${got}</span>
+    </div>
+    ${left > 0 && remainTerms > 0 ? `<p class="dim" style="font-size:12.5px">
       남은 <b>${remainTerms}개 학기</b>에 학기당 평균 <b>${perTerm}학점</b>을 취득하면 졸업 요건을 채웁니다.
       ${perTerm > 24
         ? `<b style="color:var(--danger)">학기당 신청 한도(24학점)를 초과합니다 —
            학기를 더 추가하거나 계절학기·학점인정을 검토하세요.</b>`
-        : '방통대는 학기당 최대 24학점까지 신청할 수 있습니다.'}</p>` : ''}`;
+        : '방통대는 학기당 최대 24학점까지 신청할 수 있습니다.'}</p>` : ''}
+    </div>
+    </div>`;
 
   /* 학기 카드 — 학기 요약 + 그 학기에 들은 과목 목록(성적 바로 입력) */
   if (degTerm && !DB.terms.some(t => t.id === degTerm)) degTerm = '';
@@ -10442,6 +10477,16 @@ document.addEventListener('click', e => {
   if (closest('[data-add-task]')) return openTask(null);
   if (closest('[data-add-course]')) return openCourse(null);
   if (closest('[data-add-term]')) return openTerm(null);
+  /* 졸업 요건 값 6칸 — 한 번 정하면 계속 볼 필요가 없어 접어 둔다 */
+  if (closest('#gradEditBtn')) {
+    const box = $('#gradEdit'), btn = $('#gradEditBtn');
+    box.hidden = !box.hidden;
+    btn.setAttribute('aria-expanded', String(!box.hidden));
+    btn.classList.toggle('primary', !box.hidden);
+    btn.textContent = box.hidden ? '요건 값 수정' : '수정 닫기';
+    if (!box.hidden) setTimeout(() => $('#dGrad').focus(), 30);
+    return;
+  }
   const et2 = closest('[data-edit-term]');
   if (et2) return openTerm(et2.dataset.editTerm);
   if (closest('[data-add-res]')) return openRes(null);
