@@ -1634,6 +1634,12 @@ img, video, svg, canvas { max-width: 100%; }
    껍데기만 걷어내면 안쪽 카드가 .fit 의 형제가 되어 순서만 바꿀 수 있다. */
 @media (max-width: 700px) {
   .wrap > .fit > .hub, .wrap > .fit > .grid.g2 { display: contents; }
+
+  /* 인사 — 큰 세리프 제목(29px, 두 줄로 접혀 75px)을 본문 크기 한 줄로 낮춘다.
+     문장은 그대로 남긴다: 오늘 남은 개수를 말해주는 곳이 여기뿐이다. */
+  .hero { padding: 4px 2px 12px; }
+  .hero h1 { font-family: var(--sans); font-size: 15px; font-weight: 650; gap: 7px; }
+  .hero h1 .ic { width: 16px; height: 16px; }
   #cardSched { order: 1; }
   #cardHabit { order: 2; }
   #cardGoal { order: 3; }
