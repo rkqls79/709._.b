@@ -558,14 +558,16 @@ table.tbl td select, table.tbl td input[type="text"], table.tbl td input[type="d
 .toast.show { opacity: 1; transform: translate(-50%, 0); }
 
 /* ---------- 19. 허브 전용 ---------- */
-.hero { display: flex; align-items: flex-end; gap: 20px; padding: 10px 4px 22px; }
+.hero { display: flex; align-items: flex-end; gap: 20px; padding: 6px 4px 14px; }
 .hero .txt { flex: 1; min-width: 0; }
-.hero h1 { font-family: var(--serif); font-size: 29px; font-weight: 400; display: flex; align-items: center; gap: 10px; }
+/* 인사 — 큰 세리프 제목 대신 본문 크기 한 줄. 오늘 상황을 알려주는 문장이지 화면 제목이 아니다 */
+.hero h1 { font-family: var(--sans); font-size: 17px; font-weight: 650; display: flex; align-items: center; gap: 8px; }
+.hero h1 .ic { width: 18px; height: 18px; }
 .hero h1 .ic { color: var(--accent-2); }
 .hero .sub { color: var(--text-2); margin-top: 7px; font-size: 13.5px; }
 /* 오늘의 한마디 — 카드 하나를 쓰지 않고 인사 밑에 한 줄로 둔다 */
 .hero .qline { color: var(--accent); margin-top: 7px; font-family: var(--serif); font-size: 13.5px; }
-.hero .art { flex: none; }
+.hero .art { flex: none; width: 150px; height: 72px; }
 @media (max-width: 900px) { .hero .art { display: none; } }
 
 .fit { display: flex; flex-direction: column; gap: 14px; }
@@ -1405,21 +1407,45 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 /* 졸업 요건 카드 — 넓은 화면에서는 왼쪽에 요건 표, 오른쪽에 설명을 둔다.
    한쪽으로 몰리지 않게 남는 폭을 설명이 받는다. */
 .gradwrap {
-  display: grid; grid-template-columns: minmax(0, 640px) minmax(240px, 340px);
-  gap: 32px; align-items: start;
+  display: grid; grid-template-columns: 200px minmax(0, 1fr) minmax(230px, 290px);
+  gap: 30px; align-items: center;
   /* 아주 넓은 화면에서 한쪽으로 몰리지 않게 — 읽기 좋은 폭으로 묶어 가운데 정렬 */
-  max-width: 1012px; margin: 0 auto;
+  max-width: 1180px; margin: 0 auto;
 }
-.gradside { display: flex; flex-direction: column; gap: 12px; padding-top: 21px; }
-.gradsum {
-  border: 1px solid var(--border); border-radius: var(--r); background: var(--surface-2);
-  padding: 11px 13px; font-size: 12.5px;
+
+/* 졸업 진행률 도넛 */
+.graddonut { display: flex; flex-direction: column; align-items: center; gap: 9px; }
+.graddonut svg { width: 100%; max-width: 188px; height: auto; }
+.graddonut .dl { fill: var(--text-3); font-size: 14px; font-weight: 600; }
+.graddonut .dv { fill: var(--text); font-size: 42px; font-weight: 700; }
+.graddonut .du { fill: var(--text-3); font-size: 18px; font-weight: 600; }
+.graddonut .cap { font-size: 13px; color: var(--text-2); font-variant-numeric: tabular-nums; }
+
+/* 오른쪽 요약 상자 */
+.gradside {
+  background: var(--surface-2); border: 1px solid var(--border); border-radius: var(--r-lg);
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 15px; text-align: center;
 }
-.gradsum b { display: block; font-size: 14px; margin-bottom: 3px; }
-.gradsum span { color: var(--text-3); }
-@media (max-width: 1100px) {
-  .gradwrap { grid-template-columns: minmax(0, 1fr); gap: 16px; }
-  .gradside { padding-top: 0; }
+.gradside .gs-block { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.gradside .gs-block > .ic {
+  width: 44px; height: 44px; border-radius: 50%; flex: none;
+  display: grid; place-items: center; background: var(--accent-soft); color: var(--accent);
+}
+.gradside .gs-block > .ic.solid { background: var(--accent); color: var(--on-accent); }
+.gradside b { font-size: 15.5px; }
+.gradside .sub { font-size: 12.5px; color: var(--text-3); }
+.gradside p { font-size: 12.5px; color: var(--text-2); line-height: 1.65; margin: 0; }
+.gs-sep { border-top: 1px dashed var(--border-strong); }
+
+@media (max-width: 1400px) {
+  .gradwrap { grid-template-columns: 168px minmax(0, 1fr); gap: 22px; }
+  .gradside { grid-column: 1 / -1; text-align: left; }
+  .gradside .gs-block { flex-direction: row; align-items: center; gap: 12px; text-align: left; }
+  .gradside .gs-block b { flex: 0 0 auto; }
+}
+@media (max-width: 760px) {
+  .gradwrap { grid-template-columns: minmax(0, 1fr); gap: 18px; }
+  .graddonut svg { max-width: 152px; }
 }
 
 /* 구분별 졸업 요건 — 전공 · 교양 · 일반 한 줄씩.
@@ -1427,7 +1453,7 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
    늘어나면 6px 짜리 선이 화면을 가로지르며 어지러워진다. */
 .areqs { display: flex; flex-direction: column; gap: 2px; max-width: 640px; }
 .areq {
-  display: grid; grid-template-columns: 52px 84px 168px minmax(0, 1fr);
+  display: grid; grid-template-columns: 52px 84px minmax(64px, 168px) minmax(116px, 1fr);
   gap: 12px; align-items: center; padding: 7px 0;
 }
 .areq + .areq { border-top: 1px solid var(--border); }
@@ -1526,15 +1552,18 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
   /* 스크롤 막대를 얇고 조용하게 (색은 기존 토큰 그대로) */
   body.fitview .fitscroll::-webkit-scrollbar,
   body.fitview .page.active::-webkit-scrollbar,
+  body.fitview .wrap > .fit::-webkit-scrollbar,
   body.fitview .card-body::-webkit-scrollbar { width: 10px; height: 10px; }
   body.fitview .fitscroll::-webkit-scrollbar-thumb,
   body.fitview .page.active::-webkit-scrollbar-thumb,
+  body.fitview .wrap > .fit::-webkit-scrollbar-thumb,
   body.fitview .card-body::-webkit-scrollbar-thumb {
     background: var(--border-strong); border-radius: 8px;
     border: 3px solid transparent; background-clip: content-box;
   }
   body.fitview .fitscroll::-webkit-scrollbar-track,
   body.fitview .page.active::-webkit-scrollbar-track,
+  body.fitview .wrap > .fit::-webkit-scrollbar-track,
   body.fitview .card-body::-webkit-scrollbar-track { background: transparent; }
 }
 
@@ -1713,10 +1742,9 @@ img, video, svg, canvas { max-width: 100%; }
 @media (max-width: 700px) {
   .wrap > .fit > .hub, .wrap > .fit > .grid.g2 { display: contents; }
 
-  /* 인사 — 큰 세리프 제목(29px, 두 줄로 접혀 75px)을 본문 크기 한 줄로 낮춘다.
-     문장은 그대로 남긴다: 오늘 남은 개수를 말해주는 곳이 여기뿐이다. */
+  /* 인사 — 휴대폰에서는 조금 더 작게 */
   .hero { padding: 4px 2px 12px; }
-  .hero h1 { font-family: var(--sans); font-size: 15px; font-weight: 650; gap: 7px; }
+  .hero h1 { font-size: 15px; gap: 7px; }
   .hero h1 .ic { width: 16px; height: 16px; }
   #cardSched { order: 1; }
   #cardHabit { order: 2; }
@@ -4798,7 +4826,9 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
      강의 목록이 길어 예전처럼 페이지가 스크롤되도록 일부러 빼 두었다.
      ========================================================= */
   const FIT_PAGES = {
-    hub: ['*'], sched: ['*'], manage: ['*'], progress: ['*'],
+    // 홈은 뺐다 — 카드가 세로로 쌓이는 대시보드라 창 안쪽에 스크롤 막대를 만들기보다
+    // 페이지를 그대로 스크롤하는 편이 자연스럽다 (사이드바 · 상단바는 고정이라 그대로 남는다)
+    sched: ['*'], manage: ['*'], progress: ['*'],
     univ: ['dash', 'sched', 'degree', 'files', 'settings'],
     life: ['dash', 'cert', 'wish', 'worklearn', 'recur', 'fit', 'work',
            'goals', 'memo', 'habit', 'stats', 'settings'],
@@ -9201,7 +9231,8 @@ function renderPastePreview() {
   const total = res.rows.length;
   const bad = buckets.find(b => b.key === '__none__');
   const mode = $('#pMode').value;
-  $('#pApply').disabled = !total || !!bad;
+  // 과목이 정해지지 않았을 때도 단추를 잠그지 않는다 — 눌렀을 때 이유를 알려 준다
+  $('#pApply').disabled = !total;
   $('#pApply').textContent = total ? `${total}강 가져오기` : '가져오기';
 
   if (!$('#pText').value.trim()) {
@@ -9242,7 +9273,11 @@ function renderPastePreview() {
 function applyPaste() {
   const { buckets } = pastePlan();
   if (!buckets.length) { L.toast('가져올 강의가 없습니다.'); return; }
-  if (buckets.some(b => b.key === '__none__')) { L.toast('넣을 과목을 정해주세요.'); return; }
+  if (buckets.some(b => b.key === '__none__')) {
+    L.toast('맨 위 "어느 과목에 넣을까요"에서 과목을 골라주세요.');
+    const sel = $('#pTarget'); if (sel) { sel.focus(); L.flash(sel); }
+    return;
+  }
   const mode = $('#pMode').value;
   const newCourses = buckets.filter(b => b.newName).length;
   const replacing = mode === 'replace'
@@ -9694,8 +9729,26 @@ function renderDegree() {
         : (note || '')}</span>
     </div>`;
   };
+  // 졸업 진행률 도넛
+  const DR = 78, DSW = 20, DC = 2 * Math.PI * DR;
+  const donut = `<svg viewBox="0 0 188 188" role="img" aria-label="졸업 진행률 ${gradPct}퍼센트">
+      <circle cx="94" cy="94" r="${DR}" fill="none" stroke="var(--surface-3)" stroke-width="${DSW}"/>
+      <circle cx="94" cy="94" r="${DR}" fill="none" stroke="var(--purple)" stroke-width="${DSW}" stroke-linecap="round"
+        stroke-dasharray="${DC.toFixed(1)}" stroke-dashoffset="${(DC * (1 - Math.min(100, gradPct) / 100)).toFixed(1)}"
+        transform="rotate(-90 94 94)"/>
+      <text class="dl" x="94" y="84" text-anchor="middle">졸업 진행률</text>
+      <text class="dv" x="94" y="122" text-anchor="middle">${gradPct}<tspan class="du">%</tspan></text>
+    </svg>`;
+
   $('#gradBody').innerHTML = `
+    ${rq.earned.noneCount ? `<p class="notice warn" style="font-size:12.5px;margin-bottom:14px">
+      ${L.icon('bulb', 15)}<span>이수 구분을 정하지 않은 과목이 <b>${rq.earned.noneCount}과목 ${rq.got.none}학점</b> 있습니다.
+      아래 학기 카드에서 <b>구분</b>을 골라 주면 전공 · 교양 요건에 반영됩니다.</span></p>` : ''}
+    ${rq.overTransfer ? `<p class="notice danger" style="font-size:12.5px;margin-bottom:14px">
+      ${L.icon('bell', 15)}<span>편입 인정학점의 전공 + 교양(${rq.transfer.major + rq.transfer.liberal}학점)이
+      전체 편입 인정학점(${rq.transfer.all}학점)보다 많습니다. 학사 설정에서 확인해 주세요.</span></p>` : ''}
     <div class="gradwrap">
+    <div class="graddonut">${donut}<div class="cap">${rq.total} / ${rq.need}학점</div></div>
     <div class="gradmain">
     <div class="sec-title">구분별 졸업 요건</div>
     <div class="areqs">
@@ -9713,24 +9766,25 @@ function renderDegree() {
       </div>
     </div>
     </div>
-    <div class="gradside">
-    ${rq.earned.noneCount ? `<p class="notice warn" style="font-size:12.5px">
-      ${L.icon('bulb', 15)}<span>이수 구분을 정하지 않은 과목이 <b>${rq.earned.noneCount}과목 ${rq.got.none}학점</b> 있습니다.
-      아래 학기 카드에서 <b>구분</b>을 골라 주면 전공 · 교양 요건에 반영됩니다.</span></p>` : ''}
-    ${rq.overTransfer ? `<p class="notice danger" style="font-size:12.5px">
-      ${L.icon('bell', 15)}<span>편입 인정학점의 전공 + 교양(${rq.transfer.major + rq.transfer.liberal}학점)이
-      전체 편입 인정학점(${rq.transfer.all}학점)보다 많습니다. 학사 설정에서 확인해 주세요.</span></p>` : ''}
-    <div class="gradsum">
-      <b>합계 ${rq.total}학점</b>
-      <span>편입 인정 ${rq.transfer.all} + 방통대 취득 ${got}</span>
-    </div>
-    ${left > 0 && remainTerms > 0 ? `<p class="dim" style="font-size:12.5px">
-      남은 <b>${remainTerms}개 학기</b>에 학기당 평균 <b>${perTerm}학점</b>을 취득하면 졸업 요건을 채웁니다.
-      ${perTerm > 24
-        ? `<b style="color:var(--danger)">학기당 신청 한도(24학점)를 초과합니다 —
-           학기를 더 추가하거나 계절학기·학점인정을 검토하세요.</b>`
-        : '방통대는 학기당 최대 24학점까지 신청할 수 있습니다.'}</p>` : ''}
-    </div>
+    <aside class="gradside">
+      <div class="gs-block">
+        <span class="ic solid">${L.icon('award', 20)}</span>
+        <b>합계 ${rq.total}학점</b>
+        <span class="sub">편입 인정 ${rq.transfer.all} + 방통대 취득 ${got}</span>
+      </div>
+      ${left > 0 && remainTerms > 0 ? `<div class="gs-sep"></div>
+      <div class="gs-block">
+        <span class="ic">${L.icon('cal', 19)}</span>
+        <p>남은 <b>${remainTerms}개 학기</b>에 학기당 평균 <b>${perTerm}학점</b>을 취득하면 졸업 요건을 채웁니다.
+        ${perTerm > 24
+          ? `<b style="color:var(--danger)">학기당 신청 한도(24학점)를 넘습니다 —
+             학기를 더 추가하거나 계절학기 · 학점인정을 검토하세요.</b>`
+          : ''}</p>
+      </div>` : ''}
+      ${left === 0 ? `<div class="gs-sep"></div>
+      <div class="gs-block"><span class="ic">${L.icon('tick', 19)}</span>
+        <p>졸업 학점을 모두 채웠습니다.</p></div>` : ''}
+    </aside>
     </div>`;
 
   /* 학기 카드 — 학기 요약 + 그 학기에 들은 과목 목록(성적 바로 입력) */
@@ -11046,6 +11100,14 @@ $('#resetBtn').addEventListener('click', () => {
 // 키보드
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModals();
+  // 체크리스트 칸에서 엔터 — 단추를 누르지 않아도 추가된다
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-ck-input]')) {
+    e.preventDefault();
+    const grp = e.target.closest('.focus-group');
+    const btn = grp && grp.querySelector('[data-task-ck-add]');
+    if (btn) btn.click();
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     if ($('#taskModal').classList.contains('open')) saveTask();
     else if ($('#courseModal').classList.contains('open')) saveCourse();
@@ -12155,7 +12217,8 @@ function renderClPastePreview() {
   const total = res.rows.length;
   const bad = buckets.find(b => b.key === '__none__');
   const mode = $('#pMode').value;
-  $('#pApply').disabled = !total || !!bad;
+  // 과목이 정해지지 않았을 때도 단추를 잠그지 않는다 — 눌렀을 때 이유를 알려 준다
+  $('#pApply').disabled = !total;
   $('#pApply').textContent = total ? `${total}강 가져오기` : '가져오기';
 
   if (!$('#pText').value.trim()) {
@@ -12197,7 +12260,11 @@ function renderClPastePreview() {
 function applyClPaste() {
   const { buckets } = clPastePlan();
   if (!buckets.length) { L.toast('가져올 강의가 없습니다.'); return; }
-  if (buckets.some(b => b.key === '__none__')) { L.toast('넣을 자격증을 정해주세요.'); return; }
+  if (buckets.some(b => b.key === '__none__')) {
+    L.toast('맨 위에서 넣을 자격증을 골라주세요.');
+    const sel = $('#pTarget'); if (sel) { sel.focus(); L.flash(sel); }
+    return;
+  }
   const mode = $('#pMode').value;
   const newN = buckets.filter(b => b.newName).length;
   let msg = `${buckets.reduce((a, b) => a + b.rows.length, 0)}강을 가져옵니다.`;
@@ -14270,6 +14337,14 @@ $('#resetBtn').addEventListener('click', () => {
 
 document.addEventListener('keydown', e => {
   if (e.key === 'Escape') closeModals();
+  // 체크리스트 · 서류 칸에서 엔터 — 단추를 누르지 않아도 추가된다
+  if (e.key === 'Enter' && e.target.matches && e.target.matches('[data-ck-input]')) {
+    e.preventDefault();
+    const grp = e.target.closest('.focus-group');
+    const btn = grp && grp.querySelector('[data-cert-ck-add]');
+    if (btn) btn.click();
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') {
     const open = $$('.modal-bg.open')[0];
     if (!open) return;
