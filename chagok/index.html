@@ -2642,6 +2642,8 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
         <option value="append">뒤에 이어 붙이기</option>
         <option value="replace">전체 교체</option>
       </select></label>
+      <label class="field"><span>마감일 한꺼번에 지정</span>
+        <input type="date" id="pDue" aria-describedby="pDueHint"></label>
     </div>
     <div class="upbox">
       <input type="file" id="pFile" accept=".xlsx,.xlsm,.csv,.tsv,.txt" style="display:none">
@@ -2651,6 +2653,8 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       <label class="field" id="pSheetWrap" style="max-width:220px;display:none">
         <span>시트</span><select id="pSheet"></select></label>
     </div>
+    <p class="dim" id="pDueHint" style="font-size:12px;margin:-4px 0 10px">
+      마감일을 넣으면 <b>가져오는 강의 전체에 같은 날짜</b>가 들어갑니다. 비워 두면 표에 적힌 마감일을 그대로 씁니다.</p>
     <div id="pFileMsg"></div>
     <label class="field"><span>붙여넣거나, 위에서 고른 파일 내용이 여기에 채워집니다</span>
       <textarea id="pText" class="pastebox" rows="7" spellcheck="false"
@@ -9190,6 +9194,7 @@ function openPaste(courseId) {
     cs.map(c => `<option value="${c.id}"${c.id === pasteTarget ? ' selected' : ''}>${L.esc(c.name)}</option>`).join('');
   $('#pTarget').value = pasteTarget;
   $('#pMode').value = 'append';
+  if ($('#pDue')) $('#pDue').value = '';
   $('#pText').value = '';
   $('#pStrip').checked = true;
   pSheets = [];
@@ -9207,6 +9212,9 @@ function pastePlan() {
     stripNo: $('#pStrip').checked,
     yearHint: Number((termById(viewTermId) || {}).start?.slice(0, 4)) || new Date().getFullYear(),
   });
+  // 마감일을 한꺼번에 정했으면 모든 강의에 같은 날짜를 넣는다
+  const bulkDue = ($('#pDue') || {}).value || '';
+  if (bulkDue) for (const r of res.rows) r.dueDate = bulkDue;
   const buckets = new Map();   // key: 과목 id 또는 '신규:이름'
   for (const r of res.rows) {
     let key, label, courseId = '', newName = '';
@@ -10821,7 +10829,7 @@ document.addEventListener('change', e => {
     }
     save(); renderCourses(); return;
   }
-  if (['pTarget', 'pMode', 'pStrip'].includes(el.id)) { renderPastePreview(); return; }
+  if (['pTarget', 'pMode', 'pStrip', 'pDue'].includes(el.id)) { renderPastePreview(); return; }
   if (el.id === 'courseTermSel') { viewTermId = el.value; renderCourses(); return; }
   if (el.id === 'resTermSel') { resTerm = el.value; resCourse = ''; resWeek = 'all'; resSel = ''; renderFiles(); return; }
   if (el.id === 'resSort') { resSort = el.value; renderFiles(); return; }
