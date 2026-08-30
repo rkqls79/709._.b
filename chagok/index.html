@@ -2721,15 +2721,18 @@ body.cal-filters-open .calfilters { display: flex; flex: 1 1 100%; align-items: 
       <div class="hr"></div>
       <div class="sec-title">평가 비중 (%) — 합계 100 권장</div>
       <div class="form-grid">
-        <label class="field"><span>과제물</span><input type="number" id="wMid" min="0" max="100"></label>
-        <label class="field"><span>출석수업/퀴즈</span><input type="number" id="wAttend" min="0" max="100"></label>
-        <label class="field"><span>기말고사</span><input type="number" id="wFinal" min="0" max="100"></label>
+        <label class="field"><span>형성평가 (강의 수강)</span><input type="number" id="wAttend" min="0" max="100"></label>
+        <label class="field"><span>중간과제물 · 출석수업</span><input type="number" id="wMid" min="0" max="100"></label>
+        <label class="field"><span>기말평가</span><input type="number" id="wFinal" min="0" max="100"></label>
       </div>
+      <p class="dim" style="font-size:12px;margin:-2px 0 4px">
+        방통대 기본은 <b>형성평가 20 · 중간과제물(또는 출석수업) 30 · 기말평가 50</b>입니다.
+        형성평가는 강의를 <b>70% 이상</b> 들으면 만점입니다. 과목마다 다르면 고쳐 주세요.</p>
       <div class="sec-title" style="margin-top:6px">획득 점수 (100점 환산, 비워두면 미반영)</div>
       <div class="form-grid">
-        <label class="field"><span>과제물</span><input type="number" id="sMid" min="0" max="100"></label>
-        <label class="field"><span>출석수업/퀴즈</span><input type="number" id="sAttend" min="0" max="100"></label>
-        <label class="field"><span>기말고사</span><input type="number" id="sFinal" min="0" max="100"></label>
+        <label class="field"><span>형성평가</span><input type="number" id="sAttend" min="0" max="100"></label>
+        <label class="field"><span>중간과제물 · 출석수업</span><input type="number" id="sMid" min="0" max="100"></label>
+        <label class="field"><span>기말평가</span><input type="number" id="sFinal" min="0" max="100"></label>
       </div>
       <label class="field"><span>메모</span><textarea id="cMemo"></textarea></label>
     </div>
@@ -9336,7 +9339,7 @@ function newCourse(name) {
   return {
     id: L.uid(), termId: viewTermId, name: name.slice(0, 60), credits: 3, prof: '',
     type: 'general', grade: '', lectures: 0, watched: 0, lectureItems: [],
-    weights: { mid: 30, attend: 0, final: 70 },
+    weights: { mid: 30, attend: 20, final: 50 },
     scores: { mid: null, attend: null, final: null },
     memo: '',
   };
@@ -10494,8 +10497,8 @@ function openCourse(id) {
   $('#cType').value = c ? c.type : 'general';
   $('#cArea').value = c ? areaOf(c) : '';
   $('#wMid').value = c ? c.weights.mid : 30;
-  $('#wAttend').value = c ? c.weights.attend : 0;
-  $('#wFinal').value = c ? c.weights.final : 70;
+  $('#wAttend').value = c ? c.weights.attend : 20;
+  $('#wFinal').value = c ? c.weights.final : 50;
   const nv = v => (v === null || v === undefined || v === '') ? '' : v;
   $('#sMid').value = c ? nv(c.scores.mid) : '';
   $('#sAttend').value = c ? nv(c.scores.attend) : '';
