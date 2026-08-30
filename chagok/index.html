@@ -8809,20 +8809,20 @@ function seed() { return L.seedUniv(); }
 let DB = L.Store.load(KEY, seed());
 const save = () => L.Store.save(KEY, DB);
 
-/* 예전 기본 비중(과제물 30 · 출석 0 · 기말 70)을 방통대 기준(형성 20 · 중간 30 · 기말 50)으로 한 번만 맞춘다.
-   점수를 이미 적어 둔 과목이나, 직접 고친 과목은 건드리지 않는다. */
-(function fixOldWeights() {
-  if (DB.meta.weightsFixed) return;
+/* 모든 과목의 평가 비중을 방통대 기준(형성 20 · 중간 30 · 기말 50)으로 한 번만 맞춘다.
+   획득 점수는 건드리지 않는다 — 비중만 바뀌고 확보 점수는 새 비중으로 다시 계산된다. */
+(function fixAllWeights() {
+  if (DB.meta.weightsFixedAll) return;
   let n = 0;
   for (const c of (DB.courses || [])) {
-    const w = c.weights || {}, sc = c.scores || {};
-    const 기본값그대로 = Number(w.mid) === 30 && Number(w.attend) === 0 && Number(w.final) === 70;
-    const 점수없음 = [sc.mid, sc.attend, sc.final].every(v => v === null || v === undefined || v === '');
-    if (기본값그대로 && 점수없음) { c.weights = { mid: 30, attend: 20, final: 50 }; n++; }
+    const w = c.weights || {};
+    if (Number(w.attend) === 20 && Number(w.mid) === 30 && Number(w.final) === 50) continue;
+    c.weights = { mid: 30, attend: 20, final: 50 };
+    n++;
   }
-  DB.meta.weightsFixed = true;
+  DB.meta.weightsFixedAll = true;
   save();
-  if (n) setTimeout(() => L.toast(`평가 비중 기본값을 형성 20 · 중간 30 · 기말 50으로 맞췄습니다 (${n}과목).`), 900);
+  if (n) setTimeout(() => L.toast(`모든 과목의 평가 비중을 형성 20 · 중간 30 · 기말 50으로 맞췄습니다 (${n}과목).`), 900);
 })();
 
 /* ================= 셸 (사이드바 + 헤더) ================= */
