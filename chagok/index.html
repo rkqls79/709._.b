@@ -1416,6 +1416,8 @@ table.leclist tr.nextrow { box-shadow: inset 3px 0 0 var(--accent); }
 .courselist input[type="number"] { width: 58px; min-height: 30px; padding: 3px 6px; font-size: 12px; text-align: right; }
 .courselist select { width: 104px; min-height: 30px; padding: 3px 6px; font-size: 12px; }
 .courselist select.area { width: 74px; }
+/* 강의 목록의 강 번호 — 주차 대신 몇 번째 강인지 */
+table.leclist .lecno { font-size: 12px; color: var(--text-3); font-variant-numeric: tabular-nums; white-space: nowrap; }
 .courselist select.area.unset { color: var(--text-3); border-style: dashed; }
 
 /* 졸업 요건 카드 — 넓은 화면에서는 왼쪽에 요건 표, 오른쪽에 설명을 둔다.
@@ -8888,18 +8890,6 @@ function progressOf(c) {
 }
 let lecMemoOpen = new Set(); // 메모 입력칸을 펼쳐둔 "cid|lid"
 
-/** 주차별로 묶어 표를 만든다. 주차가 비어 있는 강의는 "주차 미지정"으로 모은다. */
-function lecGroups(items) {
-  const out = [], idx = {};
-  for (const it of items) {
-    const key = (it.week === null || it.week === undefined || it.week === '') ? '' : String(it.week);
-    if (idx[key] === undefined) { idx[key] = out.length; out.push({ key, label: key ? `${key}주차` : '주차 미지정', items: [] }); }
-    out[idx[key]].items.push(it);
-  }
-  // 주차 번호 순으로 정렬 (미지정은 맨 뒤)
-  return out.sort((a, b) => (a.key === '' ? 1 : b.key === '' ? -1 : Number(a.key) - Number(b.key)));
-}
-
 function renderLecPanel(c) {
   const items = courseLectures(c);
   const st = L.lectureStats(items);
@@ -8907,8 +8897,7 @@ function renderLecPanel(c) {
   const hasLegacyOnly = !items.length && (Number(c.lectures) || 0) > 0;
   const allDone = items.length > 0 && items.every(i => i.watched);
 
-  const body = lecGroups(items).map(g => {
-    const rows = g.items.map(it => {
+  const body = items.map((it, i) => {
       const overdue = !it.watched && it.dueDate && it.dueDate < today;
       const isNext = st.next && st.next.id === it.id;
       const k = `${c.id}|${it.id}`;
@@ -8916,8 +8905,7 @@ function renderLecPanel(c) {
       return `<tr class="${overdue ? 'lag' : ''} ${isNext ? 'nextrow' : ''}">
         <td class="mid"><input type="checkbox" class="lec-check" data-lec-watch="${k}" ${it.watched ? 'checked' : ''}
           aria-label="${L.esc(it.title)} 시청 완료"></td>
-        <td class="mid"><input type="number" data-lec-field="${k}|week" value="${it.week ?? ''}" min="0" max="60"
-          style="width:52px;text-align:center" aria-label="${L.esc(it.title)} 주차"></td>
+        <td class="mid lecno">${i + 1}강</td>
         <td><input type="text" data-lec-field="${k}|title" value="${L.esc(it.title)}" aria-label="강의 제목"></td>
         <td class="due"><input type="date" data-lec-field="${k}|dueDate" value="${it.dueDate || ''}" aria-label="마감일"></td>
         <td class="mid nowrap">${it.watched ? '<span class="badge ok">시청 완료</span>'
@@ -8935,8 +8923,6 @@ function renderLecPanel(c) {
         <input type="text" data-lec-field="${k}|memo" value="${L.esc(it.memo || '')}"
           placeholder="이 강의에 대한 메모" aria-label="${L.esc(it.title)} 메모">
       </td></tr>` : ''}`;
-    }).join('');
-    return `<tr class="grp"><td colspan="7">${L.esc(g.label)}</td></tr>${rows}`;
   }).join('');
 
   return `<div>
@@ -8944,7 +8930,7 @@ function renderLecPanel(c) {
       <thead><tr>
         <th class="mid" style="width:34px"><input type="checkbox" class="lec-check" data-lec-allcheck="${c.id}"
           ${allDone ? 'checked' : ''} aria-label="이 과목 강의 전체 시청 완료 처리"></th>
-        <th class="mid" style="width:62px">주차</th><th style="min-width:170px">강의 제목</th>
+        <th class="mid" style="width:54px">강</th><th style="min-width:170px">강의 제목</th>
         <th style="width:132px">마감일</th><th class="mid" style="width:92px">시청 상태</th>
         <th class="mid" style="width:88px">시청일</th><th class="mid" style="width:74px">메모</th>
       </tr></thead>
@@ -9196,10 +9182,11 @@ function taskLi(t) {
 let pasteTarget = '';   // 과목 id ('' = 붙여넣은 과목명으로 판단)
 
 function openPaste(courseId) {
-  pasteTarget = courseId || '';
   const cs = termCourses(viewTermId);
+  // 과목을 하나만 쓰고 있으면 그것으로 정해 둔다 (안 고르면 가져오기가 막힌다)
+  pasteTarget = courseId || (cs.length === 1 ? cs[0].id : '');
   $('#pTarget').innerHTML =
-    `<option value="">붙여넣은 "과목" 열로 나누기 (없으면 새 과목)</option>` +
+    `<option value="">붙여넣은 표의 "과목" 열로 나누기</option>` +
     cs.map(c => `<option value="${c.id}"${c.id === pasteTarget ? ' selected' : ''}>${L.esc(c.name)}</option>`).join('');
   $('#pTarget').value = pasteTarget;
   $('#pMode').value = 'append';
