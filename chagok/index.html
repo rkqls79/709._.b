@@ -1683,6 +1683,15 @@ img, video, svg, canvas { max-width: 100%; }
   .cardx { width: 40px; height: 40px; }
   input[type="checkbox"] { width: 22px; height: 22px; }
   .focus-row input[type="checkbox"], .dayrow > input[type="checkbox"] { width: 22px; height: 22px; }
+  /* 강의 목록의 시청 완료 체크 — 표 안이라 작게 잡혀 있었다. 손가락 크기로 키운다 */
+  table.leclist .lec-check { width: 22px; height: 22px; }
+  table.leclist td.mid:first-child, table.leclist th.mid:first-child { padding-left: 10px; padding-right: 6px; }
+
+  /* 대학 강의 표 — 좁은 화면에서는 시청일과 메모를 접어 옆으로 미는 거리를 줄인다.
+     삭제 단추는 남긴다 (휴대폰에서 강의를 지울 다른 방법이 없다) */
+  table.univlec th:nth-child(6), table.univlec td:nth-child(6) { display: none; }
+  table.univlec [data-lec-memo] { display: none; }
+  table.univlec .th-memo { display: none; }
   .klist > li, .list > li, .sched li, .dayrow, .pick { min-height: 48px; }
   .card > .card-head .btn.sm + .btn.sm { margin-left: 2px; }
 
@@ -8930,13 +8939,14 @@ function renderLecPanel(c) {
   }).join('');
 
   return `<div>
-    ${items.length ? `<div class="table-wrap"><table class="tbl leclist">
+    ${items.length ? `<div class="table-wrap"><table class="tbl leclist univlec">
       <thead><tr>
         <th class="mid" style="width:34px"><input type="checkbox" class="lec-check" data-lec-allcheck="${c.id}"
           ${allDone ? 'checked' : ''} aria-label="이 과목 강의 전체 시청 완료 처리"></th>
         <th class="mid" style="width:54px">강</th><th style="min-width:170px">강의 제목</th>
         <th style="width:132px">마감일</th><th class="mid" style="width:92px">시청 상태</th>
-        <th class="mid" style="width:88px">시청일</th><th class="mid" style="width:74px">메모</th>
+        <th class="mid" style="width:88px">시청일</th>
+        <th class="mid" style="width:74px"><span class="th-memo">메모</span></th>
       </tr></thead>
       <tbody>${body}</tbody>
     </table></div>
