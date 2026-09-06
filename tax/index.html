@@ -1,0 +1,272 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>세무 도구 모음</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #faf8f5;
+    --card-bg: #ffffff;
+    --card-hover: #fdfcfa;
+    --text: #332f29;
+    --text-sub: #948c80;
+    --border: #efeae2;
+    --accent: #5e6ad2;
+    --accent-soft: #ebecf9;
+    --shadow: 0 1px 2px rgba(60, 56, 49, 0.04), 0 1px 8px rgba(60, 56, 49, 0.03);
+    --shadow-hover: 0 2px 6px rgba(60, 56, 49, 0.06), 0 4px 16px rgba(60, 56, 49, 0.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #1c1b1a;
+      --card-bg: #242322;
+      --card-hover: #2a2927;
+      --text: #eaeaea;
+      --text-sub: #93928d;
+      --border: #35342f;
+      --accent: #8f9bff;
+      --accent-soft: #292a42;
+      --shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+      --shadow-hover: 0 4px 16px rgba(0, 0, 0, 0.3);
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: "Inter", "Noto Sans KR", -apple-system, BlinkMacSystemFont, "Malgun Gothic", sans-serif;
+    padding: 72px 20px 90px;
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 640px; margin: 0 auto; }
+
+  header {
+    margin-bottom: 32px;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+  }
+  h1 {
+    font-size: 22px;
+    font-weight: 600;
+    margin: 0 0 8px;
+    letter-spacing: -0.015em;
+  }
+  .sub { color: var(--text-sub); font-size: 13.5px; margin: 0; line-height: 1.6; }
+
+  ul.tool-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  ul.tool-list li {
+    opacity: 0;
+    animation: fadeUp 0.45s ease forwards;
+  }
+  ul.tool-list li:nth-child(1) { animation-delay: 0.04s; }
+  ul.tool-list li:nth-child(2) { animation-delay: 0.08s; }
+  ul.tool-list li:nth-child(3) { animation-delay: 0.12s; }
+  ul.tool-list li:nth-child(4) { animation-delay: 0.16s; }
+  ul.tool-list li:nth-child(5) { animation-delay: 0.20s; }
+  ul.tool-list li:nth-child(6) { animation-delay: 0.24s; }
+  ul.tool-list li:nth-child(7) { animation-delay: 0.28s; }
+
+  ul.tool-list a {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    padding: 16px 16px;
+    text-decoration: none;
+    color: inherit;
+    background: var(--card-bg);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    box-shadow: var(--shadow);
+    transition: background 0.15s ease, box-shadow 0.2s ease, transform 0.2s cubic-bezier(.34,1.56,.64,1);
+  }
+  ul.tool-list a:hover {
+    background: var(--card-hover);
+    box-shadow: var(--shadow-hover);
+    transform: translateY(-2px);
+  }
+
+  .icon {
+    flex: none;
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    transition: transform 0.35s cubic-bezier(.34,1.56,.64,1);
+  }
+  ul.tool-list a:hover .icon {
+    transform: scale(1.12) rotate(-6deg);
+  }
+
+  /* a touch of color per item, kept soft */
+  li:nth-child(1) .icon { background: #ffe8d6; }
+  li:nth-child(2) .icon { background: #e3f2e1; }
+  li:nth-child(3) .icon { background: #dff1f7; }
+  li:nth-child(4) .icon { background: #fde7ef; }
+  li:nth-child(5) .icon { background: #eee3fb; }
+  li:nth-child(6) .icon { background: #fff3cf; }
+  li:nth-child(7) .icon { background: #e6ecfb; }
+  @media (prefers-color-scheme: dark) {
+    li:nth-child(1) .icon,
+    li:nth-child(2) .icon,
+    li:nth-child(3) .icon,
+    li:nth-child(4) .icon,
+    li:nth-child(5) .icon,
+    li:nth-child(6) .icon,
+    li:nth-child(7) .icon { background: var(--accent-soft); }
+  }
+
+  .info { flex: 1; min-width: 0; }
+  .name {
+    font-size: 14.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    letter-spacing: -0.005em;
+  }
+  .desc {
+    font-size: 12.5px;
+    color: var(--text-sub);
+    margin-top: 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+  .arrow {
+    flex: none;
+    color: var(--text-sub);
+    font-size: 14px;
+    opacity: 0;
+    transform: translateX(-3px);
+    transition: opacity 0.2s ease, transform 0.3s cubic-bezier(.34,1.56,.64,1);
+  }
+  ul.tool-list a:hover .arrow {
+    opacity: 1;
+    transform: translateX(0);
+    color: var(--accent);
+  }
+
+  footer {
+    margin-top: 36px;
+    text-align: center;
+    opacity: 0;
+    animation: fadeUp 0.5s ease forwards;
+    animation-delay: 0.36s;
+  }
+  footer .brand {
+    font-size: 11.5px;
+    color: var(--text-sub);
+    letter-spacing: 0.12em;
+  }
+
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(8px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    header, ul.tool-list li, footer { animation: none; opacity: 1; }
+    ul.tool-list a, .icon, .arrow { transition: none; }
+  }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>세무 도구 모음</h1>
+      <p class="sub">반복 업무를 줄여주는 세무 도구 모음입니다</p>
+    </header>
+
+    <ul class="tool-list">
+      <li>
+        <a href="결산 분개 생성기/결산 분개 생성기.html">
+          <span class="icon">📊</span>
+          <span class="info">
+            <div class="name">결산 분개 생성기</div>
+            <div class="desc">기말 결산 정리 분개를 자동으로 생성합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="사업소득인건비 변환기/사업소득인건비 변환기.html">
+          <span class="icon">👤</span>
+          <span class="info">
+            <div class="name">사업소득인건비 변환기</div>
+            <div class="desc">사업소득 인건비 지급 내역을 사업소득자료입력 서식으로 변환합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="외화예금계좌 변환기/외화예금계좌 변환기.html">
+          <span class="icon">💱</span>
+          <span class="info">
+            <div class="name">외화예금계좌 변환기</div>
+            <div class="desc">외화예금 계좌 거래내역을 전표로 변환합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="접대비 전표 변환기/접대비 전표 변환기.html">
+          <span class="icon">🧾</span>
+          <span class="info">
+            <div class="name">접대비 전표 변환기</div>
+            <div class="desc">접대비 지출 내역을 전표로 변환합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="주식전표변환기/주식전표변환기.html">
+          <span class="icon">📈</span>
+          <span class="info">
+            <div class="name">주식전표변환기</div>
+            <div class="desc">주식 거래내역을 회계 전표로 변환합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="증권거래내역 변환기/증권거래내역 변환기.html">
+          <span class="icon">🏦</span>
+          <span class="info">
+            <div class="name">증권거래내역 변환기</div>
+            <div class="desc">증권사 거래내역 2줄 파일을 한줄로 정렬합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+      <li>
+        <a href="지방세세목별과세증명서 변환기/지방세세목별과세증명서 변환기.html">
+          <span class="icon">🏛️</span>
+          <span class="info">
+            <div class="name">지방세세목별과세증명서 변환기</div>
+            <div class="desc">지방세세목별과세증명서를 확인하고 전표로 변환합니다</div>
+          </span>
+          <span class="arrow">→</span>
+        </a>
+      </li>
+    </ul>
+
+    <footer><span class="brand">709._.b</span></footer>
+  </div>
+</body>
+</html>
