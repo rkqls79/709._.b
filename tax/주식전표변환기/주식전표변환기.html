@@ -1,0 +1,1457 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>주식 거래내역 → 일반전표입력 변환기</title>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<style>
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --border:#efeae2; --text:#332f29; --sub:#948c80;
+    --accent:#7a8fa6; --accent-light:#eef2f7;
+    --sage:#7d9b8a; --sage-dark:#6a8a77; --sage-bg:#f1f6f3; --sage-tag:#e2efe7;
+    --rose:#a87878; --rose-bg:#f9f1f1; --rose-tag:#f3e4e4;
+    --debit:#5a6e84; --credit:#a86d3d;
+    --ok:#3d6653; --warn:#8a6b3d; --warn-bg:#f7f0e0; --err:#7a4040;
+    --shadow:0 2px 8px rgba(60,56,49,.06);
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;font-family:'Malgun Gothic','맑은 고딕',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;background:var(--bg);color:var(--text);line-height:1.6;font-size:15px;}
+  .wrap{max-width:1180px;margin:0 auto;padding:1cm 20px 80px;}
+  h1{font-size:23px;margin:0 0 4px;}
+  .subtitle{color:var(--sub);font-size:13.5px;margin-bottom:18px;}
+
+  .stepbar{display:flex;align-items:center;gap:4px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:20px;position:sticky;top:8px;z-index:20;overflow-x:auto;}
+  .stepbar .sb-item{display:flex;align-items:center;gap:7px;padding:6px 10px;border-radius:20px;font-size:12.5px;color:var(--sub);white-space:nowrap;cursor:pointer;flex:none;}
+  .stepbar .sb-item.active{background:var(--accent-light);color:var(--accent);font-weight:700;}
+  .stepbar .sb-item.done{color:var(--ok);}
+  .stepbar .sb-dot{width:20px;height:20px;border-radius:50%;background:#efeae2;color:var(--sub);font-size:11px;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  .stepbar .sb-item.active .sb-dot{background:var(--accent);color:#fff;}
+  .stepbar .sb-item.done .sb-dot{background:var(--ok);color:#fff;}
+  .stepbar .sb-sep{width:14px;height:1px;background:var(--border);flex:none;}
+
+  .card{background:var(--card);border:1px solid var(--border);border-radius:10px;margin-bottom:16px;overflow:hidden;}
+  .card-head{display:flex;align-items:center;justify-content:space-between;padding:16px 18px;cursor:pointer;background:#fbf9f6;border-bottom:1px solid var(--border);gap:14px;}
+  .card-head h2{font-size:16px;margin:0;display:flex;align-items:center;gap:10px;}
+  .card-head .head-sub{font-size:12.5px;color:var(--sub);font-weight:400;margin-top:2px;}
+  .step-badge{width:24px;height:24px;border-radius:50%;background:var(--accent);color:#fff;font-size:13px;display:inline-flex;align-items:center;justify-content:center;flex:none;}
+  .step-badge.done{background:var(--ok);}
+  .status-tag{font-size:12.5px;color:var(--sub);flex:none;}
+  .card-body{padding:20px;}
+  .card.collapsed .card-body{display:none;}
+  .chevron{transition:transform .15s;color:var(--sub);flex:none;}
+  .card.collapsed .chevron{transform:rotate(-90deg);}
+  label{font-size:13px;color:var(--sub);display:block;margin-bottom:5px;}
+  input[type=text], input[type=number], select{
+    width:100%;padding:9px 11px;border:1px solid var(--border);border-radius:6px;font-size:14px;background:#fff;color:var(--text);
+  }
+  input[type=file]{font-size:14px;}
+  .row{display:flex;gap:12px;flex-wrap:wrap;}
+  .field{flex:1;min-width:150px;margin-bottom:12px;}
+  .grid4{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .grid2{display:grid;grid-template-columns:repeat(2,1fr);gap:12px;}
+  @media (max-width:800px){.grid4,.grid3,.grid2{grid-template-columns:1fr;}}
+  fieldset{border:1px solid var(--border);border-radius:8px;padding:14px 16px;margin:0 0 16px;}
+  legend{font-size:12.5px;color:var(--accent);font-weight:700;padding:0 6px;}
+  button{cursor:pointer;border:none;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:600;}
+
+  .acct-row{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px dashed var(--border);}
+  .acct-row:last-child{border-bottom:none;}
+  .acct-row .acct-label{flex:0 0 190px;font-size:13.5px;color:var(--text);}
+  .acct-row input.acct-code{flex:0 0 84px;text-align:center;font-weight:700;}
+  .acct-row input.acct-name{flex:1;}
+  @media (max-width:700px){.acct-row{flex-wrap:wrap;} .acct-row .acct-label{flex:1 0 100%;}}
+
+  .adv-toggle{background:none;border:1px dashed var(--border);color:var(--accent);width:100%;text-align:center;padding:10px;border-radius:8px;font-size:13px;margin-bottom:4px;}
+  .adv-section{display:none;margin-top:14px;}
+  .adv-section.open{display:block;}
+
+  .btn-primary{background:var(--sage);color:#fff;}
+  .btn-primary:hover{background:var(--sage-dark);}
+  .btn-secondary{background:#f5f2ed;color:var(--text);}
+  .btn-secondary:hover{background:#efeae2;}
+  .btn-ghost{background:transparent;color:var(--accent);padding:6px 8px;}
+  .btn-danger{background:#f3e4e4;color:#7a4040;}
+  table{width:100%;border-collapse:collapse;font-size:13px;}
+  th,td{border:1px solid var(--border);padding:7px 9px;text-align:left;white-space:nowrap;}
+  th{background:#f8f5f0;position:sticky;top:0;}
+  tbody tr:nth-child(even) td{background:#fbf9f6;}
+  #rawPreviewTable .rownum{color:var(--sub);font-size:11px;font-weight:400;background:#f8f5f0;}
+  #rawPreviewTable tr.hdr-row td{background:var(--accent-light)!important;color:var(--accent);font-weight:700;}
+  .tbl-scroll{max-height:360px;overflow:auto;border:1px solid var(--border);border-radius:6px;}
+  .num{text-align:right;font-variant-numeric:tabular-nums;}
+  .debit{color:var(--debit);}
+  .credit{color:var(--credit);}
+  .badge{display:inline-block;padding:2px 8px;border-radius:12px;font-size:11px;font-weight:600;}
+  .badge-ok{background:#e2efe7;color:#3d6653;}
+  .badge-warn{background:#f7f0e0;color:#8a6b3d;}
+  .badge-err{background:#f3e4e4;color:#7a4040;}
+  .badge-skip{background:#efeae2;color:#948c80;}
+  .hint{font-size:12px;color:var(--sub);margin-top:6px;}
+  .note{background:#f7f0e0;border:1px solid #ecdcb8;color:#8a6b3d;border-radius:8px;padding:10px 12px;font-size:12.5px;margin-bottom:12px;}
+  .note.blue{background:#eef2f7;border-color:#cdd9e2;color:#5a6e84;}
+  .stock-map-row, .type-map-row{display:grid;grid-template-columns:2fr 1fr 1fr;gap:8px;align-items:center;padding:6px 0;border-bottom:1px dashed var(--border);}
+  .type-map-row{grid-template-columns:2fr 90px 1fr;}
+  .count-chip{font-size:11px;color:var(--sub);}
+  .footer-actions{display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;}
+  .totals{display:flex;gap:22px;margin-top:10px;font-size:13px;flex-wrap:wrap;}
+  .totals b{font-size:15px;}
+  .small-btn{padding:4px 9px;font-size:12px;}
+  details.calc-log summary{cursor:pointer;color:var(--accent);font-size:12.5px;margin:8px 0;}
+  .drop{border:2px dashed var(--border);border-radius:8px;padding:22px;text-align:center;color:var(--sub);font-size:13px;}
+  .drop.drag{border-color:var(--accent);background:var(--accent-light);}
+  .drop:focus{outline:none;border-color:var(--accent);background:var(--accent-light);}
+  code{background:#f8f5f0;padding:1px 5px;border-radius:4px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 주식 거래내역 → 일반전표입력 변환기</h1>
+  <div class="subtitle">증권사 거래내역 엑셀을 업로드하면, 회사 지정 계정코드 규칙에 따라 일반전표입력 형식(11개 컬럼)으로 변환합니다.</div>
+
+  <div class="stepbar" id="stepbar">
+    <div class="sb-item" data-target="card-settings" onclick="jumpTo('card-settings')"><span class="sb-dot">1</span>기본설정</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" data-target="card-upload" onclick="jumpTo('card-upload')"><span class="sb-dot">2</span>파일업로드</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" data-target="card-colmap" onclick="jumpTo('card-colmap')"><span class="sb-dot">3</span>컬럼매핑</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" data-target="card-typemap" onclick="jumpTo('card-typemap')"><span class="sb-dot">4</span>거래종류</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" data-target="card-stockmap" onclick="jumpTo('card-stockmap')"><span class="sb-dot">5</span>종목코드</div>
+    <div class="sb-sep"></div>
+    <div class="sb-item" data-target="card-result" onclick="jumpTo('card-result')"><span class="sb-dot">6</span>결과/다운로드</div>
+  </div>
+
+  <!-- STEP 1: 설정 -->
+  <div class="card collapsed" id="card-settings">
+    <div class="card-head" onclick="toggleCard('card-settings')">
+      <h2><span class="step-badge">1</span> 기본 설정
+        <span class="head-sub" id="settingsHeadSub" style="font-weight:400;"></span>
+      </h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="note blue">✅ 실제 서식 파일 기준 기본값이 이미 채워져 있습니다. 회사 계정코드가 다르면 아래에서 바꾸고, 맞으면 건너뛰고 2단계로 가셔도 됩니다.</div>
+
+      <fieldset>
+        <legend>기본 계정코드</legend>
+        <div class="acct-row"><div class="acct-label">예수금 (기타제예금)</div><input id="acc_cash_code" class="acct-code" type="text" value="104"><input id="acc_cash_name" class="acct-name" type="text" value="기타제예금"></div>
+        <div class="acct-row"><div class="acct-label">주식자산 계정</div><input id="acc_asset_code" class="acct-code" type="text" value="107"><input id="acc_asset_name" class="acct-name" type="text" value="단기매매증권"></div>
+        <div class="acct-row"><div class="acct-label">매매수수료 (매수)</div><input id="acc_fee_code" class="acct-code" type="text" value="946"><input id="acc_fee_name" class="acct-name" type="text" value="수수료비용"></div>
+        <div class="acct-row"><div class="acct-label">선납세금 (배당원천세)</div><input id="acc_taxrecv_code" class="acct-code" type="text" value="136"><input id="acc_taxrecv_name" class="acct-name" type="text" value="선납세금"></div>
+        <div class="acct-row"><div class="acct-label">배당금수익</div><input id="acc_div_code" class="acct-code" type="text" value="903"><input id="acc_div_name" class="acct-name" type="text" value="배당금수익"></div>
+        <div class="acct-row"><div class="acct-label">이자수익 (예탁금이용료 등)</div><input id="acc_interest_code" class="acct-code" type="text" value="901"><input id="acc_interest_name" class="acct-name" type="text" value="이자수익"></div>
+        <div class="acct-row"><div class="acct-label">처분이익</div><input id="acc_gain_code" class="acct-code" type="text" value="906"><input id="acc_gain_name" class="acct-name" type="text" value="단기매매증권처분이익"></div>
+        <div class="acct-row"><div class="acct-label">처분손실</div><input id="acc_loss_code" class="acct-code" type="text" value="938"><input id="acc_loss_name" class="acct-name" type="text" value="단기매매증권처분손실"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>취득원가 평가방법 (법인세법 시행령 제74조 — 유가증권등의 평가)</legend>
+        <div class="row">
+          <div class="field" style="flex:2;min-width:260px;">
+            <label>평가방법</label>
+            <select id="cost_method">
+              <option value="moving">이동평균법 (매수할 때마다 평균단가 재계산)</option>
+              <option value="total">총평균법 (사업연도 전체 매입을 한 번에 평균)</option>
+            </select>
+          </div>
+          <div class="field" style="max-width:200px;">
+            <label>사업연도 시작월 (보통 1)</label>
+            <input id="fy_start_month" type="number" value="1" min="1" max="12">
+          </div>
+        </div>
+        <div class="hint">회사가 세무서에 신고한 유가증권 평가방법을 선택하세요. <b>평가방법을 신고한 적이 없다면 세법상 총평균법이 강제 적용</b>됩니다(이동평균법은 신고해야만 쓸 수 있는 방법이라, 무신고 상태의 기본값이 아닙니다). 총평균법은 종목별·사업연도별로 "(기초잔량 취득원가 + 그 해 매입원가) ÷ (기초잔량 수량 + 그 해 매입수량)"로 평균단가를 한 번만 계산해서, 그 해의 모든 매도에 동일하게 적용합니다 — 매도가 매입보다 먼저 찍혀 있어도 그 해 전체 매입이 반영됩니다. 사업연도가 1~12월이 아니면(예: 4월~다음해 3월) 시작월을 바꿔주세요. <b>업로드한 파일 이전부터 이미 보유하고 있던 종목이 있으면, 5단계 "종목별 거래처코드" 화면에서 그 종목의 기초수량·기초취득원가를 입력해주세요</b> — 안 채우면 기초잔량 0으로 계산되어 이동평균법·총평균법 둘 다 틀어집니다.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>증권사 (예수금) 거래처</legend>
+        <div id="brokerList"></div>
+        <button class="btn-secondary small-btn" onclick="addBroker()">+ 증권사 추가</button>
+        <div class="hint">여러 증권사를 쓰면 각각 거래처코드를 등록하세요. 파일을 올리면 어느 증권사인지 선택하게 됩니다.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>배당 원천징수세 — 국세/지방세 분리 (실제 화면 기준)</legend>
+        <div class="acct-row"><div class="acct-label">국세 거래처 (세무서)</div><input id="tax_national_code" class="acct-code" type="text" placeholder="000136"><input id="tax_national_name" class="acct-name" type="text" placeholder="예: 마포세무서"></div>
+        <div class="acct-row"><div class="acct-label">지방세 거래처 (구청)</div><input id="tax_local_code" class="acct-code" type="text" placeholder="000137"><input id="tax_local_name" class="acct-name" type="text" placeholder="예: 마포구청"></div>
+        <div class="row">
+          <div class="field" style="max-width:220px;"><label>지방소득세 비율 (국세분 대비 %)</label><input id="tax_local_ratio" type="number" value="10" min="0" step="0.1"></div>
+          <div class="field" style="flex:2;"><div class="hint" style="margin-top:22px;">원천세 총액을 국세:지방세 = 100:{비율}% 로 나눠 두 줄로 넣습니다. (기본 10% = 소득세 14% + 지방소득세 1.4% 구조) 국세는 10원 단위로 사사오입하고, 지방세는 나머지(총액-국세)로 계산합니다 — 실제 화면 기준.</div></div>
+        </div>
+      </fieldset>
+
+      <button type="button" class="adv-toggle" onclick="toggleAdvanced(this)">⚙ 고급 설정 펼치기 (환전 · 매도/배당 처리방식 · 적요 문구) ▾</button>
+      <div class="adv-section" id="advSection">
+
+        <fieldset>
+          <legend>환전수수료 계정 (있을 경우)</legend>
+          <div class="acct-row"><div class="acct-label">환전수수료</div><input id="acc_fxfee_code" class="acct-code" type="text" value="946"><input id="acc_fxfee_name" class="acct-name" type="text" value="수수료비용"></div>
+        </fieldset>
+
+        <fieldset>
+          <legend>외화(달러) 예수금 거래처 — 환전용, 선택</legend>
+          <div class="grid2">
+            <div class="field"><label>외화예수금 거래처코드</label><input id="fx_acct_code" type="text" placeholder="예: 98501"></div>
+            <div class="field"><label>거래처명</label><input id="fx_acct_name" type="text" placeholder="예: 미래에셋증권(달러)"></div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>처리 방식 옵션</legend>
+          <div class="grid2">
+            <div class="field">
+              <label><input type="checkbox" id="opt_sellFeeSeparate" style="width:auto;margin-right:6px"> 매도 시 수수료/세금을 처분손익에 섞지 않고 별도 <code>수수료비용</code> 줄로 분리</label>
+              <div class="hint">기본(체크 해제): 정산금액(수수료 차감 후) 기준으로 처분이익/손실만 계산 — 알려주신 규칙표 방식.</div>
+            </div>
+            <div class="field">
+              <label><input type="checkbox" id="opt_divGross" checked style="width:auto;margin-right:6px"> 배당/이자 "거래금액" 컬럼은 세전(원천세 차감 전) 금액</label>
+              <div class="hint"><b>3단계에서 "입출금액" 컬럼을 매핑하면 이 설정과 무관하게 그 값을 실입금액으로 그대로 씁니다</b> (가장 정확함). 입출금액이 없을 때만 이 체크박스로 판단합니다: 체크 해제 시 세후(실입금) 금액으로 간주하고 역산합니다. 파일의 "제세금/원천세"(또는 "수수료") 컬럼에 이미 세금 액수가 들어있으면 그 값을 그대로 쓰고, 0이면 아래 원천세율로 역산합니다(원단위 절사).</div>
+              <label style="margin-top:8px;display:block;">원천세율 (%, 세금 정보가 없을 때 역산용)<input id="div_tax_rate" type="number" value="15.4" min="0" step="0.1" style="margin-top:4px;"></label>
+            </div>
+            <div class="field">
+              <label style="font-weight:600;">해외주식 환율 적용 (3단계에서 환율표를 올리면 자동으로 켜짐 — 별도로 체크할 필요 없음)</label>
+              <div class="hint">"외화거래금액" 컬럼을 매핑했고 그 값이 0이 아닌 행은 그 값×환율로 계산합니다. 그런 컬럼이 없거나 0인데 종목명에 한글이 하나도 없으면(해외종목으로 추정) "거래금액"(또는 아래 "단가"로 계산한 금액) 자체를 외화 원본 금액으로 보고 그 값×환율로 원화 환산합니다 — 즉 국내(한글 종목명)+해외(영문 종목명, 거래금액=외화) 종목이 한 파일에 섞여 있어도 자동으로 구분해서 계산합니다. <b>환율표를 안 올리면 이 계산은 그냥 적용되지 않습니다</b> (환율표 업로드 = 이 기능 켜짐, 없음 = 꺼짐).
+                <label style="margin-top:6px;display:block;"><input type="checkbox" id="opt_allOverseas" style="width:auto;margin-right:6px"> 이 파일은 전부 해외주식 (종목명에 한글이 있어도 무조건 환율 적용)</label>
+                <span style="display:block;margin-top:2px;">일부 증권사는 해외종목명을 "조비 에비에이션"처럼 한글로 표기해서, 위 한글 판별이 틀릴 수 있습니다. 파일 전체가 해외거래인 게 확실하면 이 옵션을 체크하세요.</span>
+              </div>
+            </div>
+            <div class="field">
+              <label><input type="checkbox" id="opt_longterm" style="width:auto;margin-right:6px" onchange="applyLongtermToggle(this.checked)"> 장기투자(매도가능증권, 178/939/961) 계정 사용</label>
+              <div class="hint">체크하면 위 주식자산/처분이익/처분손실 코드가 178/939/961 세트로 자동 바뀝니다 (체크 해제하면 107/906/938로 되돌아갑니다). <b>매수 수수료는 매도가능증권은 취득원가에 포함(전표는 취득가/수수료 두 줄로 분리하고 수수료 줄도 주식자산 계정으로 표시), 단기매매증권(당기손익인식금융자산)은 반대로 수수료비용 계정으로 즉시 비용 처리</b>합니다 — 일반기업회계기준상 당기손익인식금융자산이 아닌 자산(매도가능증권)만 거래원가를 취득원가에 가산하고, 당기손익인식금융자산(단기매매증권)은 거래원가를 즉시 비용화하는 원칙에 따른 것입니다. 회사 계정코드가 다르면 바뀐 후 위 입력칸에서 직접 수정하세요.</div>
+            </div>
+          </div>
+        </fieldset>
+
+        <fieldset>
+          <legend>적요(설명) 문구 템플릿</legend>
+          <div class="grid3">
+            <div class="field"><label>매수</label><input id="memo_buy" type="text" value="매수 {qty}주"></div>
+            <div class="field"><label>매수 수수료</label><input id="memo_buyfee" type="text" value="매수 수수료"></div>
+            <div class="field"><label>매도</label><input id="memo_sell" type="text" value="매도 {qty}주"></div>
+            <div class="field"><label>매도 처분이익</label><input id="memo_gain" type="text" value="매도 처분이익"></div>
+            <div class="field"><label>매도 처분손실</label><input id="memo_loss" type="text" value="매도 처분손실"></div>
+            <div class="field"><label>배당금/분배금</label><input id="memo_div" type="text" value="{type}"></div>
+            <div class="field"><label>배당 원천세</label><input id="memo_divtax" type="text" value="배당소득 원천징수세액"></div>
+            <div class="field"><label>이자 원천세</label><input id="memo_interesttax" type="text" value="이자소득 원천징수세액"></div>
+            <div class="field"><label>환전(원→달러)</label><input id="memo_fx1" type="text" value="환전 (원→달러)"></div>
+            <div class="field"><label>환전(달러→원)</label><input id="memo_fx2" type="text" value="환전 (달러→원)"></div>
+          </div>
+          <div class="hint"><code>{qty}</code>=수량, <code>{stock}</code>=종목명, <code>{type}</code>=원본 파일의 거래종류 문구(예: "ETF/상장클래스 분배금입금") 으로 자동 치환됩니다.</div>
+        </fieldset>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn-primary" onclick="saveSettings(true)">설정 저장</button>
+        <button class="btn-secondary" onclick="exportSettings()">설정 내보내기(JSON)</button>
+        <label class="btn-secondary" style="display:inline-flex;align-items:center;">설정 가져오기<input type="file" accept=".json" style="display:none" onchange="importSettings(event)"></label>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 2: 파일 업로드 -->
+  <div class="card" id="card-upload">
+    <div class="card-head" onclick="toggleCard('card-upload')">
+      <h2><span class="step-badge" id="badge-upload">2</span> 거래내역 엑셀 업로드</h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="drop" id="dropZone">엑셀 파일을 여기로 끌어놓거나 클릭해서 선택하세요 (.xlsx, .xls)
+        <br><input type="file" id="fileInput" accept=".xlsx,.xls" style="margin-top:10px">
+      </div>
+      <div id="sheetControls" style="display:none;margin-top:14px;">
+        <div id="headerAutoNote" class="note blue" style="display:none;"></div>
+        <div class="grid3">
+          <div class="field"><label>시트 선택</label><select id="sheetSelect"></select></div>
+          <div class="field"><label>헤더(컬럼명) 행 번호</label><input type="number" id="headerRow" value="1" min="1"></div>
+          <div class="field"><label>증권사</label><select id="brokerSelectForFile"></select></div>
+        </div>
+        <button class="btn-secondary small-btn" onclick="reparseSheet()">이 설정으로 다시 읽기</button>
+        <div class="hint">아래 미리보기에서 <b>진하게 표시된 행</b>이 실제 컬럼명(헤더) 행이 맞는지 확인하세요. 다르면 "헤더 행 번호"를 그 행 번호로 바꾸고 "다시 읽기"를 누르세요.</div>
+        <div class="tbl-scroll" style="margin-top:10px;"><table id="rawPreviewTable"></table></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STEP 3: 컬럼 매핑 -->
+  <div class="card collapsed" id="card-colmap">
+    <div class="card-head" onclick="toggleCard('card-colmap')">
+      <h2><span class="step-badge" id="badge-colmap">3</span> 컬럼 매핑 + 환율표(선택)</h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div id="colMapArea" class="grid4"></div>
+      <div class="hint">비슷한 이름의 컬럼을 자동으로 맞춰봤습니다. 틀리면 직접 바꿔주세요. * 표시는 필수입니다.</div>
+
+      <fieldset style="margin-top:14px;">
+        <legend>해외주식 환율표 업로드 (선택)</legend>
+        <div class="drop" id="fxDropZone">
+          환율표 엑셀 파일을 여기로 끌어놓거나 클릭해서 선택하세요 (.xlsx, .xls)
+          <br><input type="file" id="fxFileInput" accept=".xlsx,.xls" style="margin-top:10px">
+        </div>
+        <div id="fxHeaderRowArea" style="display:none;margin-top:10px;">
+          <div class="grid3">
+            <div class="field"><label>헤더(컬럼명) 행 번호</label><input type="number" id="fxHeaderRow" value="1" min="1"></div>
+            <div class="field" style="align-self:end;"><button class="btn-secondary small-btn" onclick="rereadFxHeaderRow()">이 행 번호로 다시 읽기</button></div>
+          </div>
+          <div id="fxHeaderAutoNote" class="note blue" style="display:none;"></div>
+        </div>
+        <div id="fxColMapArea" class="grid3" style="margin-top:10px;display:none;"></div>
+        <div class="hint">날짜별 환율(원/달러 등) 표를 올리면, "해외주식은 환율표로 재계산" 옵션 체크 시 이 표의 환율을 사용합니다. 표 위에 제목·설명 등이 있어서 "날짜/환율" 헤더가 1행이 아니면 자동으로 찾아보고, 틀리면 위 "헤더 행 번호"를 직접 고쳐서 "다시 읽기"를 눌러주세요.</div>
+      </fieldset>
+      <button class="btn-primary" onclick="confirmColumnMap()">다음: 거래종류 분류 →</button>
+    </div>
+  </div>
+
+  <!-- STEP 4: 거래종류 매핑 -->
+  <div class="card collapsed" id="card-typemap">
+    <div class="card-head" onclick="toggleCard('card-typemap')">
+      <h2><span class="step-badge" id="badge-typemap">4</span> 거래종류 분류</h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="hint">파일에 실제로 나온 "거래종류" 값들입니다. 각각 어떤 처리를 할지 지정하세요. (이체입금/출금 등은 "무시"로 두면 됩니다)</div>
+      <div id="typeMapList" style="margin-top:10px;"></div>
+      <button class="btn-primary" style="margin-top:12px;" onclick="confirmTypeMap()">다음: 종목 거래처코드 →</button>
+    </div>
+  </div>
+
+  <!-- STEP 5: 종목 거래처코드 -->
+  <div class="card collapsed" id="card-stockmap">
+    <div class="card-head" onclick="toggleCard('card-stockmap')">
+      <h2><span class="step-badge" id="badge-stockmap">5</span> 종목별 거래처코드</h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div class="hint">파일에 나온 종목명을 전부 뽑았습니다. 각 종목의 거래처코드(회계프로그램에 등록된 코드)를 입력해주세요. 한 번 입력하면 다음에도 같은 종목명이면 자동으로 채워집니다.</div>
+      <div class="footer-actions" style="margin-bottom:8px;">
+        <button class="btn-secondary small-btn" onclick="exportStockList()">⬇ 종목목록 엑셀로 내보내기 (코드/명 채워서 다시 올리기)</button>
+        <label class="btn-secondary small-btn" style="display:inline-flex;align-items:center;">⬆ 채운 엑셀 불러오기<input type="file" id="stockListImport" accept=".xlsx,.xls" style="display:none"></label>
+      </div>
+      <div id="stockMapList" style="margin-top:10px;"></div>
+      <button class="btn-primary" style="margin-top:12px;" onclick="runGenerate()">🚀 전표 생성</button>
+    </div>
+  </div>
+
+  <!-- STEP 6: 결과 -->
+  <div class="card collapsed" id="card-result">
+    <div class="card-head" onclick="toggleCard('card-result')">
+      <h2><span class="step-badge" id="badge-result">6</span> 결과 확인 및 다운로드</h2>
+      <span class="chevron">▾</span>
+    </div>
+    <div class="card-body">
+      <div id="resultSummary"></div>
+      <div class="tbl-scroll" style="margin-top:10px;"><table id="resultTable"></table></div>
+      <details class="calc-log"><summary>종목별 취득원가 계산 상세 보기 (이동평균법/총평균법)</summary><div id="calcLog"></div></details>
+      <div class="footer-actions">
+        <button class="btn-primary" onclick="downloadResult()">⬇ 최종업로드.xlsx 다운로드</button>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+/* ===================== 상태 ===================== */
+let wb=null, sheetRows=[], rawHeaders=[], mappedRows=[];
+let fxWb=null, fxRateMap=null;
+let colMap={}, typeMap={}, stockMap={};
+let openingBalance={}; // 종목별 기초잔량(전기 이월분) {수량, 취득원가} — 파일에 없는, 그 전부터 이미 보유하던 물량
+let ledgerLines=[], calcLogText='';
+
+const STD_FIELDS = [
+  {key:'date', label:'거래일자 *'},
+  {key:'type', label:'거래종류 *'},
+  {key:'stock', label:'종목명'},
+  {key:'qty', label:'거래수량'},
+  {key:'amount', label:'거래금액 *'},
+  {key:'unitprice', label:'단가 (거래금액이 0일 때 수량×단가로 계산, 선택)'},
+  {key:'fxamount', label:'외화거래금액'},
+  {key:'fee', label:'수수료 (매매수수료)'},
+  {key:'tax', label:'제세금/원천세 (배당·이자용, 선택)'},
+  {key:'netamount', label:'입출금액 (통장 실입금액, 선택)'},
+];
+const GUESS = {
+  date:['거래일자','일자','날짜'], type:['거래종류','구분','종류'], stock:['종목명','종목','상품명'],
+  qty:['거래수량','수량','체결수량'], amount:['거래금액','정산금액','금액'],
+  unitprice:['단가','체결단가','거래단가'],
+  fxamount:['외화거래금액','외화금액','외화'], fee:['수수료'],
+  tax:['제세금','원천징수','원천세'], netamount:['입출금액']
+};
+
+/* ===================== 공통 유틸 ===================== */
+const CARD_ORDER=['card-settings','card-upload','card-colmap','card-typemap','card-stockmap','card-result'];
+function toggleCard(id){
+  const el=document.getElementById(id);
+  const willOpen = el.classList.contains('collapsed'); // 지금 접혀있으면 이번 클릭으로 펼쳐짐
+  el.classList.toggle('collapsed');
+  if(willOpen && id==='card-stockmap') ensureStockMapReady();
+  updateStepbar();
+}
+function ensureStockMapReady(){
+  // 4단계(거래종류 분류)를 안 거치고 곧바로 5단계로 넘어와도, 파일이 업로드되어 있으면
+  // 현재 컬럼 매핑 상태로 자동 확정해서 종목목록을 채워준다.
+  if(mappedRows && mappedRows.length>0){ renderStockMap(); return; }
+  if(wb && document.getElementById('colmap_date')){
+    try{ confirmColumnMap(); }catch(e){}
+  } else {
+    const list=document.getElementById('stockMapList');
+    if(list) list.innerHTML='<div class="note">⚠ 아직 파일을 올리지 않았거나 컬럼 매핑이 끝나지 않았습니다. 먼저 2단계에서 거래내역 엑셀을 올려주세요.</div>';
+  }
+}
+function openCard(id){document.getElementById(id).classList.remove('collapsed'); updateStepbar();}
+function markDone(badgeId){const b=document.getElementById(badgeId); if(b){b.classList.add('done'); b.textContent='✓';} updateStepbar();}
+function jumpTo(id){
+  openCard(id);
+  if(id==='card-stockmap') ensureStockMapReady();
+  const el=document.getElementById(id);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'start'});
+}
+function updateStepbar(){
+  CARD_ORDER.forEach(id=>{
+    const card=document.getElementById(id);
+    const sb=document.querySelector(`.sb-item[data-target="${id}"]`);
+    if(!card||!sb) return;
+    const badge=card.querySelector('.step-badge');
+    const done = badge && badge.classList.contains('done');
+    const active = !card.classList.contains('collapsed');
+    sb.classList.toggle('done', !!done);
+    sb.classList.toggle('active', active && !done);
+  });
+}
+function toggleAdvanced(btn){
+  const sec=document.getElementById('advSection');
+  sec.classList.toggle('open');
+  btn.textContent = sec.classList.contains('open') ? '⚙ 고급 설정 접기 ▴' : '⚙ 고급 설정 펼치기 (환전 · 매도/배당 처리방식 · 적요 문구) ▾';
+}
+function updateSettingsHeadSub(){
+  const el=document.getElementById('settingsHeadSub');
+  if(!el) return;
+  const brokers=getBrokerList().map(b=>b.name).filter(Boolean).join(', ');
+  el.textContent = `— 예수금${val('acc_cash_code')} · 주식자산${val('acc_asset_code')} · 수수료${val('acc_fee_code')}${brokers? ' · '+brokers:''}`;
+}
+
+function parseNumber(v){
+  if(v===null||v===undefined||v==='') return 0;
+  if(typeof v==='number') return v;
+  const s=String(v).replace(/,/g,'').replace(/[^\d.\-]/g,'');
+  const n=parseFloat(s);
+  return isNaN(n)?0:n;
+}
+function parseDateCell(v){
+  if(typeof v==='number'){
+    // 엑셀 날짜 일련번호는 정수부=날짜, 소수부=하루 중 시각이다. XLSX.SSF.parse_date_code는
+    // 이 소수부를 그대로 시/분/초로만 해석하므로(자정 부근 부동소수점 오차가 있어도 날짜가 밀리지 않음),
+    // Date 객체로 변환한 뒤 로컬 타임존으로 날짜를 읽는 방식보다 훨씬 안전하다.
+    const d=XLSX.SSF.parse_date_code(v);
+    if(d) return {y:d.y, m:d.m, d:d.d};
+  }
+  if(v instanceof Date && !isNaN(v)){
+    // Date 객체로 이미 변환되어 들어온 경우(예: cellDates 옵션, 일부 HTML표 파싱 경로) 대비 안전장치.
+    // 엑셀→Date 변환 과정의 부동소수점 오차로 자정 몇십 초 전/후로 밀려 날짜가 하루 어긋날 수 있어,
+    // 시각이 자정에서 ±10분 이내면 가장 가까운 자정 쪽 날짜로 스냅한다.
+    const y=v.getFullYear(), m=v.getMonth(), day=v.getDate();
+    const msIntoDay = v - new Date(y,m,day,0,0,0,0);
+    const DAY=86400000, SNAP=10*60000;
+    let base=new Date(y,m,day);
+    if(msIntoDay >= DAY - SNAP) base=new Date(y,m,day+1);
+    else if(msIntoDay <= SNAP) base=new Date(y,m,day);
+    return {y:base.getFullYear(), m:base.getMonth()+1, d:base.getDate()};
+  }
+  const s=String(v||'').trim();
+  const m=s.match(/(\d{4})\D+(\d{1,2})\D+(\d{1,2})/);
+  if(m) return {y:+m[1], m:+m[2], d:+m[3]};
+  return null;
+}
+function dateKey(dt){ return dt? (dt.y+'-'+String(dt.m).padStart(2,'0')+'-'+String(dt.d).padStart(2,'0')) : ''; }
+function fmt(n){ return Math.round(n).toLocaleString('ko-KR'); }
+function fillTemplate(tpl, obj){ return tpl.replace(/\{(\w+)\}/g, (m,k)=> (obj[k]!==undefined? obj[k]: m)); }
+
+/* ===================== 설정 저장/로드 ===================== */
+const SETTINGS_KEY='stf_settings_v2';
+function currentSettingsObj(){
+  return {
+    acc:{
+      cash:{code:val('acc_cash_code'),name:val('acc_cash_name')},
+      asset:{code:val('acc_asset_code'),name:val('acc_asset_name')},
+      fee:{code:val('acc_fee_code'),name:val('acc_fee_name')},
+      taxrecv:{code:val('acc_taxrecv_code'),name:val('acc_taxrecv_name')},
+      div:{code:val('acc_div_code'),name:val('acc_div_name')},
+      interest:{code:val('acc_interest_code'),name:val('acc_interest_name')},
+      gain:{code:val('acc_gain_code'),name:val('acc_gain_name')},
+      loss:{code:val('acc_loss_code'),name:val('acc_loss_name')},
+      fxfee:{code:val('acc_fxfee_code'),name:val('acc_fxfee_name')},
+    },
+    fxAcct:{code:val('fx_acct_code'),name:val('fx_acct_name')},
+    taxNational:{code:val('tax_national_code'),name:val('tax_national_name')},
+    taxLocal:{code:val('tax_local_code'),name:val('tax_local_name')},
+    taxLocalRatioPct: parseFloat(val('tax_local_ratio')||'10'),
+    divTaxRatePct: parseFloat(val('div_tax_rate')||'15.4'),
+    costMethod: val('cost_method')||'moving',
+    fyStartMonth: parseInt(val('fy_start_month')||'1',10),
+    brokers: getBrokerList(),
+    opt:{
+      sellFeeSeparate: chk('opt_sellFeeSeparate'),
+      divGross: chk('opt_divGross'),
+      allOverseas: chk('opt_allOverseas'),
+      longterm: chk('opt_longterm'),
+    },
+    memo:{
+      buy:val('memo_buy'), buyfee:val('memo_buyfee'), sell:val('memo_sell'),
+      gain:val('memo_gain'), loss:val('memo_loss'), div:val('memo_div'),
+      divtax:val('memo_divtax'), interesttax:val('memo_interesttax'), fx1:val('memo_fx1'), fx2:val('memo_fx2'),
+    },
+    stockMap: stockMap,
+    openingBalance: openingBalance,
+  };
+}
+function val(id){const e=document.getElementById(id); return e? e.value.trim() : '';}
+function chk(id){const e=document.getElementById(id); return e? e.checked : false;}
+function setVal(id,v){const e=document.getElementById(id); if(e && v!==undefined) e.value=v;}
+function setChk(id,v){const e=document.getElementById(id); if(e && v!==undefined) e.checked=v;}
+
+function safeGetStorage(key){
+  try{ return localStorage.getItem(key); }catch(e){ return null; }
+}
+function safeSetStorage(key,value){
+  try{ localStorage.setItem(key,value); return true; }catch(e){ return false; }
+}
+function saveSettings(alertUser){
+  const ok=safeSetStorage(SETTINGS_KEY, JSON.stringify(currentSettingsObj()));
+  if(alertUser) toast(ok? '설정을 저장했습니다.' : '이 브라우저에서는 설정 저장이 지원되지 않아, 새로고침하면 초기화됩니다. (파일로 내보내기를 이용하세요)');
+  updateSettingsHeadSub();
+}
+function loadSettings(){
+  const raw=safeGetStorage(SETTINGS_KEY);
+  if(!raw){ addBroker('98500','증권사'); return; }
+  try{
+    const s=JSON.parse(raw);
+    setVal('acc_cash_code',s.acc?.cash?.code); setVal('acc_cash_name',s.acc?.cash?.name);
+    setVal('acc_asset_code',s.acc?.asset?.code); setVal('acc_asset_name',s.acc?.asset?.name);
+    setVal('acc_fee_code',s.acc?.fee?.code); setVal('acc_fee_name',s.acc?.fee?.name);
+    setVal('acc_taxrecv_code',s.acc?.taxrecv?.code); setVal('acc_taxrecv_name',s.acc?.taxrecv?.name);
+    setVal('acc_div_code',s.acc?.div?.code); setVal('acc_div_name',s.acc?.div?.name);
+    setVal('acc_interest_code',s.acc?.interest?.code); setVal('acc_interest_name',s.acc?.interest?.name);
+    setVal('acc_gain_code',s.acc?.gain?.code); setVal('acc_gain_name',s.acc?.gain?.name);
+    setVal('acc_loss_code',s.acc?.loss?.code); setVal('acc_loss_name',s.acc?.loss?.name);
+    setVal('acc_fxfee_code',s.acc?.fxfee?.code); setVal('acc_fxfee_name',s.acc?.fxfee?.name);
+    setVal('fx_acct_code', s.fxAcct?.code); setVal('fx_acct_name', s.fxAcct?.name);
+    setVal('tax_national_code', s.taxNational?.code); setVal('tax_national_name', s.taxNational?.name);
+    setVal('tax_local_code', s.taxLocal?.code); setVal('tax_local_name', s.taxLocal?.name);
+    setVal('tax_local_ratio', s.taxLocalRatioPct);
+    setVal('div_tax_rate', s.divTaxRatePct);
+    setVal('cost_method', s.costMethod);
+    setVal('fy_start_month', s.fyStartMonth);
+    setChk('opt_sellFeeSeparate', s.opt?.sellFeeSeparate);
+    setChk('opt_divGross', s.opt?.divGross);
+    setChk('opt_allOverseas', s.opt?.allOverseas);
+    setChk('opt_longterm', s.opt?.longterm);
+    if(s.memo){ for(const k in s.memo){ setVal('memo_'+k, s.memo[k]); } }
+    stockMap = s.stockMap || {};
+    openingBalance = s.openingBalance || {};
+    (s.brokers && s.brokers.length ? s.brokers : [{code:'98500',name:'증권사'}]).forEach(b=>addBroker(b.code,b.name));
+  }catch(e){ addBroker('98500','증권사'); }
+}
+function exportSettings(){
+  const blob=new Blob([JSON.stringify(currentSettingsObj(),null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='주식전표변환기_설정.json'; a.click();
+}
+function importSettings(evt){
+  const f=evt.target.files[0]; if(!f) return;
+  const r=new FileReader();
+  r.onload=()=>{ safeSetStorage(SETTINGS_KEY, r.result); location.reload(); };
+  r.readAsText(f);
+}
+
+const SHORTTERM_SET={asset:{code:'107',name:'단기매매증권'}, gain:{code:'906',name:'단기매매증권처분이익'}, loss:{code:'938',name:'단기매매증권처분손실'}};
+const LONGTERM_SET={asset:{code:'178',name:'매도가능증권'}, gain:{code:'939',name:'매도가능증권처분이익'}, loss:{code:'961',name:'매도가능증권처분손실'}};
+function applyLongtermToggle(isLongterm){
+  const set = isLongterm ? LONGTERM_SET : SHORTTERM_SET;
+  setVal('acc_asset_code', set.asset.code); setVal('acc_asset_name', set.asset.name);
+  setVal('acc_gain_code', set.gain.code); setVal('acc_gain_name', set.gain.name);
+  setVal('acc_loss_code', set.loss.code); setVal('acc_loss_name', set.loss.name);
+  saveSettings(false);
+  toast(isLongterm ? '주식자산/처분이익/처분손실 코드를 178/939/961로 바꿨습니다. (매수 수수료는 취득원가에 포함되며, 전표는 분리되어 주식자산 계정으로 표시됩니다)' : '주식자산/처분이익/처분손실 코드를 107/906/938로 되돌렸습니다. (매수 수수료는 수수료비용으로 즉시 비용처리됩니다)');
+}
+
+/* 증권사 목록 UI */
+function getBrokerList(){
+  const rows=document.querySelectorAll('#brokerList .broker-row');
+  return Array.from(rows).map(r=>({code:r.querySelector('.b-code').value.trim(), name:r.querySelector('.b-name').value.trim()}));
+}
+function addBroker(code='',name=''){
+  const div=document.createElement('div');
+  div.className='broker-row row';
+  div.innerHTML=`<div class="field" style="max-width:140px"><input class="b-code" type="text" placeholder="거래처코드" value="${code}"></div>
+    <div class="field"><input class="b-name" type="text" placeholder="증권사명" value="${name}"></div>
+    <button class="btn-danger small-btn" style="align-self:center" onclick="this.parentElement.remove(); refreshBrokerSelect();">삭제</button>`;
+  document.getElementById('brokerList').appendChild(div);
+  refreshBrokerSelect();
+}
+function refreshBrokerSelect(){
+  const sel=document.getElementById('brokerSelectForFile');
+  if(!sel) return;
+  const cur=sel.value;
+  sel.innerHTML='';
+  getBrokerList().forEach(b=>{
+    const o=document.createElement('option'); o.value=b.code; o.textContent=`${b.name} (${b.code})`; sel.appendChild(o);
+  });
+  if(cur) sel.value=cur;
+  updateSettingsHeadSub();
+}
+
+/* 토스트 */
+function toast(msg){
+  let t=document.getElementById('toastEl');
+  if(!t){ t=document.createElement('div'); t.id='toastEl';
+    t.style='position:fixed;bottom:24px;left:50%;transform:translateX(-50%);background:#332f29;color:#fff;padding:10px 18px;border-radius:8px;font-size:13px;z-index:999;opacity:0;transition:opacity .2s;';
+    document.body.appendChild(t);
+  }
+  t.textContent=msg; t.style.opacity='1';
+  clearTimeout(t._to); t._to=setTimeout(()=>t.style.opacity='0',1800);
+}
+
+/* ===================== STEP2: 파일 업로드 ===================== */
+const dropZone=document.getElementById('dropZone');
+const fileInput=document.getElementById('fileInput');
+['dragover','dragleave','drop'].forEach(ev=>dropZone.addEventListener(ev,e=>{
+  e.preventDefault();
+  if(ev==='dragover') dropZone.classList.add('drag');
+  else dropZone.classList.remove('drag');
+  if(ev==='drop' && e.dataTransfer.files.length){ fileInput.files=e.dataTransfer.files; handleFile(e.dataTransfer.files[0]); }
+}));
+dropZone.addEventListener('click', (e)=>{ if(e.target!==fileInput) fileInput.click(); });
+fileInput.addEventListener('change', ()=>{ if(fileInput.files[0]) handleFile(fileInput.files[0]); });
+
+const HEADER_KEYWORDS=['일자','날짜','종류','구분','종목','수량','금액','수수료','세금','코드','계정','거래처','적요','잔고'];
+function detectHeaderRow(all){
+  let bestIdx=0, bestScore=-1;
+  const limit=Math.min(all.length,25);
+  for(let i=0;i<limit;i++){
+    const row=all[i]||[];
+    const nonEmpty=row.filter(c=>String(c||'').trim()!=='').length;
+    if(nonEmpty<2) continue; // 제목/빈 줄은 후보에서 제외
+    let kwHits=0;
+    row.forEach(c=>{ const s=String(c||''); if(HEADER_KEYWORDS.some(k=>s.includes(k))) kwHits++; });
+    const score=nonEmpty+kwHits*4;
+    if(score>bestScore){ bestScore=score; bestIdx=i; }
+  }
+  return {idx:bestIdx, confident:bestScore>=6};
+}
+function autoSetHeaderRow(sheetName){
+  const ws=wb.Sheets[sheetName];
+  const all=XLSX.utils.sheet_to_json(ws,{header:1, raw:true, defval:''});
+  const det=detectHeaderRow(all);
+  document.getElementById('headerRow').value = det.idx+1;
+  const note=document.getElementById('headerAutoNote');
+  if(note){
+    if(det.idx>0){
+      note.style.display='block';
+      note.className = det.confident? 'note blue' : 'note';
+      note.textContent = det.confident
+        ? `📌 헤더 행을 ${det.idx+1}행으로 자동 인식했습니다. 아래 미리보기에서 맞는지 확인해주세요.`
+        : `⚠ 헤더 행을 ${det.idx+1}행으로 추정했지만 확신도가 낮습니다. 아래 미리보기를 꼭 확인하고, 다르면 "헤더 행 번호"를 직접 고쳐주세요.`;
+    } else {
+      note.style.display='none';
+    }
+  }
+  return all;
+}
+function handleFile(file){
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    // cellDates:true를 쓰지 않는다 — 엑셀 날짜 일련번호를 Date 객체로 바꾸는 과정에서
+    // 부동소수점 오차 때문에 자정 부근 날짜가 하루 밀리는 경우가 있다(parseDateCell 주석 참고).
+    // 대신 raw 숫자 그대로 받아서 parseDateCell의 숫자 경로(XLSX.SSF.parse_date_code)로 처리한다.
+    wb=XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+    const sel=document.getElementById('sheetSelect');
+    sel.innerHTML='';
+    wb.SheetNames.forEach(n=>{const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o);});
+    document.getElementById('sheetControls').style.display='block';
+    autoSetHeaderRow(sel.value);
+    reparseSheet();
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('sheetSelect').addEventListener('change', ()=>{
+  if(!wb) return;
+  autoSetHeaderRow(document.getElementById('sheetSelect').value);
+  reparseSheet();
+});
+function reparseSheet(){
+  const sheetName=document.getElementById('sheetSelect').value;
+  const headerRowNum=parseInt(document.getElementById('headerRow').value||'1',10);
+  const ws=wb.Sheets[sheetName];
+  const all=XLSX.utils.sheet_to_json(ws,{header:1, raw:true, defval:''});
+  const headerIdx=headerRowNum-1;
+  rawHeaders=(all[headerIdx]||[]).map(h=>String(h||'').trim());
+  sheetRows=all.slice(headerIdx+1).filter(r=>r.some(c=>c!==''&&c!==null&&c!==undefined));
+  renderRawPreview(all, headerIdx);
+  renderColumnMap();
+  markDone('badge-upload');
+  const nonEmptyHeaders=rawHeaders.filter(h=>h!=='').length;
+  if(nonEmptyHeaders<2){
+    toast('⚠ 이 행에는 컬럼명이 거의 없습니다. "헤더 행 번호"를 확인해주세요.');
+  } else {
+    toast(`${sheetRows.length}개 행을 읽었습니다.`);
+  }
+}
+// 엑셀 날짜 일련번호로 그럴듯한 범위인지(대략 1954~2064년) 체크. cellDates를 안 쓰므로
+// 날짜 컬럼도 raw 숫자로 들어오는데, 미리보기/컬럼추측 단계에서 이 값을 사람이 읽기 좋게 표시할 때 쓴다.
+function isPlausibleExcelDateSerial(n){
+  return typeof n==='number' && Number.isFinite(n) && n>=20000 && n<=60000;
+}
+function previewCellText(c){
+  if(isPlausibleExcelDateSerial(c)){
+    const d=parseDateCell(c);
+    if(d) return dateKey(d);
+  }
+  return c===undefined||c===null? '' : c;
+}
+function renderRawPreview(all, headerIdx){
+  const t=document.getElementById('rawPreviewTable');
+  const rows=all.slice(0, Math.max(12, headerIdx+8));
+  let html='';
+  rows.forEach((r,i)=>{
+    const isHeader = i===headerIdx;
+    const cells=(r||[]).map(c=>`<td>${previewCellText(c)}</td>`).join('');
+    html+=`<tr class="${isHeader?'hdr-row':''}"><td class="rownum">${i+1}행${isHeader?' ← 헤더로 인식':''}</td>${cells}</tr>`;
+  });
+  t.innerHTML=html;
+}
+
+/* ===================== STEP3: 컬럼 매핑 ===================== */
+function renderColumnMap(){
+  const area=document.getElementById('colMapArea');
+  area.innerHTML='';
+  const nonEmpty=rawHeaders.filter(h=>h!=='').length;
+  if(nonEmpty<2){
+    area.innerHTML=`<div class="note" style="grid-column:1/-1;">⚠ 선택된 헤더 행에 컬럼명이 거의 없어서 자동 매핑을 할 수 없습니다.
+      2단계로 돌아가 미리보기 표에서 실제 컬럼명이 있는 행 번호를 확인하고 "헤더 행 번호"를 그 값으로 바꾼 뒤 "다시 읽기"를 눌러주세요.</div>`;
+    return;
+  }
+  STD_FIELDS.forEach(f=>{
+    const guessList=GUESS[f.key]||[];
+    let bestIdx=-1;
+    rawHeaders.forEach((h,i)=>{ if(bestIdx<0 && guessList.some(g=>h.includes(g))) bestIdx=i; });
+    const div=document.createElement('div'); div.className='field';
+    div.innerHTML=`<label>${f.label}</label>
+      <select id="colmap_${f.key}">
+        <option value="-1">-- 선택 안함 --</option>
+        ${rawHeaders.map((h,i)=>`<option value="${i}" ${i===bestIdx?'selected':''}>${h||('컬럼'+(i+1))}</option>`).join('')}
+      </select>`;
+    area.appendChild(div);
+  });
+}
+// 은행/증권사 "환율표"가 실제로는 HTML 표를 .xls 확장자로 저장한 파일인 경우가 많다.
+// 그런 파일은 원본이 EUC-KR 등으로 인코딩돼 있는데, XLSX.read에 바이트를 그대로 넘기면
+// UTF-8/Latin1로 잘못 해석해서 컬럼명이 "ȳ¥"처럼 깨진다(값 자체는 안 깨짐 — 날짜/숫자라서).
+// 그래서 먼저 진짜 바이너리 엑셀(zip/OLE 시그니처)인지 보고, 아니면 HTML로 보고 <meta charset=...>
+// 선언을 읽어서 그 인코딩으로 직접 디코딩한 뒤 문자열로 XLSX.read에 넘긴다 — 이러면 헤더도 안 깨진다.
+function readFxWorkbook(buf){
+  const bytes=new Uint8Array(buf);
+  const looksBinary=(bytes[0]===0x50&&bytes[1]===0x4B) || (bytes[0]===0xD0&&bytes[1]===0xCF);
+  if(!looksBinary){
+    const head=new TextDecoder('latin1').decode(bytes.slice(0,4096));
+    if(/<html|<table|<meta/i.test(head)){
+      const m=head.match(/charset\s*=\s*"?([\w-]+)/i);
+      let charset=m? m[1].toLowerCase() : 'euc-kr';
+      if(charset==='ks_c_5601-1987'||charset==='ksc5601') charset='euc-kr';
+      try{
+        const text=new TextDecoder(charset).decode(bytes);
+        return XLSX.read(text, {type:'string'});
+      }catch(e){ /* 이 브라우저가 그 인코딩을 모르면 기본 경로로 폴백 */ }
+    }
+  }
+  return XLSX.read(bytes, {type:'array'});
+}
+function handleFxFile(file){
+  if(!file) return;
+  const reader=new FileReader();
+  reader.onload=(ev)=>{
+    fxWb=readFxWorkbook(ev.target.result); // cellDates 미사용 이유는 위 parseDateCell 주석 참고
+    const bestSheet = pickBestFxSheet(fxWb);
+    loadFxSheet(bestSheet); // 헤더 행 자동 탐지부터 새로 시작
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('fxFileInput').addEventListener('change', (e)=>{
+  handleFxFile(e.target.files[0]);
+});
+// 환율표 드롭존: 엑셀 파일 드래그&드롭 지원 (메인 파일 업로드와 동일한 방식).
+const fxDropZone=document.getElementById('fxDropZone');
+['dragover','dragleave','drop'].forEach(ev=>fxDropZone.addEventListener(ev,e=>{
+  e.preventDefault(); e.stopPropagation();
+  if(ev==='dragover') fxDropZone.classList.add('drag');
+  else fxDropZone.classList.remove('drag');
+  if(ev==='drop' && e.dataTransfer.files.length){
+    document.getElementById('fxFileInput').files = e.dataTransfer.files;
+    handleFxFile(e.dataTransfer.files[0]);
+  }
+}));
+fxDropZone.addEventListener('click', (e)=>{ if(e.target.id!=='fxFileInput') document.getElementById('fxFileInput').click(); });
+// 시트가 여러 개면(위 사례처럼 표가 여러 개 들어있는 경우), 데이터 행이 가장 많은 시트를
+// 실제 "일별 환율표"로 간주해 기본 선택한다. 잘못 골랐으면 아래 드롭다운에서 직접 바꿀 수 있다.
+function pickBestFxSheet(wb){
+  let bestName=wb.SheetNames[0], bestLen=-1;
+  wb.SheetNames.forEach(name=>{
+    const len=XLSX.utils.sheet_to_json(wb.Sheets[name],{header:1, raw:true, defval:''}).length;
+    if(len>bestLen){ bestLen=len; bestName=name; }
+  });
+  return bestName;
+}
+// 환율표 위에 제목/기간 안내 등이 몇 줄 더 있어서 실제 헤더("날짜","환율" 등)가 1행이 아닌 경우가 많다
+// (예: 9행에 헤더). 메인 거래내역 파일의 헤더 자동인식과 같은 방식으로 헤더 행을 찾는다.
+const FX_HEADER_KEYWORDS=['날짜','일자','환율','통화','매매기준율','고시환율','기준율'];
+function detectFxHeaderRow(all){
+  let bestIdx=0, bestScore=-1;
+  const limit=Math.min(all.length,30);
+  for(let i=0;i<limit;i++){
+    const row=all[i]||[];
+    const nonEmpty=row.filter(c=>String(c||'').trim()!=='').length;
+    if(nonEmpty<2) continue; // 제목/빈 줄은 후보에서 제외
+    let kwHits=0;
+    row.forEach(c=>{ const s=String(c||''); if(FX_HEADER_KEYWORDS.some(k=>s.includes(k))) kwHits++; });
+    const score=nonEmpty+kwHits*5;
+    if(score>bestScore){ bestScore=score; bestIdx=i; }
+  }
+  return {idx:bestIdx, confident:bestScore>=6};
+}
+// 파일을 새로 올리거나 시트를 바꿀 때마다 헤더 행부터 자동으로 다시 찾는다.
+function loadFxSheet(sheetName){
+  const ws=fxWb.Sheets[sheetName];
+  const all=XLSX.utils.sheet_to_json(ws,{header:1, raw:true, defval:''});
+  const det=detectFxHeaderRow(all);
+  document.getElementById('fxHeaderRowArea').style.display='block';
+  document.getElementById('fxHeaderRow').value=det.idx+1;
+  const note=document.getElementById('fxHeaderAutoNote');
+  if(det.idx>0){
+    note.style.display='block';
+    note.className = det.confident? 'note blue' : 'note';
+    note.textContent = det.confident
+      ? `📌 헤더 행을 ${det.idx+1}행으로 자동 인식했습니다. 아래 날짜/환율 컬럼 선택이 맞는지 확인해주세요.`
+      : `⚠ 헤더 행을 ${det.idx+1}행으로 추정했지만 확신도가 낮습니다. 아래 컬럼 선택을 꼭 확인하고, 다르면 위 "헤더 행 번호"를 직접 고친 뒤 "다시 읽기"를 눌러주세요.`;
+  } else {
+    note.style.display='none';
+  }
+  renderFxSheetAndColumns(sheetName, det.idx);
+}
+function rereadFxHeaderRow(){
+  if(!fxWb || !fxWb._currentSheet) return;
+  const headerRowNum=parseInt(document.getElementById('fxHeaderRow').value||'1',10);
+  renderFxSheetAndColumns(fxWb._currentSheet, headerRowNum-1);
+}
+// 날짜/환율 컬럼을 헤더 텍스트가 아니라 실제 셀 값으로도 추측한다.
+// (헤더 텍스트가 인코딩 깨짐 등으로 못 읽는 경우에도, 셀 값 자체(Date 객체·숫자)는 멀쩡한 경우가 많다.)
+function guessFxColumns(all, headerIdx){
+  const headers=(all[headerIdx]||[]).map(h=>String(h||'').trim());
+  const sampleRows=all.slice(headerIdx+1, headerIdx+6);
+  const colCount=Math.max(headers.length, ...sampleRows.map(r=>r.length), 1);
+  let dGuess=-1, bestDateScore=0;
+  for(let c=0;c<colCount;c++){
+    let score=0;
+    sampleRows.forEach(r=>{
+      const v=r[c];
+      if(v instanceof Date && !isNaN(v)) score++;
+      else if(typeof v==='string' && /\d{4}\D\d{1,2}\D\d{1,2}/.test(v)) score++;
+      else if(isPlausibleExcelDateSerial(v)) score++;
+    });
+    if(score>bestDateScore){ bestDateScore=score; dGuess=c; }
+  }
+  if(dGuess<0) dGuess=headers.findIndex(h=>h.includes('일자')||h.includes('날짜'));
+  let rGuess=headers.findIndex(h=>h.includes('환율'));
+  if(rGuess<0){
+    let bestNumScore=-1;
+    for(let c=0;c<colCount;c++){
+      if(c===dGuess) continue;
+      let score=0;
+      sampleRows.forEach(r=>{ if(typeof r[c]==='number' && !Number.isInteger(r[c])) score++; });
+      if(score>bestNumScore){ bestNumScore=score; rGuess=c; }
+    }
+    if(bestNumScore<=0){
+      bestNumScore=-1;
+      for(let c=0;c<colCount;c++){
+        if(c===dGuess) continue;
+        let score=0;
+        sampleRows.forEach(r=>{ if(typeof r[c]==='number') score++; });
+        if(score>bestNumScore){ bestNumScore=score; rGuess=c; }
+      }
+    }
+  }
+  return {headers, dGuess, rGuess};
+}
+function fxOptionLabel(h, sampleVal){
+  let vs='';
+  if(sampleVal instanceof Date && !isNaN(sampleVal)) vs=dateKey({y:sampleVal.getFullYear(),m:sampleVal.getMonth()+1,d:sampleVal.getDate()});
+  else if(isPlausibleExcelDateSerial(sampleVal)){ const d=parseDateCell(sampleVal); if(d) vs=dateKey(d); }
+  if(!vs && sampleVal!==undefined && sampleVal!=='') vs=String(sampleVal);
+  return `${h||'(빈 헤더)'}${vs? ' · 예: '+vs : ''}`;
+}
+function renderFxSheetAndColumns(sheetName, headerIdx){
+  fxWb._currentSheet=sheetName;
+  headerIdx = headerIdx||0;
+  fxWb._headerIdx=headerIdx;
+  const ws=fxWb.Sheets[sheetName];
+  const all=XLSX.utils.sheet_to_json(ws,{header:1, raw:true, defval:''});
+  fxWb._all=all;
+  const {headers, dGuess, rGuess}=guessFxColumns(all, headerIdx);
+  const sample=all[headerIdx+1]||[];
+  const area=document.getElementById('fxColMapArea');
+  area.style.display='grid';
+  const sheetSelectHtml = fxWb.SheetNames.length>1 ? `
+    <div class="field"><label>시트 선택 (표가 여러 개면 실제 일별 환율표를 고르세요)</label>
+      <select id="fxcol_sheet" onchange="loadFxSheet(this.value)">
+        ${fxWb.SheetNames.map(n=>`<option value="${n}" ${n===sheetName?'selected':''}>${n} (${XLSX.utils.sheet_to_json(fxWb.Sheets[n],{header:1}).length}행)</option>`).join('')}
+      </select>
+    </div>` : '';
+  area.innerHTML = sheetSelectHtml + `
+    <div class="field"><label>날짜 컬럼</label><select id="fxcol_date">${headers.map((h,i)=>`<option value="${i}" ${i===dGuess?'selected':''}>${fxOptionLabel(h, sample[i])}</option>`).join('')}</select></div>
+    <div class="field"><label>환율 컬럼</label><select id="fxcol_rate">${headers.map((h,i)=>`<option value="${i}" ${i===rGuess?'selected':''}>${fxOptionLabel(h, sample[i])}</option>`).join('')}</select></div>
+    <div class="field" style="align-self:end;"><button class="btn-secondary small-btn" onclick="buildFxMap()">환율표 적용</button></div>`;
+  if(fxWb.SheetNames.length>1){
+    const note=document.createElement('div');
+    note.className='hint';
+    note.style.gridColumn='1/-1';
+    note.textContent=`⚠ 이 파일에는 표(시트)가 ${fxWb.SheetNames.length}개 들어있습니다. 데이터가 가장 많은 "${sheetName}"을 자동으로 골랐습니다. 컬럼명이 깨져 보이면 "예: ..."로 표시된 실제 값을 보고 날짜/환율 컬럼이 맞는지 확인해주세요.`;
+    area.appendChild(note);
+  }
+  buildFxMap();
+}
+function buildFxMap(){
+  if(!fxWb || !fxWb._all) return;
+  const dCol=+document.getElementById('fxcol_date').value;
+  const rCol=+document.getElementById('fxcol_rate').value;
+  const headerIdx=fxWb._headerIdx||0;
+  fxRateMap={};
+  fxWb._all.slice(headerIdx+1).forEach(r=>{
+    const dt=parseDateCell(r[dCol]);
+    if(dt) fxRateMap[dateKey(dt)] = parseNumber(r[rCol]);
+  });
+  toast(`환율 ${Object.keys(fxRateMap).length}일치 적용됨`);
+}
+function findFxRate(dt){
+  if(!fxRateMap) return null;
+  let key=dateKey(dt);
+  if(fxRateMap[key]!==undefined) return fxRateMap[key];
+  // 주말/휴일이면 최근 이전 영업일 환율 사용
+  for(let i=1;i<=7;i++){
+    const d=new Date(dt.y, dt.m-1, dt.d-i);
+    const k=dateKey({y:d.getFullYear(),m:d.getMonth()+1,d:d.getDate()});
+    if(fxRateMap[k]!==undefined) return fxRateMap[k];
+  }
+  return null;
+}
+
+function confirmColumnMap(){
+  colMap={};
+  STD_FIELDS.forEach(f=>{ colMap[f.key]=+document.getElementById('colmap_'+f.key).value; });
+  if(colMap.date<0 || colMap.type<0 || colMap.amount<0){
+    alert('거래일자 / 거래종류 / 거래금액은 반드시 매핑해야 합니다.'); return;
+  }
+  mappedRows = sheetRows.map((r,idx)=>({
+    idx,
+    date: parseDateCell(r[colMap.date]),
+    type: String(r[colMap.type]||'').trim(),
+    stock: colMap.stock>=0? String(r[colMap.stock]||'').trim() : '',
+    qty: colMap.qty>=0? parseNumber(r[colMap.qty]) : 0,
+    amount: parseNumber(r[colMap.amount]),
+    unitprice: colMap.unitprice>=0? parseNumber(r[colMap.unitprice]) : 0,
+    fxamount: colMap.fxamount>=0? parseNumber(r[colMap.fxamount]) : 0,
+    fee: colMap.fee>=0? parseNumber(r[colMap.fee]) : 0,
+    tax: colMap.tax>=0? parseNumber(r[colMap.tax]) : 0,
+    netamount: colMap.netamount>=0? parseNumber(r[colMap.netamount]) : 0,
+  })).filter(r=>r.date && r.type);
+  markDone('badge-colmap');
+  renderTypeMap();
+  renderStockMap(); // 종목명 목록은 거래종류 분류와 무관하게 컬럼 매핑만 끝나면 바로 뽑아둔다
+  if(colMap.stock<0){
+    toast('⚠ "종목명" 컬럼을 매핑하지 않아서 종목목록을 뽑을 수 없습니다. 위에서 종목명 컬럼을 선택해주세요.');
+  }
+  openCard('card-typemap');
+  document.getElementById('card-colmap').classList.add('collapsed');
+}
+
+/* ===================== STEP4: 거래종류 매핑 ===================== */
+const TYPE_ACTIONS=[
+  {v:'buy', label:'매수 (개별 종목)'},
+  {v:'sell', label:'매도 (개별 종목)'},
+  {v:'dividend', label:'배당금/분배금'},
+  {v:'interest', label:'이자수익 (예탁금이용료 등)'},
+  {v:'fx_to_usd', label:'환전 (원→달러)'},
+  {v:'fx_to_krw', label:'환전 (달러→원)'},
+  {v:'skip', label:'무시 (이체/합계행 등)'},
+];
+function guessAction(typeStr){
+  const s=typeStr;
+  // "OO세금출금"처럼 세금만 단독으로 찍힌 항목은 배당/이자 원본 소득 행과 별개라서
+  // (배당 처리 로직은 소득 원본 행 자체에서 세금을 계산하는 구조라 세금만 있는 행을 못 받음)
+  // 배당/이자 키워드보다 먼저 걸러 기본은 무시로 둔다. 필요하면 4단계에서 직접 바꿀 수 있다.
+  if(s.includes('세금')) return 'skip';
+  if(s.includes('배당')||s.includes('분배금')) return 'dividend';
+  if(s.includes('이용료')||s.includes('이자')) return 'interest';
+  if(s.includes('환전')) return (s.includes('달러')&&s.indexOf('달러')<s.indexOf('원')) ? 'fx_to_krw' : 'fx_to_usd';
+  // "외화매수OO"/"외화매도OO"(예: 외화매수원화출금, 외화매도외화출금)는 원화↔달러 환전의
+  // 짝꿍 다리이지 실제 주식 매매가 아니다. "해외주식매수/매도"와 헷갈리지 않도록 먼저 걸러낸다.
+  if(s.includes('외화매수')||s.includes('외화매도')) return 'skip';
+  if(s.includes('매수') && !s.includes('출금') && !s.includes('정산')) return 'buy';
+  if((s.includes('매도')||s.includes('매각')) && !s.includes('입금') && !s.includes('정산')) return 'sell';
+  return 'skip';
+}
+function renderTypeMap(){
+  const types={};
+  mappedRows.forEach(r=>{ types[r.type]=(types[r.type]||0)+1; });
+  const list=document.getElementById('typeMapList');
+  list.innerHTML='<div class="type-map-row" style="font-weight:600;color:var(--sub);"><div>거래종류 값 (건수)</div><div></div><div>처리방식</div></div>';
+  Object.keys(types).forEach(t=>{
+    const guessed=guessAction(t);
+    const row=document.createElement('div'); row.className='type-map-row';
+    row.innerHTML=`<div>${t}</div><div class="count-chip">${types[t]}건</div>
+      <select class="typeSel" data-type="${t}">
+        ${TYPE_ACTIONS.map(a=>`<option value="${a.v}" ${a.v===guessed?'selected':''}>${a.label}</option>`).join('')}
+      </select>`;
+    list.appendChild(row);
+  });
+}
+function confirmTypeMap(){
+  typeMap={};
+  document.querySelectorAll('.typeSel').forEach(sel=>{ typeMap[sel.dataset.type]=sel.value; });
+  renderStockMap();
+  markDone('badge-typemap');
+  openCard('card-stockmap');
+  document.getElementById('card-typemap').classList.add('collapsed');
+}
+
+/* ===================== STEP5: 종목 거래처코드 ===================== */
+function getAllStockNames(){
+  // 거래종류 분류와 무관하게, 종목명 컬럼에 값이 있는 모든 행에서 종목명을 뽑는다.
+  const stocks=new Set();
+  mappedRows.forEach(r=>{ if(r.stock) stocks.add(r.stock); });
+  return Array.from(stocks);
+}
+function renderStockMap(){
+  const stocks=getAllStockNames();
+  const list=document.getElementById('stockMapList');
+  list.innerHTML='<div class="stock-map-row" style="font-weight:600;color:var(--sub);grid-template-columns:2fr 1fr 1fr 1fr 1fr;"><div>종목명</div><div>거래처코드</div><div>거래처명(선택)</div><div>기초수량(선택)</div><div>기초취득원가(선택)</div></div>';
+  stocks.forEach(s=>{
+    const saved=stockMap[s]||{};
+    const ob=openingBalance[s]||{};
+    const row=document.createElement('div'); row.className='stock-map-row';
+    row.style.gridTemplateColumns='2fr 1fr 1fr 1fr 1fr';
+    row.innerHTML=`<div>${s}</div>
+      <input type="text" class="stockCode" data-stock="${encodeURIComponent(s)}" value="${saved.code||''}" placeholder="예: 96001">
+      <input type="text" class="stockName" data-stock="${encodeURIComponent(s)}" value="${saved.name||''}" placeholder="비우면 종목명 그대로">
+      <input type="number" class="obQty" data-stock="${encodeURIComponent(s)}" value="${ob.qty||''}" placeholder="0" step="any">
+      <input type="number" class="obCost" data-stock="${encodeURIComponent(s)}" value="${ob.cost||''}" placeholder="0" step="any">`;
+    list.appendChild(row);
+  });
+  if(stocks.length===0){
+    if(colMap.stock<0){
+      list.innerHTML+='<div class="note">⚠ 3단계(컬럼 매핑)에서 "종목명" 컬럼이 매핑되지 않았습니다. 3단계로 돌아가 종목명이 들어있는 컬럼을 선택해주세요.</div>';
+    } else {
+      list.innerHTML+='<div class="hint">파일에서 종목명이 있는 행을 찾지 못했습니다. (종목명 컬럼 선택이 맞는지, 헤더 행이 올바른지 확인해주세요)</div>';
+    }
+  } else {
+    list.innerHTML+='<div class="hint" style="grid-column:1/-1;">"기초수량/기초취득원가"는 <b>업로드한 파일 이전부터 이미 보유하고 있던 물량</b>입니다(예: 작년 말 잔고). 없으면 비워두세요(0으로 처리). 있으면 반드시 채워야 이동평균법·총평균법 계산이 정확합니다 — 전기 결산서의 유가증권명세서 등에서 확인해주세요.</div>';
+  }
+}
+function collectStockMap(){
+  document.querySelectorAll('.stockCode').forEach(inp=>{
+    const s=decodeURIComponent(inp.dataset.stock);
+    stockMap[s]=stockMap[s]||{};
+    stockMap[s].code=inp.value.trim();
+  });
+  document.querySelectorAll('.stockName').forEach(inp=>{
+    const s=decodeURIComponent(inp.dataset.stock);
+    stockMap[s]=stockMap[s]||{};
+    stockMap[s].name=inp.value.trim();
+  });
+  document.querySelectorAll('.obQty').forEach(inp=>{
+    const s=decodeURIComponent(inp.dataset.stock);
+    openingBalance[s]=openingBalance[s]||{};
+    openingBalance[s].qty=parseNumber(inp.value);
+  });
+  document.querySelectorAll('.obCost').forEach(inp=>{
+    const s=decodeURIComponent(inp.dataset.stock);
+    openingBalance[s]=openingBalance[s]||{};
+    openingBalance[s].cost=parseNumber(inp.value);
+  });
+}
+function exportStockList(){
+  collectStockMap();
+  const stocks=getAllStockNames();
+  const header=['종목명','거래처코드','거래처명','기초수량','기초취득원가'];
+  const data=[header, ...stocks.map(s=>{
+    const saved=stockMap[s]||{};
+    const ob=openingBalance[s]||{};
+    return [s, saved.code||'', saved.name||'', ob.qty||'', ob.cost||''];
+  })];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  ws['!cols']=[{wch:45},{wch:14},{wch:30},{wch:14},{wch:16}];
+  const wbOut=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbOut,ws,'종목코드');
+  XLSX.writeFile(wbOut,'종목별_거래처코드.xlsx');
+  toast('종목목록을 내보냈습니다. 엑셀에서 거래처코드/거래처명/기초수량/기초취득원가를 채운 뒤 "채운 엑셀 불러오기"로 다시 올려주세요.');
+}
+function importStockList(file){
+  const reader=new FileReader();
+  reader.onload=(e)=>{
+    const iwb=XLSX.read(new Uint8Array(e.target.result), {type:'array'});
+    const ws=iwb.Sheets[iwb.SheetNames[0]];
+    const rows=XLSX.utils.sheet_to_json(ws,{header:1, raw:true, defval:''});
+    let updated=0;
+    rows.slice(1).forEach(r=>{
+      const name=String(r[0]||'').trim();
+      if(!name) return;
+      const code=String(r[1]||'').trim();
+      const dispName=String(r[2]||'').trim();
+      const obQty=parseNumber(r[3]);
+      const obCost=parseNumber(r[4]);
+      if(!code && !dispName && !obQty && !obCost) return;
+      stockMap[name]=stockMap[name]||{};
+      if(code) stockMap[name].code=code;
+      if(dispName) stockMap[name].name=dispName;
+      if(obQty || obCost){ openingBalance[name]=openingBalance[name]||{}; if(obQty) openingBalance[name].qty=obQty; if(obCost) openingBalance[name].cost=obCost; }
+      updated++;
+    });
+    renderStockMap();
+    saveSettings(false);
+    toast(`${updated}개 종목의 거래처코드/기초잔량을 불러왔습니다.`);
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('stockListImport').addEventListener('change', (e)=>{
+  const f=e.target.files[0]; if(f) importStockList(f);
+});
+
+/* ===================== STEP6: 전표 생성 ===================== */
+function runGenerate(){
+  collectStockMap();
+  saveSettings(false);
+  const S=currentSettingsObj();
+  const broker=getBrokerList().find(b=>b.code===document.getElementById('brokerSelectForFile').value) || getBrokerList()[0] || {code:'',name:''};
+
+  // 날짜순 정렬. 같은 날짜 안에서는 "매수 → 그 외 → 매도" 순으로 강제한다.
+  // (증권사 거래내역 파일은 최신순으로 정렬돼 있는 경우가 많아, 당일 매수 후 당일 매도한
+  //  건이 파일상으로는 매도 행이 매수 행보다 앞에 오는 경우가 흔하다. 원본 행순서만 믿으면
+  //  매도 시점에 그 종목의 매수분이 아직 반영 안 돼 있어 취득원가가 0으로 계산되고,
+  //  매도금액 전액이 처분이익/손실로 잡히는 오류가 발생한다. 일반 위탁계좌는 공매도가 없으므로
+  //  같은 날짜의 매수를 항상 매도보다 먼저 처리해도 결과(잔여수량/평균단가)는 달라지지 않는다.)
+  function typeRank(typeStr){
+    const act=typeMap[typeStr];
+    return act==='buy' ? 0 : (act==='sell' ? 2 : 1);
+  }
+  const rows=mappedRows.slice().sort((a,b)=>{
+    const ka=a.date.y*10000+a.date.m*100+a.date.d, kb=b.date.y*10000+b.date.m*100+b.date.d;
+    if(ka!==kb) return ka-kb;
+    const ra=typeRank(a.type), rb=typeRank(b.type);
+    if(ra!==rb) return ra-rb;
+    return a.idx-b.idx;
+  });
+
+  const lots={}; // 종목별 이동평균 {qty, cost}
+  // 5단계에서 입력한 기초잔량(파일 이전부터 보유하던 물량)을 초기값으로 깔아둔다.
+  // 없으면 그냥 0부터 시작(기존과 동일) — 있는데 안 채우면 이동평균법·총평균법 둘 다 틀어진다.
+  Object.keys(openingBalance).forEach(stock=>{
+    const ob=openingBalance[stock];
+    if(ob && ob.qty){ lots[stock]={qty:ob.qty, cost:ob.cost||0}; }
+  });
+  ledgerLines=[];
+  let calcLines=[];
+  let skipCount=0, unhandledTypes=new Set();
+  let warnList=[];
+
+  function stockPartner(stockName){
+    const m=stockMap[stockName]||{};
+    return {code:m.code||'', name:m.name||stockName};
+  }
+  // 해외주식(환율 적용된 행)은 적요에 그날 적용한 환율을 "*@환율" 형태로 덧붙인다.
+  // 국내주식(환율 미적용 행)은 그대로 둔다. 환율은 소수점이 있는 경우가 많아(예: 1,434.90)
+  // fmt()처럼 반올림하지 않고, 부동소수점 잔여값만 제거해서 최대 4자리까지 그대로 보여준다.
+  function fmtRate(n){
+    return (Math.round(n*10000)/10000).toLocaleString('ko-KR', {maximumFractionDigits:4});
+  }
+  function withFxMemo(baseMemo, r){
+    return r._fxRate ? `${baseMemo}*@${fmtRate(r._fxRate)}` : baseMemo;
+  }
+  // 배당/이자 세전-세후-원천세 역산: 파일에 세금 액수(rawFee)가 있으면 그걸 그대로 쓰고,
+  // 0이면(세금 정보가 없는 파일) 원천세율로 역산해서 만들어낸다.
+  function computeDivSplit(rawAmount, rawFee, isGrossCol, ratePct){
+    const rate=(ratePct||0)/100;
+    if(rawFee){
+      if(isGrossCol){ const gross=rawAmount, tax=rawFee; return {gross, tax, net:gross-tax, derived:false}; }
+      else { const net=rawAmount, tax=rawFee; return {gross:net+tax, tax, net, derived:false}; }
+    }
+    // 파일에 세금 액수가 없음 → 세율로 역산
+    if(isGrossCol){ const gross=rawAmount, tax=Math.floor(gross*rate); return {gross, tax, net:gross-tax, derived:true}; }
+    else { const net=rawAmount, gross=rate<1? Math.floor(net/(1-rate)) : net; const tax=gross-net; return {gross, tax, net, derived:true}; }
+  }
+  function push(dt,dc,code,acctName,pcode,pname,debit,credit,memo){
+    ledgerLines.push({y:dt.y,m:dt.m,d:dt.d,dc,code,acctName,pcode,pname,debit:debit||0,credit:credit||0,memo});
+  }
+  // 종목명에 한글이 하나도 없으면 해외종목으로 추정한다 (국내는 종목명이 한글, 해외는 영문 티커/사명인 경우가 대부분).
+  function isOverseasName(name){
+    // "이 파일은 전부 해외주식" 옵션이 켜져 있으면 종목명 판별을 아예 건너뛴다.
+    // (일부 증권사는 해외종목명을 "조비 에비에이션"처럼 한글로도 표기해서, 한글 유무만으로는
+    //  못 가리는 파일이 있기 때문 — 그런 파일은 사용자가 이 옵션으로 직접 알려준다.)
+    if(S.opt.allOverseas) return true;
+    return !!name && !/[가-힣]/.test(name);
+  }
+  // "거래금액"이 0인데 거래수량과 단가가 둘 다 있으면 수량×단가로 거래대금을 계산한다.
+  // (일부 증권사 해외주식 리포트는 "거래금액"을 안 채우고 "단가"만 준다 — 확인 사례 기준)
+  function baseAmountFor(r){
+    if(r.amount) return r.amount;
+    if(r.qty && r.unitprice) return r.qty*r.unitprice;
+    return r.amount;
+  }
+  // 해외주식 금액을 원화로 환산한다. 세 가지 파일 형태를 모두 지원:
+  //  1) "외화거래금액" 컬럼이 따로 매핑되어 있고 그 값이 0이 아님 → "거래금액"은 이미 원화라고 보고,
+  //     외화거래금액 × 환율로 원화금액을 다시 계산.
+  //  2) 그런 컬럼이 없거나 0인데 종목명이 한글이 아님(해외종목 추정) 또는 "전부 해외" 옵션 켜짐
+  //     → 거래대금(거래금액, 또는 없으면 수량×단가) 자체가 원화가 아니라 외화 원본 금액이라고 보고,
+  //     그 값(및 수수료) × 환율로 원화 환산.
+  function resolveFxAmount(r, dt){
+    let amount=baseAmountFor(r), fee=r.fee, rate;
+    // 별도 체크박스 없이, 환율표가 업로드되어 fxRateMap에 실제로 뭔가 들어있으면 자동으로 적용한다.
+    // (예전엔 "환율표로 재계산" 체크박스를 1단계 고급설정에 따로 둬서, 3단계에서 환율표를 올려도
+    //  그 체크박스를 못 보고 지나치면 환율이 전혀 반영 안 되는 문제가 있었다.)
+    // rate: 실제로 적용된 그날 환율 (적요에 표시하는 용도) — 못 찾았거나 국내주식이면 undefined.
+    if(fxRateMap && Object.keys(fxRateMap).length){
+      if(r.fxamount){
+        rate=findFxRate(dt);
+        if(rate) amount = r.fxamount*rate;
+        else warnList.push(`${dateKey(dt)} ${r.stock}: 환율을 찾지 못해 원파일 금액 사용`);
+      } else if(isOverseasName(r.stock)){
+        rate=findFxRate(dt);
+        if(rate){ amount = amount*rate; if(fee) fee = fee*rate; }
+        else warnList.push(`${dateKey(dt)} ${r.stock}: 환율을 찾지 못해 "거래대금"(외화로 추정)을 원화인 것처럼 그대로 썼습니다 — 반드시 확인하세요.`);
+      }
+    }
+    // 원단위 미만은 반올림이 아니라 절사(버림) — 환율이 적용됐든 실패해서 원본 그대로든,
+    // 국내주식이라 아예 안 거쳤든 상관없이 여기서 한 번에 정수로 맞춘다(전에는 환율을 못 찾은
+    // 경우에만 이 절사를 건너뛰어서 소수점이 그대로 새어나가는 문제가 있었다).
+    amount = Math.floor(amount);
+    if(fee) fee = Math.floor(fee);
+    return {amount, fee, rate};
+  }
+
+  // 환율 반영 확정금액을 행마다 딱 한 번만 계산해서 붙여둔다 (총평균법 사전계산과 본 루프가
+  // 같은 값을 같이 써야 하고, resolveFxAmount를 두 번 부르면 환율 경고 메시지도 중복된다).
+  rows.forEach(r=>{
+    const act=typeMap[r.type];
+    if(act==='buy' || act==='sell'){
+      const resolved=resolveFxAmount(r, r.date);
+      r._amt=resolved.amount; r._fee=resolved.fee; r._fxRate=resolved.rate;
+    }
+  });
+
+  // 총평균법: 종목별·사업연도별로 "(기초잔량 취득원가 + 그 해 매입원가) ÷ (기초잔량 수량 + 그 해 매입수량)"를
+  // 딱 한 번 계산해서 그 해의 모든 매도에 동일한 단가를 적용한다 (이동평균법처럼 매수마다 재계산하지 않음).
+  // 매도가 파일상 매입보다 먼저 나와도(같은 해 안이면) 그 해 전체 매입이 평균에 반영된다.
+  function fiscalYearKey(dt, fyStartMonth){
+    fyStartMonth = fyStartMonth||1;
+    if(fyStartMonth<=1) return dt.y;
+    return (dt.m>=fyStartMonth) ? dt.y : dt.y-1;
+  }
+  function computeTotalAverageCostBasis(){
+    const byStock={};
+    rows.forEach(r=>{
+      const act=typeMap[r.type];
+      if(act!=='buy' && act!=='sell') return;
+      const fy=fiscalYearKey(r.date, S.fyStartMonth);
+      byStock[r.stock]=byStock[r.stock]||{};
+      const bucket=byStock[r.stock][fy]=byStock[r.stock][fy]||{buyQty:0,buyCost:0,sells:[]};
+      if(act==='buy'){
+        bucket.buyQty+=r.qty;
+        // 매도가능증권은 수수료를 취득원가에 안 넣고 즉시비용 처리하므로 평균원가 계산에서 제외
+        bucket.buyCost += S.opt.longterm ? r._amt : (r._amt+(r._fee||0));
+      } else {
+        bucket.sells.push(r);
+      }
+    });
+    const costBasisByIdx={};
+    const logLines=[];
+    Object.keys(byStock).forEach(stock=>{
+      const years=Object.keys(byStock[stock]).map(Number).sort((a,b)=>a-b);
+      // 파일 이전부터 있던 기초잔량이 있으면, 파일에 나오는 첫 사업연도의 "기초"로 깔아준다.
+      const ob=openingBalance[stock];
+      let carryQty=(ob&&ob.qty)||0, carryCost=(ob&&ob.cost)||0;
+      years.forEach(fy=>{
+        const bucket=byStock[stock][fy];
+        const openQty=carryQty, openCost=carryCost;
+        const totalQty=openQty+bucket.buyQty, totalCost=openCost+bucket.buyCost;
+        const avgUnit=totalQty>0? totalCost/totalQty : 0;
+        let sellQtySum=0;
+        bucket.sells.forEach(r=>{ costBasisByIdx[r.idx]=Math.round(r.qty*avgUnit); sellQtySum+=r.qty; });
+        carryQty=totalQty-sellQtySum;
+        carryCost=Math.round(carryQty*avgUnit);
+        if(carryQty<0.0001){ carryQty=0; carryCost=0; }
+        logLines.push(`[총평균법] ${stock} ${fy}년: 기초 ${openQty}주(${fmt(openCost)}원) + 매입 ${bucket.buyQty}주(${fmt(bucket.buyCost)}원) → 평균단가 ${totalQty?fmt(avgUnit):0}원/주, 매도 ${sellQtySum}주 처리 → 기말이월 ${carryQty}주(${fmt(carryCost)}원)`);
+      });
+    });
+    return {costBasisByIdx, logLines};
+  }
+  const totalAvg = S.costMethod==='total' ? computeTotalAverageCostBasis() : null;
+  if(totalAvg) calcLines.push(...totalAvg.logLines, '');
+
+  rows.forEach(r=>{
+    const act=typeMap[r.type];
+    if(!act || act==='skip'){ skipCount++; return; }
+    const dt=r.date;
+
+    if(act==='buy'){
+      let {_amt:amount, _fee:fee} = r;
+      const p=stockPartner(r.stock);
+      const buyMemo = withFxMemo(fillTemplate(S.memo.buy,{qty:r.qty}), r);
+      const buyFeeMemo = withFxMemo(S.memo.buyfee, r);
+      if(S.opt.longterm){
+        // 매도가능증권: 취득 부대비용(수수료)을 취득원가에 가산 (일반기업회계기준 6장 — 당기손익인식금융자산이
+        // 아닌 금융자산은 거래원가를 공정가치에 가산). 전표는 취득가/수수료 두 줄로 분리하고,
+        // 수수료 줄도 수수료비용 계정이 아닌 주식자산 계정을 사용해 자산가액에 반영되도록 한다.
+        push(dt,'차변',S.acc.asset.code,S.acc.asset.name,p.code,p.name, amount,0, buyMemo);
+        if(fee) push(dt,'차변',S.acc.asset.code,S.acc.asset.name,p.code,p.name, fee,0, buyFeeMemo);
+        push(dt,'대변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, 0,amount+fee, buyMemo);
+        const lot=lots[r.stock]||{qty:0,cost:0}; lot.qty+=r.qty; lot.cost+=(amount+fee); lots[r.stock]=lot;
+        calcLines.push(`[매수/매도가능] ${dateKey(dt)} ${r.stock} ${r.qty}주 (수수료 포함, 전표분리) @${r.qty?fmt((amount+fee)/r.qty):0}원 → 보유 ${lot.qty}주, 평균단가 ${lot.qty?fmt(lot.cost/lot.qty):0}원`);
+      } else {
+        // 단기매매증권(당기손익인식금융자산): 평가손익을 즉시 당기손익으로 인식하는 자산이라,
+        // 취득 부대비용(수수료)도 취득원가에 얹지 않고 발생 즉시 비용화한다 (수수료비용 계정, 별도 줄).
+        push(dt,'차변',S.acc.asset.code,S.acc.asset.name,p.code,p.name, amount,0, buyMemo);
+        if(fee) push(dt,'차변',S.acc.fee.code,S.acc.fee.name,p.code,p.name, fee,0, buyFeeMemo);
+        push(dt,'대변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, 0,amount+fee, buyMemo);
+        const lot=lots[r.stock]||{qty:0,cost:0}; lot.qty+=r.qty; lot.cost+=amount; lots[r.stock]=lot;
+        calcLines.push(`[매수] ${dateKey(dt)} ${r.stock} ${r.qty}주 (수수료 즉시비용) @${r.qty?fmt(amount/r.qty):0}원 → 보유 ${lot.qty}주, 평균단가 ${lot.qty?fmt(lot.cost/lot.qty):0}원`);
+      }
+    }
+    else if(act==='sell'){
+      let {_amt:amount, _fee:fee} = r;
+      const lot=lots[r.stock]||{qty:0,cost:0};
+      if(r.qty>lot.qty+0.0001) warnList.push(`${dateKey(dt)} ${r.stock}: 보유수량(${lot.qty})보다 많은 매도수량(${r.qty}) — 이전 매수 데이터가 빠졌을 수 있습니다.`);
+      // 이동평균법: 그때까지의 누적 평균단가로 계산. 총평균법: 위에서 사업연도 전체로 미리 계산해둔 단가 사용.
+      const costBasis = totalAvg
+        ? (totalAvg.costBasisByIdx[r.idx]||0)
+        : Math.round(r.qty*(lot.qty>0? lot.cost/lot.qty : 0));
+      const p=stockPartner(r.stock);
+      const sellMemo = withFxMemo(fillTemplate(S.memo.sell,{qty:r.qty}), r);
+
+      let cashAmt, pnl;
+      if(S.opt.sellFeeSeparate){
+        cashAmt = amount - fee;
+        pnl = amount - costBasis;
+        push(dt,'차변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, cashAmt,0, sellMemo);
+        if(fee) push(dt,'차변',S.acc.fee.code,S.acc.fee.name,p.code,p.name, fee,0, withFxMemo(S.memo.buyfee, r));
+      } else {
+        cashAmt = amount - fee;
+        pnl = cashAmt - costBasis;
+        push(dt,'차변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, cashAmt,0, sellMemo);
+      }
+      push(dt,'대변',S.acc.asset.code,S.acc.asset.name,p.code,p.name, 0,costBasis, sellMemo);
+      if(pnl>=0) push(dt,'대변',S.acc.gain.code,S.acc.gain.name,p.code,p.name, 0,pnl, S.memo.gain);
+      else push(dt,'차변',S.acc.loss.code,S.acc.loss.name,p.code,p.name, -pnl,0, S.memo.loss);
+
+      lot.qty-=r.qty; lot.cost-=costBasis; if(lot.qty<0.0001){lot.qty=0;lot.cost=0;} lots[r.stock]=lot;
+      calcLines.push(`[매도] ${dateKey(dt)} ${r.stock} ${r.qty}주, 취득원가 ${fmt(costBasis)}원, 손익 ${pnl>=0?'+':''}${fmt(pnl)}원 → 잔여 ${lot.qty}주`);
+    }
+    else if(act==='dividend' || act==='interest'){
+      const isDiv = act==='dividend';
+      const p = isDiv ? stockPartner(r.stock) : broker; // 이자수익은 종목이 없어 증권사를 거래처로 사용
+      const incomeAcc = isDiv ? S.acc.div : S.acc.interest;
+      const taxMemoTpl = isDiv ? S.memo.divtax : S.memo.interesttax;
+      const taxInput = r.tax || r.fee; // "제세금/원천세" 컬럼을 우선 쓰고, 없으면 "수수료" 컬럼을 재사용(구버전 파일 호환)
+      let gross, tax, net, derived;
+      if(r.netamount){
+        // "입출금액" 컬럼이 있으면 그게 실제 통장에 들어오는 순액이므로 그대로 쓴다 —
+        // 세전/세후 설정과 무관하게 항상 정확하다. 거래금액은 세전(수익) 금액으로 취급.
+        net = r.netamount; gross = r.amount; tax = gross - net; derived = false;
+      } else {
+        ({gross, tax, net, derived} = computeDivSplit(r.amount, taxInput, S.opt.divGross, S.divTaxRatePct));
+      }
+      const incomeMemo=fillTemplate(S.memo.div,{stock:r.stock,type:r.type});
+      const taxMemo=fillTemplate(taxMemoTpl,{stock:r.stock,type:r.type});
+      push(dt,'차변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, net,0, incomeMemo);
+      if(derived && tax){
+        warnList.push(`${dateKey(dt)} ${r.type}${r.stock?' ('+r.stock+')':''}: 원파일에 원천세 액수가 없어서 원천세율 ${S.divTaxRatePct}%로 역산했습니다 (세금 ${fmt(tax)}원). 실제 금액과 다르면 결과 표에서 고쳐주세요.`);
+      }
+      if(!tax){
+        warnList.push(`${dateKey(dt)} ${r.type}${r.stock?' ('+r.stock+')':''}: 원천세 0으로 처리했습니다.`);
+      }
+      if(tax){
+        const ratio=S.taxLocalRatioPct||0;
+        // 국세:지방세 분리는 "원단위 절사"가 아니라 10원 단위로 사사오입 후 나머지를 지방세로 — 실제 화면 기준.
+        const nationalRaw=tax*100/(100+ratio);
+        const nationalTax=Math.round(nationalRaw/10)*10;
+        const localTax=tax-nationalTax;
+        if(nationalTax) push(dt,'차변',S.acc.taxrecv.code,S.acc.taxrecv.name,S.taxNational.code,S.taxNational.name, nationalTax,0, taxMemo);
+        if(localTax) push(dt,'차변',S.acc.taxrecv.code,S.acc.taxrecv.name,S.taxLocal.code,S.taxLocal.name, localTax,0, taxMemo);
+      }
+      push(dt,'대변',incomeAcc.code,incomeAcc.name,p.code,p.name, 0,gross, incomeMemo);
+    }
+    else if(act==='fx_to_usd'){
+      const krwUsed=r.amount, fee=r.fee||0;
+      push(dt,'차변',S.acc.cash.code,S.acc.cash.name,S.fxAcct.code,S.fxAcct.name||'외화예수금', krwUsed,0, S.memo.fx1);
+      if(fee) push(dt,'차변',S.acc.fxfee.code,S.acc.fxfee.name,broker.code,broker.name, fee,0, S.memo.fx1);
+      push(dt,'대변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, 0,krwUsed+fee, S.memo.fx1);
+    }
+    else if(act==='fx_to_krw'){
+      const krwGot=r.amount, fee=r.fee||0;
+      push(dt,'차변',S.acc.cash.code,S.acc.cash.name,broker.code,broker.name, krwGot,0, S.memo.fx2);
+      if(fee) push(dt,'차변',S.acc.fxfee.code,S.acc.fxfee.name,broker.code,broker.name, fee,0, S.memo.fx2);
+      push(dt,'대변',S.acc.cash.code,S.acc.cash.name,S.fxAcct.code,S.fxAcct.name||'외화예수금', 0,krwGot+fee, S.memo.fx2);
+    }
+  });
+
+  warnList.unshift(`✔ 취득원가 평가방법: ${S.costMethod==='total'? '총평균법 (사업연도 전체 매입 평균, 사업연도 시작월 '+(S.fyStartMonth||1)+'월)' : '이동평균법 (매수할 때마다 재계산)'}`);
+  renderResult(skipCount, warnList, calcLines);
+  markDone('badge-stockmap');
+  openCard('card-result');
+  document.getElementById('card-stockmap').classList.add('collapsed');
+}
+
+function renderResult(skipCount, warnList, calcLines){
+  const totalDebit=ledgerLines.reduce((s,l)=>s+l.debit,0);
+  const totalCredit=ledgerLines.reduce((s,l)=>s+l.credit,0);
+  const balanced=Math.abs(totalDebit-totalCredit)<1;
+  let html=`<div class="totals">
+    <div>생성된 전표 줄 수: <b>${ledgerLines.length}</b></div>
+    <div>차변합계: <b class="debit">${fmt(totalDebit)}</b></div>
+    <div>대변합계: <b class="credit">${fmt(totalCredit)}</b></div>
+    <div>${balanced?'<span class="badge badge-ok">✓ 균형 일치</span>':'<span class="badge badge-err">⚠ 불일치! '+fmt(totalDebit-totalCredit)+'</span>'}</div>
+    <div><span class="badge badge-skip">무시된 행 ${skipCount}건</span></div>
+  </div>`;
+  if(warnList.length){
+    html+='<div class="note" style="margin-top:10px;">⚠ 확인 필요:<br>'+warnList.map(w=>'· '+w).join('<br>')+'</div>';
+  }
+  document.getElementById('resultSummary').innerHTML=html;
+
+  const t=document.getElementById('resultTable');
+  let th='<tr><th>년</th><th>월</th><th>일</th><th>구분</th><th>코드</th><th>계정과목</th><th>거래처코드</th><th>거래처</th><th>차변</th><th>대변</th><th>적요</th></tr>';
+  let body=ledgerLines.map(l=>`<tr>
+    <td>${l.y}</td><td>${l.m}</td><td>${l.d}</td>
+    <td>${l.dc}</td><td>${l.code}</td><td>${l.acctName}</td>
+    <td>${l.pcode}</td><td>${l.pname}</td>
+    <td class="num debit">${l.debit?fmt(l.debit):''}</td>
+    <td class="num credit">${l.credit?fmt(l.credit):''}</td>
+    <td>${l.memo}</td></tr>`).join('');
+  t.innerHTML=th+body;
+
+  document.getElementById('calcLog').innerHTML='<pre style="white-space:pre-wrap;font-size:12px;">'+calcLines.join('\n')+'</pre>';
+}
+
+function downloadResult(){
+  const header=['년','월','일','구분','코드','계정과목','거래처코드','거래처','차변','대변','적요'];
+  const data=[header, ...ledgerLines.map(l=>[l.y,l.m,l.d,l.dc,l.code,l.acctName,l.pcode,l.pname,l.debit||'',l.credit||'',l.memo])];
+  const ws=XLSX.utils.aoa_to_sheet(data);
+  const wbOut=XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wbOut,ws,'최종업로드');
+  const fname=`일반전표입력_변환결과.xlsx`;
+  XLSX.writeFile(wbOut, fname);
+}
+
+/* ===================== 초기화 ===================== */
+loadSettings();
+refreshBrokerSelect();
+updateSettingsHeadSub();
+updateStepbar();
+</script>
+</body>
+</html>

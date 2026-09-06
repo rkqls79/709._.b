@@ -1,0 +1,2166 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>지방세 세목별과세증명서 → 위하고 엑셀 변환기</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.0.5/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --border:#efeae2; --line:var(--border); --text:#332f29; --sub:#948c80; --muted:var(--sub);
+    --accent:#7a8fa6; --sage:#7d9b8a; --rose:#a87878;
+    --sage-bg:#f1f6f3; --rose-bg:#f9f1f1; --sage-tag:#e2efe7; --rose-tag:#f3e4e4;
+    --ok:var(--sage); --ok-bg:var(--sage-bg); --bad:var(--rose); --bad-bg:var(--rose-bg);
+    --warn:#8a6b3d; --warn-bg:#f7f0e0;
+    --navy:#3d6653; --navy-light:#7d9b8a;
+    --shadow:0 2px 8px rgba(60,56,49,.06);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);font-family:'Malgun Gothic','맑은 고딕',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;font-size:13.5px;line-height:1.55;}
+  header{margin:0 auto;max-width:1400px;padding:1cm 20px 22px;border-bottom:1px solid var(--border);
+    display:flex;align-items:flex-start;justify-content:space-between;gap:16px;}
+  header .btn-secondary{flex-shrink:0;white-space:nowrap;}
+  header h1{margin:0 0 4px;font-size:20px;font-weight:700;letter-spacing:-.3px;color:var(--text);}
+  header p{margin:0;font-size:12px;color:var(--sub);}
+  .wrap{max-width:1400px;margin:0 auto;padding:20px 20px 60px;}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:20px;margin-bottom:18px;box-shadow:var(--shadow);}
+  .card h2{margin:0 0 12px;font-size:14px;font-weight:700;color:var(--text);}
+  .dropzone{border:2px dashed var(--border);border-radius:10px;padding:32px 20px;text-align:center;color:var(--sub);cursor:pointer;transition:.15s;background:#fff;}
+  .dropzone.drag{background:#f5f2ed;border-color:var(--accent);}
+  .dropzone:focus-visible{outline:2px solid var(--accent);outline-offset:2px;}
+  .or-divider{display:flex;align-items:center;gap:12px;color:var(--sub);font-size:12px;font-weight:700;margin:-6px 4px 14px;}
+  .or-divider::before,.or-divider::after{content:"";flex:1;height:1px;background:var(--border);}
+  td.note{max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;cursor:pointer;}
+  td.note:not(:empty)::after{content:" 🔍";font-size:10px;opacity:.6;}
+  td.note.expanded{max-width:420px;overflow:visible;text-overflow:clip;white-space:normal;cursor:zoom-out;}
+  tr.file-sep td{background:#eee7da;color:var(--text);font-weight:700;font-size:12px;white-space:normal;border-top:2px solid #d3cabe;}
+  .toolbar-group{display:flex;align-items:center;gap:8px;padding:6px 10px;background:#fff;border:1px solid var(--border);border-radius:8px;}
+  .settings-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:10px 24px;margin-bottom:4px;}
+  .settings-grid label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);font-weight:600;white-space:nowrap;}
+  .settings-grid label input{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;padding:6px 9px;font:inherit;color:var(--text);}
+  .settings-grid-wide{grid-column:1/-1;}
+  .verify-stats{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+  .stat-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:10px;font-size:13px;font-weight:600;}
+  .stat-chip b{font-size:15px;font-weight:800;}
+  .stat-chip.ok{background:var(--ok-bg);color:#2f6b4f;border:1px solid var(--sage-tag);}
+  .stat-chip.bad{background:var(--bad-bg);color:#7a2020;border:1px solid var(--rose-tag);}
+  .stat-chip.warn{background:var(--warn-bg);color:#6b4c00;border:1px solid #ecdcb8;}
+  #dataTable.compact .col-extra{display:none;}
+  .dropzone b{color:var(--text);}
+  input[type=file]{display:none;}
+  .filelist{margin-top:14px;font-size:12.5px;text-align:left;cursor:default;}
+  .filelist:not(:empty){border:1px solid var(--border);border-radius:8px;padding:4px 14px;background:var(--bg);}
+  .filerow{display:flex;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--border);}
+  .filerow:last-child{border-bottom:none;}
+  .filerow .name{flex:1;font-weight:600;}
+  .badge{font-size:11px;padding:2px 9px;border-radius:20px;font-weight:700;}
+  .badge.wait{background:#eee9e4;color:var(--sub);}
+  .badge.run{background:#eef2f7;color:#5a6e84;}
+  .badge.ok{background:var(--sage-tag);color:#3d6653;}
+  .badge.bad{background:var(--rose-tag);color:#7a4040;}
+  progress{width:160px;height:8px;}
+  button{font-family:inherit;font-size:13px;border:none;border-radius:7px;padding:9px 18px;cursor:pointer;font-weight:600;transition:.15s;}
+  .btn-primary{background:var(--sage);color:#fff;}
+  .btn-primary:hover:not(:disabled){background:#6a8a77;}
+  .btn-primary:disabled{background:#d9d3c9;cursor:not-allowed;}
+  .btn-secondary{background:#fff;color:var(--text);border:1.5px solid var(--border) !important;}
+  .btn-secondary:hover{background:#f5f2ed;}
+  .btn-danger{background:var(--rose-tag);color:#7a4040;}
+  .btn-danger:hover{background:#eccece;}
+  .toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:12px;}
+  .status-banner{padding:11px 16px;border-radius:8px;font-size:12.5px;margin-bottom:14px;display:flex;gap:10px;align-items:flex-start;}
+  .status-banner.ok{background:var(--sage-bg);color:#3d6653;border:1px solid var(--sage-tag);}
+  .status-banner.bad{background:var(--rose-bg);color:#7a4040;border:1px solid var(--rose-tag);}
+  .status-banner.warn{background:var(--warn-bg);color:#6b4c00;border:1px solid #ecdcb8;}
+  .status-banner ul{margin:6px 0 0;padding-left:18px;}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;}
+  th,td{border:1px solid var(--border);padding:8px 9px;text-align:left;white-space:nowrap;}
+  th{background:#f8f5f0;color:var(--sub);font-weight:700;font-size:11.5px;position:sticky;top:0;}
+  td input, td select{width:100%;border:1px solid transparent;background:transparent;font:inherit;padding:4px 5px;border-radius:4px;color:var(--text);}
+  td input:focus, td select:focus{border-color:var(--accent);background:#fff;outline:none;}
+  .amt{text-align:right;}
+  tr.flag td{background:var(--warn-bg);}
+  tr.err td{background:var(--rose-bg);}
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px;}
+  tfoot .totals-row td{background:#eee7da;color:var(--text);font-weight:700;position:sticky;bottom:0;}
+  .note{font-size:11.5px;color:var(--sub);margin-top:2px;}
+  .small{font-size:12px;color:var(--sub);}
+  .footer-hint{font-size:12px;color:var(--sub);margin-top:6px;}
+  code{background:#f8f5f0;padding:1px 5px;border-radius:4px;}
+  #libcheck{font-size:12px;color:var(--sub);margin-top:8px;}
+  #libcheck b.bad{color:var(--rose);}
+  #libcheck b.ok{color:var(--sage);}
+</style>
+</head>
+<body>
+
+<header>
+  <div>
+    <h1>🏛️ 지방세 세목별과세증명서 → 위하고 일반전표 엑셀 변환기</h1>
+    <p>PDF(스캔 이미지) 안의 표를 자동으로 인식해 소계 단위로 전표를 만들고, 증명서에 인쇄된 합계·건수와 자동 대사합니다.</p>
+  </div>
+  <button class="btn-secondary" id="downloadTemplateBtn">엑셀 업로드용 빈 템플릿 다운로드</button>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <h2>0. 거래처 · 계정과목 설정</h2>
+    <div class="small" style="margin-bottom:10px;">
+      여기서 정한 값은 변환 시 모든 행에 기본으로 적용됩니다. 비워둔 칸은 증명서 자동 인식 결과(또는 원래 값)를 그대로 씁니다.
+      변환 후에도 아래 입력을 고쳐서 "전체 적용"/"선택 적용"으로 다시 바꿀 수 있습니다.
+    </div>
+    <div class="settings-grid">
+      <label class="small">거래처(차변)
+        <input id="bulkClient" placeholder="예: 성남시 중원구청">
+      </label>
+      <label class="small">거래처 코드
+        <input id="bulkClientCode" placeholder="예: 00461">
+      </label>
+      <label class="small">차변 계정과목
+        <input id="bulkAccount" placeholder="예: 세금과공과" list="accountNameList">
+      </label>
+      <label class="small">대변 계정과목
+        <input id="bulkAccountCredit" placeholder="예: 현금" list="accountNameList">
+      </label>
+      <label class="small settings-grid-wide">특별징수분 계정과목
+        <input id="bulkAccountSpecial" placeholder="예: 예수금" list="accountNameList" style="max-width:220px;">
+        <button class="btn-secondary" id="applyAccountSpecialBtn">특별징수분에만 일괄 적용</button>
+      </label>
+    </div>
+    <div class="toolbar" style="margin-top:2px;">
+      <button class="btn-primary" id="applyAllBtn">전체 적용</button>
+      <button class="btn-secondary" id="applyAllSelBtn">선택 적용</button>
+      <span class="small" style="color:var(--muted)">※ 채워진 칸만 적용됩니다. "선택 적용"은 변환 후 표 왼쪽 체크박스로 선택한 행에만 적용됩니다.</span>
+    </div>
+    <!-- 아래 두 목록은 JS의 ACCOUNT_TABLE 하나에서 자동 생성됩니다(중복 관리 방지) -->
+    <datalist id="accountCodeList"></datalist>
+    <datalist id="accountNameList"></datalist>
+  </div>
+
+  <div class="card">
+    <h2>① 업로드</h2>
+    <div class="dropzone" id="dropzone" tabindex="0" role="button" aria-label="PDF·사진·엑셀 선택 또는 끌어다 놓기">
+      <div id="dropzoneHint">
+        <div><b>여기로 PDF·사진·엑셀(.xlsx)을 끌어다 놓거나 클릭</b>해서 선택하세요 (여러 개 동시 선택·혼합 가능)</div>
+        <div class="small" style="margin-top:6px;">지방세 세목별과세증명서(위택스 등에서 발급된 스캔형 PDF, 또는 인쇄물을 찍은 사진)는 자동 OCR로 인식합니다.<br>
+        이미 사람이 옮겨 적어 확인까지 마친 "원본추출" 형식 엑셀은 OCR 없이 그대로 읽어 더 정확합니다.<br>
+        사진은 <b>기울이지 않고 정면에서, 그림자 없이</b> 찍은 것일수록 인식이 잘 됩니다.</div>
+      </div>
+      <div class="small" id="dropzoneMoreHint" style="display:none;">클릭하거나 끌어다 놓으면 파일을 더 추가할 수 있습니다.</div>
+      <input type="file" id="fileInput" accept="application/pdf,image/*,.xlsx" multiple>
+      <div class="filelist" id="filelist"></div>
+    </div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button class="btn-primary" id="runBtn" disabled>변환 시작</button>
+      <button class="btn-secondary" id="clearBtn">전체 지우기</button>
+    </div>
+    <div id="libcheck"></div>
+    <details style="margin-top:12px;">
+      <summary class="small" style="cursor:pointer;color:var(--sub);">엑셀(.xlsx)로 올릴 때 형식 안내 보기</summary>
+      <div class="small" style="margin-top:8px;">
+        열 순서는 <code>파일, 거래처, 세목, 부과연월, 부과유형, 과세번호, 세액, 비고</code> 이며,
+        항목행 다음에 그 항목들을 합산한 "소계" 행을 넣고, 파일 맨 끝에 증명서에 인쇄된 합계를
+        세목란에 "증명서 인쇄 합계"라고 적은 행을 넣으면 합계 자동 검증도 함께 됩니다.
+        빈 템플릿은 위쪽 "0. 거래처 · 계정과목 설정"에서 받을 수 있습니다.
+      </div>
+    </details>
+  </div>
+
+  <div class="card" id="resultCard" style="display:none;">
+    <h2>② 검증 결과</h2>
+    <div id="bannerHost"></div>
+  </div>
+
+  <div class="card" id="tableCard" style="display:none;">
+    <h2>③ 전표 미리보기 (직접 수정 가능)</h2>
+    <div class="toolbar">
+      <button class="btn-secondary" id="selectFlaggedBtn">확인 필요 행 전체 선택</button>
+      <button class="btn-secondary" id="toggleReviewFilterBtn">확인 필요한 행만 보기</button>
+      <button class="btn-secondary" id="toggleCompactBtn">자세히 보기(코드·관리·파일)</button>
+      <button class="btn-danger" id="deleteRowBtn">선택한 셀 삭제</button>
+      <span class="small" style="color:var(--muted)">※ 거래처·계정과목을 한 번에 바꾸려면 위쪽 "0. 거래처 · 계정과목 설정"의 "선택 적용" 버튼을 쓰세요(표 왼쪽 체크박스로 선택한 행에만 적용됩니다)</span>
+    </div>
+    <div class="tablewrap">
+      <table id="dataTable" class="compact">
+        <thead>
+          <tr>
+            <th></th><th>년</th><th>월</th><th>일</th><th>구분</th>
+            <th>Code</th><th>계정과목</th><th class="col-extra">Code</th><th>거래처</th><th>차변(출금)</th><th>대변(입금)</th>
+            <th class="col-extra">Code</th><th>적요</th><th class="col-extra">관리</th><th>확인메모</th><th class="col-extra">파일</th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+        <tfoot>
+          <tr class="totals-row">
+            <td></td><td></td><td></td><td></td><td>합계</td>
+            <td></td><td></td><td class="col-extra"></td><td></td>
+            <td id="footDebitSum" style="text-align:right"></td>
+            <td id="footCreditSum" style="text-align:right"></td>
+            <td class="col-extra"></td><td></td><td class="col-extra"></td><td></td><td class="col-extra"></td>
+          </tr>
+        </tfoot>
+      </table>
+    </div>
+    <div class="footer-hint">노란색 행은 자동 인식이 확실하지 않거나, 증명서에 납부일자가 인쇄되어 있지 않은(경감 등) 경우입니다. 특히 <b>위쪽 ② 검증 결과가 "불일치"로 표시된 파일은 그 파일에서 나온 모든 행(붉은 배경)의 금액이 확실하지 않다는 뜻</b>이므로, 다운로드 전에 반드시 원본 PDF의 세액 항목과 하나씩 대조해 주세요. "일치"로 표시된 파일도 아주 드물게 서로 다른 두 자릿수 오류가 우연히 합계를 맞추는 경우까지 배제하지는 못하니, 금액이 큰 문서라면 한 번 훑어보시는 것을 권장합니다.</div>
+    <div class="toolbar" style="margin-top:14px;">
+      <button class="btn-primary" id="downloadBtn">엑셀 다운로드 (.xlsx)</button>
+      <span class="small" id="totalLabel"></span>
+    </div>
+  </div>
+
+  <div class="card" style="display:none;">
+    <h2>사용 안내</h2>
+    <div class="small">
+      이 파일은 브라우저에서 직접 OCR(광학문자인식)을 수행하는 독립 실행형 웹페이지입니다. PDF나 인식 결과는 이 컴퓨터 밖으로 전송되지 않습니다(모든 처리는 이 브라우저 안에서만 이루어집니다).<br>
+      처음 실행 시 인식 엔진 파일(수 MB)을 내려받기 때문에 첫 페이지 처리에 시간이 조금 더 걸릴 수 있습니다. 인터넷에 연결된 상태에서 <b>이 HTML 파일을 더블클릭해 크롬/엣지 등 일반 브라우저로 직접 여는 방식</b>을 권장합니다.<br>
+      스캔 이미지 PDF는 OCR 특성상 아주 드물게 숫자 한 자리를 잘못 읽는 경우가 있을 수 있어, 증명서에 인쇄된 합계·건수와 자동으로 대조하는 절차를 넣었습니다. 대조 결과가 "불일치"로 표시되면 해당 문서만 원본과 육안으로 한 번 더 확인해 주세요.
+    </div>
+  </div>
+
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+
+  function libStatusLine(name, ok){
+    return '<span>'+name+': <b class="'+(ok?'ok':'bad')+'">'+(ok?'로드됨':'로드 실패')+'</b></span>';
+  }
+  var libsOk = false;
+  function checkLibs(){
+    var pdfOk = !!window.pdfjsLib;
+    var tessOk = !!window.Tesseract;
+    var xlsxOk = !!window.XLSX;
+    var el = document.getElementById('libcheck');
+    el.innerHTML = [
+      libStatusLine('PDF 엔진(pdf.js)', pdfOk),
+      libStatusLine('OCR 엔진(Tesseract.js)', tessOk),
+      libStatusLine('엑셀 엔진(SheetJS)', xlsxOk)
+    ].join(' &nbsp;|&nbsp; ');
+    if(pdfOk){
+      pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+    }
+    libsOk = pdfOk && tessOk && xlsxOk;
+    if(!libsOk){
+      el.innerHTML += '<div style="color:var(--bad);margin-top:6px;">일부 엔진을 불러오지 못했습니다. 인터넷 연결을 확인한 뒤 아래 버튼으로 다시 확인하거나, 이 파일을 다시 열어 주세요. (사내망 등에서 외부 CDN 접속이 막혀 있으면 이 도구가 동작하지 않습니다.)'
+        + ' <button type="button" class="btn-secondary" id="retryLibsBtn" style="margin-left:8px;padding:4px 10px;font-size:11px;">다시 확인</button></div>';
+      var retryBtn = document.getElementById('retryLibsBtn');
+      if(retryBtn) retryBtn.addEventListener('click', function(){ checkLibs(); renderFileList(); });
+    }
+    // 라이브러리 로드에 실패한 상태라면, 파일이 있어도 변환 버튼이 다시 눌리지 않게 한다
+    runBtn.disabled = files.length===0 || !libsOk;
+    return libsOk;
+  }
+  // 이 파일의 <script> 태그들은 모두 동기 로딩이라, 이 인라인 스크립트가 실행되는 시점엔
+  // 이미 로드 성공/실패가 확정돼 있다. 아래쪽에서 필요한 변수들이 다 준비된 뒤 한 번만 호출한다.
+
+
+
+  var COL_FRAC = [0.050, 0.182, 0.312, 0.446, 0.584, 0.726, 0.954];
+  var HEADER_BOTTOM_FRAC = 0.376;
+
+  var files = [];
+
+  var dropzone = document.getElementById('dropzone');
+  var fileInput = document.getElementById('fileInput');
+  var filelistEl = document.getElementById('filelist');
+  var runBtn = document.getElementById('runBtn');
+  var clearBtn = document.getElementById('clearBtn');
+  var progressLabel = document.getElementById('progressLabel');
+
+  dropzone.addEventListener('click', function(){ fileInput.click(); });
+  dropzone.addEventListener('keydown', function(e){
+    if(e.key==='Enter' || e.key===' '){ e.preventDefault(); fileInput.click(); }
+  });
+  dropzone.addEventListener('dragover', function(e){ e.preventDefault(); dropzone.classList.add('drag'); });
+  dropzone.addEventListener('dragleave', function(){ dropzone.classList.remove('drag'); });
+  dropzone.addEventListener('drop', function(e){
+    e.preventDefault(); dropzone.classList.remove('drag');
+    addFiles(e.dataTransfer.files);
+  });
+  fileInput.addEventListener('change', function(){ addFiles(fileInput.files); fileInput.value=''; });
+
+  function isPdfFile(f){ return f.type === 'application/pdf' || /\.pdf$/i.test(f.name); }
+  function isImageFile(f){ return (f.type && f.type.indexOf('image/')===0) || /\.(jpe?g|png|heic|heif|webp|bmp)$/i.test(f.name); }
+  function isXlsxFile(f){ return /\.xlsx$/i.test(f.name) || f.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'; }
+  function addFiles(list){
+    for(var i=0;i<list.length;i++){
+      if(isPdfFile(list[i]) || isImageFile(list[i]) || isXlsxFile(list[i])){
+        files.push({file:list[i], status:'wait', result:null});
+      }
+    }
+    renderFileList();
+  }
+
+  // 사진(스마트폰으로 찍은 증명서 등)을 PDF와 같은 파이프라인에 태우기 위해 캔버스로 변환한다.
+  // 사진 해상도가 낮으면 표 선/글자 인식이 힘들어지므로 짧은 변 기준 최소 해상도까지 업스케일한다.
+  function loadImageAsCanvas(file){
+    return new Promise(function(resolve, reject){
+      var url = URL.createObjectURL(file);
+      var img = new Image();
+      img.onload = function(){
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var MIN_SIDE = 2000;
+        var scale = Math.min(w,h) < MIN_SIDE ? Math.min(3, MIN_SIDE/Math.min(w,h)) : 1;
+        var cw = Math.round(w*scale), ch = Math.round(h*scale);
+        var cv = document.createElement('canvas');
+        cv.width = cw; cv.height = ch;
+        var ctx = cv.getContext('2d');
+        ctx.imageSmoothingEnabled = true;
+        if('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+        ctx.fillStyle = '#fff'; ctx.fillRect(0,0,cw,ch);
+        ctx.drawImage(img,0,0,cw,ch);
+        URL.revokeObjectURL(url);
+        resolve(cv);
+      };
+      img.onerror = function(){
+        URL.revokeObjectURL(url);
+        reject(new Error('사진을 열 수 없습니다(HEIC 등 이 브라우저가 지원하지 않는 형식일 수 있습니다).'));
+      };
+      img.src = url;
+    });
+  }
+
+  function renderFileList(){
+    // 파일이 이미 있으면 긴 안내문 대신 짧은 한 줄만 남겨서, 파일 목록이 눈에 잘 들어오게 한다
+    var hasFiles = files.length>0;
+    document.getElementById('dropzoneHint').style.display = hasFiles ? 'none' : '';
+    document.getElementById('dropzoneMoreHint').style.display = hasFiles ? '' : 'none';
+
+    filelistEl.innerHTML = '';
+    files.forEach(function(f, idx){
+      var row = document.createElement('div');
+      row.className = 'filerow';
+      var badgeClass = f.status==='wait'?'wait':f.status==='run'?'run':f.status==='ok'?'ok':'bad';
+      var badgeText = f.status==='wait'?'대기':f.status==='run'?'처리중':f.status==='ok'?'완료':'오류';
+      row.innerHTML = '<span class="name">'+f.file.name+'</span>' +
+        '<span class="badge '+badgeClass+'">'+badgeText+'</span>' +
+        '<button class="btn-secondary" style="padding:3px 10px;font-size:11px;" data-remove="'+idx+'">삭제</button>';
+      filelistEl.appendChild(row);
+    });
+    filelistEl.querySelectorAll('[data-remove]').forEach(function(btn){
+      btn.addEventListener('click', function(e){
+        e.stopPropagation(); // 파일 목록이 드롭존 안에 있어, 삭제 버튼을 눌러도 파일 선택창이 다시 열리지 않도록 막는다
+        files.splice(parseInt(btn.getAttribute('data-remove'),10),1);
+        renderFileList();
+      });
+    });
+    // 파일 목록 영역 클릭은 드롭존의 "클릭해서 선택" 동작으로 이어지지 않게 막는다(목록이 드롭존 안에 있으므로)
+    filelistEl.onclick = function(e){ e.stopPropagation(); };
+    runBtn.disabled = files.length===0 || !libsOk;
+  }
+
+  clearBtn.addEventListener('click', function(){
+    files = [];
+    renderFileList();
+    document.getElementById('resultCard').style.display='none';
+    document.getElementById('tableCard').style.display='none';
+  });
+
+
+  function toGray(ctx, w, h){
+    var imgData = ctx.getImageData(0,0,w,h).data;
+    var gray = new Float64Array(w*h);
+    for(var i=0, p=0; i<imgData.length; i+=4, p++){
+      gray[p] = 0.299*imgData[i]+0.587*imgData[i+1]+0.114*imgData[i+2];
+    }
+    return gray;
+  }
+
+
+
+
+  function toGrayBinary(ctx, w, h){
+    var gray = toGray(ctx, w, h);
+    var blockSize = 15, C = 6;
+    var half = Math.floor(blockSize/2);
+    var integral = new Float64Array((w+1)*(h+1));
+    for(var y=0;y<h;y++){
+      var rowSum=0;
+      for(var x=0;x<w;x++){
+        rowSum += gray[y*w+x];
+        integral[(y+1)*(w+1)+(x+1)] = integral[y*(w+1)+(x+1)] + rowSum;
+      }
+    }
+    function areaSum(x0,y0,x1,y1){
+      x0=Math.max(0,x0); y0=Math.max(0,y0);
+      x1=Math.min(w-1,x1); y1=Math.min(h-1,y1);
+      if(x1<x0||y1<y0) return 0;
+      return integral[(y1+1)*(w+1)+(x1+1)] - integral[y0*(w+1)+(x1+1)] - integral[(y1+1)*(w+1)+x0] + integral[y0*(w+1)+x0];
+    }
+    var bin = new Uint8Array(w*h);
+    for(var y=0;y<h;y++){
+      var y0=y-half, y1=y+half;
+      var cy0=Math.max(0,y0), cy1=Math.min(h-1,y1);
+      for(var x=0;x<w;x++){
+        var x0=x-half, x1=x+half;
+        var cx0=Math.max(0,x0), cx1=Math.min(w-1,x1);
+        var cnt = (cy1-cy0+1)*(cx1-cx0+1);
+        var mean = areaSum(x0,y0,x1,y1)/cnt;
+        bin[y*w+x] = (mean - gray[y*w+x]) > C ? 1 : 0;
+      }
+    }
+    return bin;
+  }
+
+  function findHorizontalLines(bin, w, h){
+
+    var minRun = Math.floor(w*0.40);
+    var rowHasLine = new Uint8Array(h);
+    for(var y=0;y<h;y++){
+      var run=0, best=0, base=y*w;
+      for(var x=0;x<w;x++){
+        if(bin[base+x]){ run++; if(run>best) best=run; } else { run=0; }
+      }
+      rowHasLine[y] = best>=minRun ? 1:0;
+    }
+    var groups=[];
+    var y=0;
+    while(y<h){
+      if(rowHasLine[y]){
+        var start=y;
+        while(y<h && rowHasLine[y]) y++;
+        groups.push(Math.floor((start+y-1)/2));
+      } else y++;
+    }
+    return groups;
+  }
+
+
+
+  function findVerticalLines(bin, w, y0, y1, minFrac){
+    var span = Math.max(1, y1-y0);
+    var need = Math.floor(span*(minFrac||0.55));
+    var isLine = new Uint8Array(w);
+    for(var x=0;x<w;x++){
+      var cnt=0;
+      for(var y=y0;y<y1;y++){ if(bin[y*w+x]) cnt++; }
+      isLine[x] = cnt>=need ? 1:0;
+    }
+    var out=[], x2=0;
+    while(x2<w){
+      if(isLine[x2]){
+        var s=x2;
+        while(x2<w && isLine[x2]) x2++;
+        out.push(Math.floor((s+x2-1)/2));
+      } else x2++;
+    }
+    return out;
+  }
+
+
+
+
+
+
+
+
+  function densestLineRun(lines, h){
+    var arr = (lines||[]).filter(function(y){ return y > h*0.15; }).sort(function(a,b){return a-b;});
+    if(arr.length < 3) return null;
+    var best = [], cur = [arr[0]];
+    for(var i=1;i<arr.length;i++){
+      if(arr[i]-cur[cur.length-1] <= h*0.06) cur.push(arr[i]);
+      else { if(cur.length>best.length) best = cur; cur = [arr[i]]; }
+    }
+    if(cur.length>best.length) best = cur;
+    return best.length>=3 ? best : null;
+  }
+
+  function detectCols(bin, w, h, rowLines){
+    if(!rowLines || rowLines.length < 3) return null;
+    var y0 = rowLines[0], y1 = rowLines[rowLines.length-1];
+    if(y1-y0 < h*0.03) return null;
+    var vl = findVerticalLines(bin, w, y0, y1, 0.55);
+    if(vl.length < 5) return null;
+    var left = vl[0], right = vl[vl.length-1];
+    var c1 = vl[1], c4 = vl[vl.length-3], c5 = vl[vl.length-2];
+    if(!(left < c1 && c1 < c4 && c4 < c5 && c5 < right)) return null;
+    if((right-left) < w*0.6) return null;
+    if((c4-c1) < w*0.2 || (c4-c1) > w*0.75) return null;
+    var c2 = Math.round(c1 + (c4-c1)/3);
+    var c3 = Math.round(c1 + 2*(c4-c1)/3);
+    return [left, c1, c2, c3, c4, c5, right];
+  }
+
+  function regionInkRatio(bin, w, x0,x1,y0,y1){
+    var count=0, total=0;
+    for(var y=y0;y<y1;y++){
+      var base=y*w;
+      for(var x=x0;x<x1;x++){ total++; if(bin[base+x]) count++; }
+    }
+    return total? count/total : 0;
+  }
+
+  function cropCanvas(srcCanvas, x0,y0,x1,y1){
+    var w=Math.max(1,x1-x0), h=Math.max(1,y1-y0);
+    var c = document.createElement('canvas');
+    c.width=w; c.height=h;
+    var ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,w,h);
+    ctx.drawImage(srcCanvas, x0,y0,w,h, 0,0,w,h);
+    return c;
+  }
+
+
+
+  function scaleCanvas(srcCanvas, factor){
+    var c = document.createElement('canvas');
+    c.width = Math.max(1, Math.round(srcCanvas.width*factor));
+    c.height = Math.max(1, Math.round(srcCanvas.height*factor));
+    var ctx = c.getContext('2d');
+    ctx.imageSmoothingEnabled = true;
+    if('imageSmoothingQuality' in ctx) ctx.imageSmoothingQuality = 'high';
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,c.width,c.height);
+    ctx.drawImage(srcCanvas, 0,0, c.width, c.height);
+    return c;
+  }
+
+
+  var workerPromise = null;
+  function getWorker(){
+    if(!workerPromise){
+      workerPromise = Tesseract.createWorker('kor+eng');
+    }
+    return workerPromise;
+  }
+  function ocrAmount(worker, canvas){
+    return worker.setParameters({tessedit_pageseg_mode:'7', tessedit_char_whitelist:'0123456789,'})
+      .then(function(){ return worker.recognize(canvas); })
+      .then(function(res){
+        var t = (res.data.text||'').replace(/[^0-9,]/g,'').replace(/,/g,'');
+        return t.length? parseInt(t,10) : null;
+      });
+  }
+  function ocrText(worker, canvas, psm){
+    return worker.setParameters({tessedit_pageseg_mode: psm||'6', tessedit_char_whitelist:''})
+      .then(function(){ return worker.recognize(canvas); })
+      .then(function(res){ return (res.data.text||'').trim(); });
+  }
+
+
+
+  function ocrDigits(worker, canvas){
+    return worker.setParameters({tessedit_pageseg_mode:'7', tessedit_char_whitelist:'0123456789'})
+      .then(function(){ return worker.recognize(canvas); })
+      .then(function(res){ return (res.data.text||'').replace(/[^0-9]/g,''); });
+  }
+
+
+  function processPage(worker, canvas, isLastPageOfDoc, setProg){
+    var w = canvas.width, h = canvas.height;
+    var ctx = canvas.getContext('2d');
+    var bin = toGrayBinary(ctx, w, h);
+    var lines = findHorizontalLines(bin, w, h);
+
+
+
+
+    var body = densestLineRun(lines, h);
+    var cols = detectCols(bin, w, h, body) || COL_FRAC.map(function(f){ return Math.round(f*w); });
+
+
+
+
+
+    return findHeaderBottom(worker, canvas, lines, cols, h).then(function(headerBottom){
+      return scanRows(worker, canvas, bin, lines, cols, w, h, headerBottom, isLastPageOfDoc, setProg);
+    });
+  }
+
+  function findHeaderBottom(worker, canvas, lines, cols, h){
+    var headerGuessY = Math.round(HEADER_BOTTOM_FRAC*h);
+
+
+
+
+    var cands = lines.filter(function(l){ return l > h*0.12 && l < h*0.60; })
+                     .sort(function(a,b){ return a-b; });
+    if(!cands.length) return Promise.resolve(headerGuessY);
+    var band = Math.round(h*0.045);
+    var i = 0;
+    function tryNext(){
+      if(i >= cands.length){
+
+        var best = cands[0], bd = Infinity;
+        cands.forEach(function(l){ var d = Math.abs(l-headerGuessY); if(d<bd){ bd=d; best=l; } });
+        return Promise.resolve(best);
+      }
+      var L = cands[i++];
+      var c = cropCanvas(canvas, cols[1], Math.max(0, L-band), cols[2], L);
+      return ocrText(worker, c, '6').then(function(t){
+        var s = (t||'').replace(/\s+/g,'');
+
+
+        if(fuzzyContains(s,'부과연월') || /Year\s*-?\s*Month/i.test(t||'')) return L;
+        return tryNext();
+      });
+    }
+    return tryNext();
+  }
+
+  function scanRows(worker, canvas, bin, lines, cols, w, h, headerBottom, isLastPageOfDoc, setProg){
+    var rowLines = lines.filter(function(l){ return l>=headerBottom; }).sort(function(a,b){return a-b;});
+    if(rowLines.length && rowLines[0]!==headerBottom) rowLines.unshift(headerBottom);
+
+
+    var trimmed = rowLines.length? [rowLines[0]] : [];
+    for(var i=1;i<rowLines.length;i++){
+      var gap = rowLines[i]-trimmed[trimmed.length-1];
+      trimmed.push(rowLines[i]);
+      if(gap > h*0.075){ trimmed.pop(); break; }
+    }
+    rowLines = trimmed;
+
+    var rowResults = [];
+    var chain = Promise.resolve();
+    var lastYM = null;
+    var totalRows = rowLines.length-1;
+
+    for(var ri=0; ri<totalRows; ri++){
+      (function(ri){
+        var y0=rowLines[ri], y1=rowLines[ri+1];
+
+
+
+
+
+
+
+
+
+
+        var innerLines = findVerticalLines(bin, w, y0+2, y1-2, 0.85)
+          .filter(function(x){ return x > cols[1]+12 && x < cols[4]-12; });
+        var isSogye = innerLines.length === 0;
+
+
+
+
+
+
+        var inset = Math.max(6, Math.round(w*0.006));
+        var cellInk = 0;
+        for(var ci=0; ci<6; ci++){
+          var a = cols[ci]+inset, bb = cols[ci+1]-inset;
+          if(bb-a < 10) continue;
+          var v = regionInkRatio(bin, w, a, bb, y0+3, y1-3);
+          if(v>cellInk) cellInk = v;
+        }
+        if(cellInk < 0.01){
+          chain = chain.then(function(){
+            if(setProg) setProg(ri+1, totalRows);
+            rowResults.push({isSogye:isSogye, amount:null, remark:'', seamok:'', ym:lastYM, desc:'',
+              seamokNarrow:'', remarkDigits:'', y0:y0, y1:y1});
+          });
+          return;
+        }
+        chain = chain.then(function(){
+          if(setProg) setProg(ri+1, totalRows);
+          var amtCanvas = cropCanvas(canvas, cols[4], y0, cols[5], y1);
+          return ocrAmount(worker, amtCanvas).then(function(amount){
+            var remarkCanvas = cropCanvas(canvas, cols[5], y0, cols[6], y1);
+            return ocrText(worker, remarkCanvas, '6').then(function(remark){
+              var seamok='', ym=null, desc='', seamokNarrow='', remarkDigits='';
+              var p = Promise.resolve();
+              if(!isSogye){
+                var ymCanvas = cropCanvas(canvas, cols[1], y0, cols[2], y1);
+                p = ocrText(worker, ymCanvas, '7').then(function(t){
+                  var m = t.match(/(20\d{2})[.\-](\d{2})/);
+                  if(m){ lastYM = m[1]+'-'+m[2]; }
+                  var seamokCanvas = cropCanvas(canvas, cols[0], y0, cols[1], y1);
+                  return ocrText(worker, seamokCanvas, '7').then(function(s){
+                    seamok = s;
+
+
+
+
+                    if(!normalizeSeamok(s)){
+                      return ocrText(worker, seamokCanvas, '6').then(function(s2){
+                        if(normalizeSeamok(s2)){ seamok = s2; return; }
+
+
+
+                        var big = scaleCanvas(seamokCanvas, 2);
+                        return ocrText(worker, big, '7').then(function(s3){
+                          if(normalizeSeamok(s3)){ seamok = s3; return; }
+                          return ocrText(worker, big, '6').then(function(s4){
+                            if(normalizeSeamok(s4)) seamok = s4;
+                          });
+                        });
+                      });
+                    }
+                  });
+                });
+              } else {
+
+
+
+
+
+
+                var descCanvas = cropCanvas(canvas, cols[1], y0, cols[4], y1);
+
+
+
+                var seamokNarrowCanvas = cropCanvas(canvas, cols[0], y0, cols[1], y1);
+                p = ocrText(worker, descCanvas, '6').then(function(t){ desc = t; })
+                  .then(function(){ return ocrText(worker, seamokNarrowCanvas, '6').then(function(s){ seamokNarrow = s; }); })
+
+
+
+                  .then(function(){ return ocrDigits(worker, remarkCanvas).then(function(d){ remarkDigits = d; }); });
+              }
+              return p.then(function(){
+                rowResults.push({
+                  isSogye: isSogye, amount: amount, remark: remark, seamok: seamok, ym: lastYM, desc: desc,
+                  seamokNarrow: seamokNarrow, remarkDigits: remarkDigits, y0:y0, y1:y1
+                });
+              });
+            });
+          });
+        });
+      })(ri);
+    }
+    return chain.then(function(){ return rowResults; });
+  }
+
+
+
+
+
+
+  function cleanRows(rows){
+    return rows.filter(function(r){
+      if(r.amount!==null && r.amount!==undefined) return true;
+      var txt = (r.seamok||'')+(r.remark||'')+(r.desc||'')+(r.seamokNarrow||'');
+      return (txt.match(/[가-힣]/g)||[]).length >= 2;
+    });
+  }
+
+
+  function bigrams(s){
+    var out = [];
+    for(var i=0;i<s.length-1;i++) out.push(s.substr(i,2));
+    return out;
+  }
+
+
+
+  function fuzzyContains(text, keyword){
+    var kb = bigrams(keyword);
+    if(kb.length===0) return text.indexOf(keyword)>=0;
+    if(kb.length<=2) return kb.every(function(b){ return text.indexOf(b)>=0; });
+    var hits = kb.filter(function(b){ return text.indexOf(b)>=0; }).length;
+    return (kb.length-hits) <= 1;
+  }
+
+
+
+
+  function matchKnownSeamok(raw){
+    var t = (raw||'').replace(/\s+/g,'');
+    if(!t) return null;
+
+
+
+
+
+    if(fuzzyContains(t,'등록면허세')){
+
+
+      var tail = t.replace(/^.*등록면허세/, '');
+      if(/차량/.test(tail)) return '등록면허세(차량등록분)';
+      if(/등록/.test(tail) && !/면허/.test(tail)) return '등록면허세(등록)';
+      return '등록면허세(면허)';
+    }
+
+    if(fuzzyContains(t,'취득세')) return /자동차|차량/.test(t) ? '취득세(자동차)' : '취득세';
+    if(fuzzyContains(t,'자동차세')) return '자동차세';
+    if(fuzzyContains(t,'지방소득세')) return /법인/.test(t) ? '지방소득세(법인소득)' : '지방소득세(특별징수)';
+    if(fuzzyContains(t,'재산세')){
+      if(fuzzyContains(t,'건축물')) return '재산세(건축물)';
+      if(fuzzyContains(t,'토지')) return '재산세(토지)';
+      return '재산세';
+    }
+    if(fuzzyContains(t,'지역자원시설세')) return '지역자원시설세';
+    if(fuzzyContains(t,'주민세')) return '주민세(사업소분)';
+    if(fuzzyContains(t,'지방소비세')) return '지방소비세';
+    if(fuzzyContains(t,'담배소비세')) return '담배소비세';
+    if(fuzzyContains(t,'레저세')) return '레저세';
+    return null;
+  }
+
+
+
+
+
+
+  function isAddonOnlySeamok(raw){
+    var t = (raw||'').replace(/\s+/g,'');
+    if(!t) return false;
+    return fuzzyContains(t,'지방교육세') || fuzzyContains(t,'도시지역분');
+  }
+
+
+
+
+
+
+
+
+
+
+
+  function normalizeSeamok(raw){
+    if(isAddonOnlySeamok(raw)) return null;
+    return matchKnownSeamok(raw);
+  }
+
+
+  function extractVehiclePlate(desc){
+    var m = (desc||'').match(/(\d{2,3}[가-힣]\d{4})/);
+    return m ? m[1] : '';
+  }
+
+
+
+
+
+
+  function extractBizType(desc, itemRemark){
+    var t = desc || '';
+
+
+
+    function clean(s){
+      s = (s||'').replace(/\s+/g,'').trim();
+
+
+      if(s && s.length>=2 && s.length<=25 && /^[가-힣0-9()·,]+업\)?$/.test(s)) return s;
+      return '';
+    }
+    var m = t.match(/\[([^\[\]]{2,25})\]\s*$/);
+    if(m){
+      var c1 = clean(m[1]);
+      if(c1) return c1;
+    }
+
+
+
+
+
+    t = t.split('\n').map(function(line){
+      return line.replace(/^\s*\S{1,3}\s{2,}/, '');
+    }).join('');
+
+    var bracketIdx = t.indexOf('[');
+    if(bracketIdx > 0) t = t.slice(bracketIdx);
+    var rest = t.replace(/^\s*\[[^\]]*\]\s*/, '');
+    rest = rest.replace(/^([가-힣]{2,6}(?:시|도|군|구)\s*){1,3}/, '');
+    rest = rest.replace(/\(주\)[가-힣a-zA-Z0-9]*|\(유\)[가-힣a-zA-Z0-9]*|\(합\)[가-힣a-zA-Z0-9]*/g, '');
+    var c2 = clean(rest);
+    if(c2) return c2;
+
+
+
+    var ir = (itemRemark||'').replace(/^\s*\d\s*종\s*/, '');
+    return clean(ir);
+  }
+
+
+
+  function extractPropertyLocation(desc){
+    var t = desc || '';
+    var parts = [];
+    var mDong = t.match(/([가-힣]{2,6}동)\s*(\d+(?:-\d+)?)/);
+    if(mDong) parts.push((mDong[1]+mDong[2]).replace(/\s+/g,''));
+    var mHo = t.match(/(\d{1,4})\s*호/);
+    if(mHo) parts.push(mHo[1]+'호');
+    if(!parts.length && mDong) return mDong[1]+mDong[2];
+    return parts.join('_');
+  }
+
+
+
+  function stripLeading9(v){
+    if(v===null || v===undefined) return null;
+    var s = String(v);
+    if(s.length>1 && s.charAt(0)==='9'){
+      var n = parseInt(s.slice(1),10);
+      return isNaN(n) ? null : n;
+    }
+    return null;
+  }
+
+
+
+  function parsePayDateFlexible(remark){
+    var t = remark || '';
+    var m = t.match(/납부:(\d{4})[.\-](\d{2})[.\-](\d{2})/);
+    if(m) return {y:m[1], m:m[2], d:m[3]};
+    m = t.match(/완납\((\d{4})(\d{2})(\d{2})\)/);
+    if(m) return {y:m[1], m:m[2], d:m[3]};
+    m = t.match(/(20\d{2})[.\-](\d{2})[.\-](\d{2})/);
+    if(m) return {y:m[1], m:m[2], d:m[3]};
+    return null;
+  }
+
+
+
+
+
+
+  function extractPlausibleDateFromDigits(digits){
+    var t = digits || '';
+    for(var i=0; i+8<=t.length; i++){
+      var seg = t.substr(i,8);
+      var y = parseInt(seg.substr(0,4),10), mo = parseInt(seg.substr(4,2),10), d = parseInt(seg.substr(6,2),10);
+      if(y>=2015 && y<=2035 && mo>=1 && mo<=12 && d>=1 && d<=31){
+        return {y: seg.substr(0,4), m: seg.substr(4,2), d: seg.substr(6,2)};
+      }
+    }
+    return null;
+  }
+
+
+  function buildRecords(pagesRows){
+    var records = [];
+    var totalAmount = null;
+    var flatRows = [];
+    pagesRows.forEach(function(rows, pageIdx){ rows.forEach(function(r){ flatRows.push(r); }); });
+
+
+    if(flatRows.length){
+      var last = flatRows[flatRows.length-1];
+      totalAmount = last.amount;
+
+
+      flatRows = flatRows.slice(0,-1);
+    }
+
+    var groupSeamok = null;
+    var groupItemRemark = null;
+    var groupItemAmounts = [];
+    flatRows.forEach(function(r){
+      if(!r.isSogye){
+        var norm = normalizeSeamok(r.seamok);
+        if(norm && !groupSeamok) groupSeamok = norm;
+        if(!groupItemRemark && r.remark && r.remark.trim()) groupItemRemark = r.remark;
+        groupItemAmounts.push(r.amount);
+        return;
+      }
+      var remark = r.remark||'';
+      var isExempt = /소액|면제/.test(remark);
+      var isReducedRaw = /경감/.test(remark);
+
+
+
+
+      var digitDate = (!isExempt && !isReducedRaw) ? extractPlausibleDateFromDigits(r.remarkDigits||'') : null;
+      var payDate = digitDate || parsePayDateFlexible(remark);
+      var isReduced = isReducedRaw && !payDate;
+
+
+
+
+
+      var paidNoDate = !payDate && /완납/.test(remark);
+      var hasRecognizedStatus = !!payDate || isExempt || isReduced || paidNoDate;
+      var amount = r.amount;
+
+
+
+
+      var exemptNoise = (isExempt && amount!==null && amount!==undefined && amount!==0) ? amount : null;
+      if(isExempt) amount = 0;
+
+
+
+
+
+
+      var label = groupSeamok || matchKnownSeamok(r.seamokNarrow) || matchKnownSeamok(r.desc);
+
+
+      if(!label && extractVehiclePlate(r.desc)) label = '자동차세';
+
+
+
+
+      if(!label && /\d{2,3}[가-힣A-Za-z0-9]\d{4}(?!\d)/.test((r.desc||'').replace(/\s+/g,''))) label = '자동차세';
+
+
+
+      if(!label && extractBizType(r.desc, groupItemRemark)) label = '등록면허세(면허)';
+
+      if(!label && /^\s*\d\s*종\s/.test(groupItemRemark||'')) label = '등록면허세(면허)';
+
+
+
+
+      if(!label && /\d{4}\s*년\s*\d{1,2}\s*월/.test(r.desc||'')) label = '지방소득세(특별징수)';
+      var seamokUnknown = !label;
+      if(!label) label = '지방세';
+      var ident = '';
+      if(label==='자동차세' || label==='취득세(자동차)' || label==='등록면허세(차량등록분)'){
+        ident = extractVehiclePlate(r.desc);
+      } else if(label==='재산세(건축물)' || label==='재산세(토지)'){
+        ident = extractPropertyLocation(r.desc);
+      } else if(label==='등록면허세(면허)'){
+
+        ident = extractVehiclePlate(r.desc) || extractBizType(r.desc, groupItemRemark);
+      }
+      var memo = ident ? (label+'_'+ident) : label;
+
+
+
+      var itemSum = null;
+      if(groupItemAmounts.length && groupItemAmounts.every(function(a){ return a!==null && a!==undefined; })){
+        itemSum = groupItemAmounts.reduce(function(s,a){ return s+a; }, 0);
+      }
+      var sumMismatch = (itemSum!==null && amount!==null && amount!==undefined && itemSum!==amount)
+        ? {itemSum: itemSum, sogye: amount} : null;
+
+
+
+
+      var autoFixed = null;
+      if(sumMismatch){
+        var stripped = stripLeading9(amount);
+        if(stripped!==null && stripped===itemSum){
+          autoFixed = {from: amount, to: stripped, where: '소계'};
+          amount = stripped;
+          sumMismatch = null;
+        } else {
+          for(var qi=0; qi<groupItemAmounts.length; qi++){
+            var c2 = stripLeading9(groupItemAmounts[qi]);
+            if(c2===null) continue;
+            if((itemSum - groupItemAmounts[qi] + c2) === amount){
+              autoFixed = {from: groupItemAmounts[qi], to: c2, where: '항목'};
+              sumMismatch = null;
+              break;
+            }
+          }
+        }
+      }
+      records.push({
+        amount: amount,
+        payDate: payDate,
+        fallbackYM: r.ym,
+        remarkRaw: remark,
+        memo: memo,
+        isExempt: isExempt,
+        isReduced: isReduced,
+        seamokUnknown: seamokUnknown,
+        noStatus: !hasRecognizedStatus,
+        paidNoDate: paidNoDate,
+        sumMismatch: sumMismatch,
+        autoFixed: autoFixed,
+        exemptNoise: exemptNoise,
+        needsReview: (amount===null || amount===undefined) || seamokUnknown || !hasRecognizedStatus || !!sumMismatch
+      });
+      groupSeamok = null;
+      groupItemRemark = null;
+      groupItemAmounts = [];
+    });
+
+
+
+
+    var positive = records.map(function(r){return r.amount;}).filter(function(a){ return a!==null && a!==undefined && a>0; }).sort(function(a,b){return a-b;});
+    if(positive.length>=3){
+      var median = positive[Math.floor(positive.length/2)];
+      records.forEach(function(r){
+        if(r.amount!==null && r.amount!==undefined && median>0 && r.amount > median*4){
+          r.needsReview = true;
+          r.outlier = true;
+        }
+
+
+        if(r.amount!==null && r.amount!==undefined && r.amount>0 && r.amount<100 && !r.isExempt){
+          r.needsReview = true;
+          r.outlier = true;
+        }
+      });
+    }
+    return {records: records, totalAmount: totalAmount};
+  }
+
+
+
+
+
+
+  function guessClient(page1Text){
+    var t = page1Text || '';
+
+    var m = t.match(/과세\s*자치\s*단체\s*[:：]?\s*((?:[가-힣]{2,8}(?:특별자치시|특별자치도|특별시|광역시|도|시|구|군)\s*){1,3})/);
+    if(m){
+      var toks = m[1].trim().split(/\s+/).filter(function(x){ return /(특별자치시|특별자치도|특별시|광역시|도|시|구|군)$/.test(x); });
+      if(toks.length){
+        var last = toks[toks.length-1], prev = toks.length>1 ? toks[toks.length-2] : '';
+
+        if(/(구|군)$/.test(last)) return (prev ? prev+' ' : '') + last + '청';
+
+        if(/시$/.test(last)) return (/(도)$/.test(prev) ? prev+' ' : '') + last + '청';
+        return last;
+      }
+    }
+
+
+    var flat = t.replace(/\s+/g,'');
+    var m2 = flat.match(/([가-힣]{2,8}(?:특별시|광역시|도))?([가-힣]{2,8}구)청장/);
+    if(m2) return (m2[1] ? m2[1]+' ' : '') + m2[2] + '청';
+    m2 = flat.match(/([가-힣]{2,6}시)장(?![가-힣])/);
+    if(m2) return m2[1]+'청';
+    m2 = flat.match(/([가-힣]{2,6}군)수(?![가-힣])/);
+    if(m2) return m2[1]+'청';
+    var m3 = t.match(/([가-힣]{2,6}시)\s*([가-힣]{1,6}(?:구|군))/);
+    if(m3) return m3[1]+' '+m3[2]+'청';
+    var m4 = t.match(/([가-힣]{2,8}(?:시|군)청)/);
+    if(m4) return m4[1];
+    return '';
+  }
+
+
+
+
+  function ocrIssuerFromSeal(worker, canvas, page1Text){
+    var w = canvas.width, h = canvas.height;
+
+
+
+
+    var c = cropCanvas(canvas, Math.round(w*0.15), Math.round(h*0.60), Math.round(w*0.95), Math.round(h*0.95));
+    var modes = ['6','4','11'];
+    var i = 0;
+    function tryNext(){
+      if(i >= modes.length) return Promise.resolve(guessClientFromAddress(page1Text));
+      return ocrText(worker, c, modes[i++]).then(function(t){
+        var got = guessClient(t);
+        return got || tryNext();
+      });
+    }
+    return tryNext().catch(function(){ return ''; });
+  }
+
+
+  function guessClientFromAddress(page1Text){
+    var t = (page1Text||'');
+    var m = t.match(/([가-힣]{2,6}시)\s*([가-힣]{2,6}구)\s/);
+    if(m) return m[1]+' '+m[2]+'청';
+    m = t.match(/(?:[가-힣]{2,6}도)\s*([가-힣]{2,6}시)\s/);
+    if(m) return m[1]+'청';
+    m = t.match(/([가-힣]{2,6}군)\s/);
+    if(m) return m[1]+'청';
+    return '';
+  }
+
+  function guessExpectedCount(page1Text){
+    // OCR이 숫자를 O/o(→0), l/I/|(→1)로 잘못 읽는 경우가 흔해 먼저 보정하고,
+    // 숫자 사이에 엉뚱한 공백이 낀 경우("1 0건")도 허용해서 붙여 읽는다.
+    var t = (page1Text||'').replace(/[Oo]/g,'0').replace(/[lI|]/g,'1');
+    function parseDigits(s){ var n = parseInt(s.replace(/\s+/g,''),10); return isNaN(n) ? null : n; }
+    // 말도 안 되게 큰 숫자(잘못 읽은 다른 숫자를 건수로 착각한 경우)는 건수로 보지 않는다
+    function sane(n){ return n!==null && n>=0 && n<200; }
+
+    var m = t.match(/외\s*((?:\d\s*){1,3})\s*건/);
+    if(m){ var n1 = parseDigits(m[1]); if(sane(n1)) return n1+1; }
+    // "외 N건"(현재 건 제외, +1 필요) 문구가 없으면 "총/합계/전체 N건"처럼
+    // 이미 전체 건수를 그대로 적은 문구도 시도해본다
+    m = t.match(/(?:총|합계|전체)\s*((?:\d\s*){1,3})\s*건/);
+    if(m){ var n2 = parseDigits(m[1]); if(sane(n2) && n2>=1) return n2; }
+    return null;
+  }
+
+
+
+
+  var NAME_CELL = {x0:0.372, y0:0.199, x1:0.542, y1:0.230};
+
+
+  function cleanTaxpayerName(raw){
+    var t = (raw||'').replace(/[^가-힣a-zA-Z0-9()·\s]/g,' ').replace(/\s+/g,' ').trim();
+    if(!t) return '';
+    t = t.replace(/\(\s*주\s*\)\s*/g,'(주)').replace(/\(\s*유\s*\)\s*/g,'(유)');
+    var compact = t.replace(/\s+/g,'');
+    if(compact.length < 2 || compact.length > 25) return '';
+    if(!/[가-힣]/.test(compact)) return '';
+    if(/성명|법인명|Name|Corporation/i.test(compact)) return '';
+    return compact;
+  }
+
+  function ocrTaxpayerName(worker, canvas){
+    var w = canvas.width, h = canvas.height;
+    var c = cropCanvas(canvas,
+      Math.round(NAME_CELL.x0*w), Math.round(NAME_CELL.y0*h),
+      Math.round(NAME_CELL.x1*w), Math.round(NAME_CELL.y1*h));
+    return ocrText(worker, c, '7').then(function(t){
+      var n = cleanTaxpayerName(t);
+      if(n) return n;
+
+      return ocrText(worker, scaleCanvas(c, 2), '7').then(function(t2){ return cleanTaxpayerName(t2); });
+    }).catch(function(){ return ''; });
+  }
+
+
+  function guessTaxpayerName(page1Text){
+    var t = page1Text || '';
+    var m = t.match(/\(\s*주\s*\)\s*([가-힣a-zA-Z0-9]{2,20})/);
+    if(m) return '(주)'+m[1];
+    m = t.match(/주식회사\s*([가-힣a-zA-Z0-9]{2,20})/);
+    if(m) return '주식회사'+m[1];
+    m = t.match(/\(\s*유\s*\)\s*([가-힣a-zA-Z0-9]{2,20})/);
+    if(m) return '(유)'+m[1];
+    return '';
+  }
+
+
+  function sanitizeFileName(s){
+    return (s||'').replace(/[\\/:*?"<>|]/g,'').trim();
+  }
+
+
+
+
+
+
+
+
+  var ADDON_ONLY_SEAMOK = {'지방교육세':1, '지역자원시설세(소방)':1, '도시지역분':1};
+  var SKIP_SEAMOK_LABELS = {'소계 합산(수식)':1};
+
+  function parseNum(v){
+    if(v===null || v===undefined || v==='') return null;
+    if(typeof v === 'number') return v;
+    var n = Number(String(v).replace(/,/g,'').trim());
+    return isNaN(n) ? null : n;
+  }
+
+  function parseRawExcelWorkbook(wb, uploadedFileName){
+
+
+
+    var order = wb.SheetNames.slice().sort(function(a,b){
+      var pa = /원본추출/.test(a) ? 0 : 1, pb = /원본추출/.test(b) ? 0 : 1;
+      return pa - pb;
+    });
+    var sheetName = null, aoa = null, header = null;
+    for(var s=0; s<order.length; s++){
+      var testAoa = XLSX.utils.sheet_to_json(wb.Sheets[order[s]], {header:1, raw:true, defval:''});
+      if(!testAoa.length) continue;
+      var testHeader = testAoa[0].map(function(h){ return String(h==null?'':h).trim(); });
+      if(testHeader.indexOf('세목')>=0 && testHeader.indexOf('세액')>=0){
+        sheetName = order[s]; aoa = testAoa; header = testHeader; break;
+      }
+    }
+    if(!sheetName){
+      sheetName = wb.SheetNames[0];
+      aoa = XLSX.utils.sheet_to_json(wb.Sheets[sheetName], {header:1, raw:true, defval:''});
+      header = (aoa[0]||[]).map(function(h){ return String(h==null?'':h).trim(); });
+    }
+    if(!aoa.length) throw new Error('빈 엑셀입니다.');
+    var iFile = header.indexOf('파일'), iClient = header.indexOf('거래처'), iSeamok = header.indexOf('세목'),
+        iYm = header.indexOf('부과연월'), iAmt = header.indexOf('세액'), iRemark = header.indexOf('비고');
+    if(iSeamok===-1 || iAmt===-1){
+      throw new Error('엑셀 첫 행(헤더)에서 "세목"/"세액" 열을 찾을 수 없습니다. 템플릿 형식(파일, 거래처, 세목, 부과연월, 부과유형, 과세번호, 세액, 비고)을 확인해 주세요.');
+    }
+
+    var byFile = {};
+    function fileBucket(name){
+      if(!byFile[name]) byFile[name] = {client:'', buf:[], groups:[], printedTotal:null};
+      return byFile[name];
+    }
+    var lastFile = iFile>=0 ? '' : (uploadedFileName || '업로드된 엑셀');
+
+    aoa.slice(1).forEach(function(row){
+      if(!row || row.every(function(c){ return c===''||c==null; })) return;
+      var seamok = String(row[iSeamok]==null?'':row[iSeamok]).trim();
+      if(!seamok) return;
+      var file = (iFile>=0 ? String(row[iFile]==null?'':row[iFile]).trim() : '') || lastFile || (uploadedFileName || '업로드된 엑셀');
+      lastFile = file;
+      var b = fileBucket(file);
+      if(iClient>=0){
+        var cl = String(row[iClient]==null?'':row[iClient]).trim();
+        if(cl) b.client = cl;
+      }
+      if(seamok === '증명서 인쇄 합계'){
+        b.printedTotal = parseNum(row[iAmt]);
+        return;
+      }
+      if(SKIP_SEAMOK_LABELS[seamok]) return;
+
+      var ym = iYm>=0 ? String(row[iYm]==null?'':row[iYm]).trim() : '';
+      var amt = parseNum(row[iAmt]);
+      var remark = iRemark>=0 ? String(row[iRemark]==null?'':row[iRemark]).trim() : '';
+
+      if(seamok === '소계'){
+        var primary = null;
+        for(var i=0;i<b.buf.length;i++){
+          if(!ADDON_ONLY_SEAMOK[b.buf[i].seamok]){ primary = b.buf[i].seamok; break; }
+        }
+        if(!primary && b.buf.length) primary = b.buf[0].seamok;
+        var groupYm = b.buf.length ? b.buf[0].ym : ym;
+        b.groups.push({primary: primary, amount: amt, remark: remark, ym: groupYm});
+        b.buf = [];
+      } else {
+        b.buf.push({seamok: seamok, ym: ym});
+      }
+    });
+
+    var allRecords = [];
+    var fileSummaries = [];
+    Object.keys(byFile).forEach(function(file){
+      var info = byFile[file];
+      var recs = [];
+      info.groups.forEach(function(g){
+        var amount = g.amount;
+        var remark = g.remark || '';
+        var isExempt = /소액|면제/.test(remark);
+        var payDate = parsePayDateFlexible(remark);
+        var isReduced = /경감/.test(remark) && !payDate;
+        var hasRecognizedStatus = !!payDate || isExempt || /경감/.test(remark);
+        var amountMissing = (amount===null || amount===undefined) && !isExempt;
+        if((amount===null || amount===undefined) && isExempt) amount = 0;
+        var seamokUnknown = !g.primary;
+        var primary = g.primary || '지방세';
+        var bracket = (/\[([^\]]+)\]/.exec(remark)||[])[1];
+        var memo = bracket ? (primary+'_'+bracket.trim()) : primary;
+
+
+        var needsManualCheck = /확인\s*필요|재확인|검토\s*필요|미확인|확인\s*요망|확인\s*바람/.test(remark);
+        recs.push({
+          file: file, client: info.client, amount: amount, payDate: payDate,
+          fallbackYM: g.ym, remarkRaw: remark, memo: memo, isExempt: isExempt,
+          isReduced: isReduced, seamokUnknown: seamokUnknown, noStatus: !hasRecognizedStatus,
+          amountMissing: amountMissing, needsManualCheck: needsManualCheck,
+          needsReview: amountMissing || seamokUnknown || !hasRecognizedStatus || needsManualCheck,
+          outlier: false
+        });
+      });
+
+      var positive = recs.map(function(r){return r.amount;}).filter(function(a){ return a!==null && a!==undefined && a>0; }).sort(function(a,b){return a-b;});
+      if(positive.length>=3){
+        var median = positive[Math.floor(positive.length/2)];
+        recs.forEach(function(r){
+          if(r.amount!=null && median>0 && r.amount > median*4){ r.needsReview = true; r.outlier = true; }
+          if(r.amount!=null && r.amount>0 && r.amount<100 && !r.isExempt){ r.needsReview = true; r.outlier = true; }
+        });
+      }
+      var sum = recs.reduce(function(s,r){ return s+(r.amount||0); },0);
+      var sumOk = info.printedTotal!=null ? (sum===info.printedTotal) : null;
+      var fileFailed = (sumOk===false);
+      recs.forEach(function(r){ r.fileFailed = fileFailed; r.countFailed = false; r.sumFailed = fileFailed; });
+      fileSummaries.push({name:file, client:info.client, expectedCount:null, actualCount:recs.length, printedTotal:info.printedTotal, calcTotal:sum, countOk:null, sumOk:sumOk});
+      allRecords = allRecords.concat(recs);
+    });
+
+    return {allRecords: allRecords, fileSummaries: fileSummaries};
+  }
+
+  function downloadRawTemplate(){
+    var aoa = [
+      ['파일','거래처','세목','부과연월','부과유형','과세번호','세액','비고'],
+      ['예시파일.pdf','OO구청','자동차세(자동차)','2025-01','신고분','000461',190370,'1,995(cc) *200원'],
+      ['예시파일.pdf','OO구청','지방교육세','2025-01','신고분','000461',57110,''],
+      ['예시파일.pdf','OO구청','소계','','','',247480,'완납(납부:2025.01.22) [23나3883]'],
+      ['예시파일.pdf','OO구청','증명서 인쇄 합계','','','',247480,'(그 파일 전체의 증명서 인쇄 합계 - 선택 입력, 넣으면 자동 검증됨)'],
+    ];
+    var wbT = XLSX.utils.book_new();
+    var wsT = XLSX.utils.aoa_to_sheet(aoa);
+    wsT['!cols'] = [{wch:18},{wch:16},{wch:20},{wch:10},{wch:9},{wch:10},{wch:12},{wch:44}];
+    XLSX.utils.book_append_sheet(wbT, wsT, '1_원본추출');
+    XLSX.writeFile(wbT, '지방세_원본추출_템플릿.xlsx');
+  }
+
+  document.getElementById('downloadTemplateBtn').addEventListener('click', downloadRawTemplate);
+
+  // "② 검증 결과" 자리에 처리 진행 상황을 실시간으로 보여준다(끝나면 renderResults가 실제 결과로 덮어씀)
+  function setProcessingStatus(text){
+    document.getElementById('bannerHost').innerHTML = '<div class="status-banner warn">'+text+'</div>';
+  }
+
+  runBtn.addEventListener('click', function(){
+    if(!checkLibs()) return;
+    runBtn.disabled = true;
+    document.getElementById('resultCard').style.display='block';
+    document.getElementById('tableCard').style.display='block';
+    setProcessingStatus('처리 중입니다. 문서 수와 페이지 수에 따라 다소 시간이 걸릴 수 있습니다…');
+    document.getElementById('resultCard').scrollIntoView({behavior:'smooth', block:'start'});
+
+    lastSourceXlsxName = '';
+    var allRecords = [];
+    var fileSummaries = [];
+    var detectedTaxpayerName = '';
+    var yearCounts = {};
+    // 엑셀 파일 딱 하나만 올렸을 때만 그 파일명을 다운로드 파일명에 반영한다(여러 파일 섞이면 의미가 없어짐)
+    var onlyOneXlsx = files.length===1 && isXlsxFile(files[0].file);
+
+    var chain = Promise.resolve();
+    files.forEach(function(f, fidx){
+      chain = chain.then(function(){
+        f.status='run'; renderFileList();
+        setProcessingStatus('처리 중: <b>'+escapeHtml(f.file.name)+'</b> ('+(fidx+1)+'/'+files.length+')');
+
+        // 엑셀(이미 사람이 확인한 원본추출 형식)은 OCR 없이 바로 읽는다 — Tesseract 워커도 필요 없음
+        if(isXlsxFile(f.file)){
+          return f.file.arrayBuffer().then(function(buf){
+            var wb = XLSX.read(buf, {type:'array'});
+            var parsed = parseRawExcelWorkbook(wb, f.file.name);
+            if(onlyOneXlsx){
+              lastSourceXlsxName = (f.file.name || '').replace(/\.(xlsx|xlsm|xls)$/i, '').trim();
+              if(!detectedTaxpayerName) detectedTaxpayerName = guessTaxpayerName(f.file.name) || '';
+            }
+            parsed.allRecords.forEach(function(r){
+              var yy = (r.payDate && r.payDate.y) || (r.fallbackYM ? r.fallbackYM.split('-')[0] : null);
+              if(yy) yearCounts[yy] = (yearCounts[yy]||0)+1;
+            });
+            allRecords = allRecords.concat(parsed.allRecords);
+            fileSummaries = fileSummaries.concat(parsed.fileSummaries);
+            f.status='ok'; renderFileList();
+          }).catch(function(err){
+            console.error(err);
+            f.status='bad'; renderFileList();
+            fileSummaries.push({name:f.file.name, error:String(err && err.message || err)});
+          });
+        }
+
+        return getWorker().then(function(worker){
+          var pageCanvasesPromise = isImageFile(f.file)
+            ? loadImageAsCanvas(f.file).then(function(cv){ return [cv]; })
+            : f.file.arrayBuffer().then(function(buf){
+                return pdfjsLib.getDocument({data:buf}).promise.then(function(pdf){
+                  var pageCanvases = [];
+                  var pageChain = Promise.resolve();
+                  for(var p=1;p<=pdf.numPages;p++){
+                    (function(p){
+                      pageChain = pageChain.then(function(){
+                        return pdf.getPage(p).then(function(page){
+                          var viewport = page.getViewport({scale: 5.56});
+                          var canvas = document.createElement('canvas');
+                          canvas.width = viewport.width; canvas.height = viewport.height;
+                          var ctx = canvas.getContext('2d');
+                          return page.render({canvasContext:ctx, viewport:viewport}).promise.then(function(){
+                            pageCanvases.push(canvas);
+                          });
+                        });
+                      });
+                    })(p);
+                  }
+                  return pageChain.then(function(){ return pageCanvases; });
+                });
+              });
+          return pageCanvasesPromise.then(function(pageCanvases){
+
+            return ocrText(worker, pageCanvases[0], '11').then(function(page1Text){
+              var expectedCount = guessExpectedCount(page1Text);
+              var client = guessClient(page1Text);
+              return (client ? Promise.resolve(client) : ocrIssuerFromSeal(worker, pageCanvases[0], page1Text))
+                .then(function(c){ return startWithClient(c || ''); });
+
+              function startWithClient(client){
+
+
+              return (detectedTaxpayerName ? Promise.resolve('') : ocrTaxpayerName(worker, pageCanvases[0]))
+                .then(function(nameFromCell){
+                  if(!detectedTaxpayerName){
+                    detectedTaxpayerName = nameFromCell || guessTaxpayerName(page1Text) || '';
+                  }
+                  return continueWithPages();
+                });
+
+              function continueWithPages(){
+              var pagesRowsChain = Promise.resolve();
+              var pagesRows = [];
+              pageCanvases.forEach(function(canvas, pIdx){
+                pagesRowsChain = pagesRowsChain.then(function(){
+                  return processPage(worker, canvas, pIdx===pageCanvases.length-1, function(done,total){
+                    setProcessingStatus('처리 중: <b>'+escapeHtml(f.file.name)+'</b> ('+(fidx+1)+'/'+files.length+') · 페이지 '+(pIdx+1)+'/'+pageCanvases.length+' · 행 '+done+'/'+total);
+                  }).then(function(rows){
+                    pagesRows.push(cleanRows(rows));
+                  });
+                });
+              });
+              return pagesRowsChain.then(function(){
+                var built = buildRecords(pagesRows);
+                var sum = built.records.reduce(function(s,r){ return s+(r.amount||0); },0);
+                var countOk = expectedCount===null ? null : (built.records.length===expectedCount);
+                var sumOk = (built.totalAmount!==null && built.totalAmount!==undefined) ? (sum===built.totalAmount) : null;
+                var countFailed = (countOk===false), sumFailed = (sumOk===false);
+                var fileFailed = countFailed || sumFailed;
+                fileSummaries.push({
+                  name:f.file.name, client:client, expectedCount:expectedCount, actualCount:built.records.length,
+                  printedTotal:built.totalAmount, calcTotal:sum, countOk:countOk, sumOk:sumOk
+                });
+                built.records.forEach(function(r){
+                  var yy = (r.payDate && r.payDate.y) || (r.fallbackYM ? r.fallbackYM.split('-')[0] : null);
+                  if(yy) yearCounts[yy] = (yearCounts[yy]||0)+1;
+                  allRecords.push({
+                    file: f.file.name, client: client, amount: r.amount, payDate: r.payDate,
+                    fallbackYM: r.fallbackYM, remarkRaw: r.remarkRaw, memo: r.memo, isExempt: r.isExempt,
+                    isReduced: r.isReduced, needsReview: r.needsReview, seamokUnknown: r.seamokUnknown,
+                    noStatus: r.noStatus, fileFailed: fileFailed, countFailed: countFailed, sumFailed: sumFailed, outlier: r.outlier,
+                    sumMismatch: r.sumMismatch, autoFixed: r.autoFixed, paidNoDate: r.paidNoDate
+                  });
+                });
+                f.status='ok'; renderFileList();
+              });
+              }
+              }
+            });
+          }).catch(function(err){
+            console.error(err);
+            f.status='bad'; renderFileList();
+            fileSummaries.push({name:f.file.name, error:String(err && err.message || err)});
+          });
+        });
+      });
+    });
+
+    chain.then(function(){
+      lastTaxpayerName = detectedTaxpayerName;
+      var bestYear = '', bestYearCount = 0;
+      Object.keys(yearCounts).forEach(function(y){ if(yearCounts[y]>bestYearCount){ bestYearCount=yearCounts[y]; bestYear=y; } });
+      lastYear = bestYear;
+      renderResults(fileSummaries, allRecords);
+      runBtn.disabled = false;
+    }).catch(function(err){
+      console.error(err);
+      document.getElementById('bannerHost').innerHTML = '<div class="status-banner bad">처리 중 오류가 발생했습니다: '+String(err && err.message || err)+'</div>';
+      runBtn.disabled = false;
+    });
+  });
+
+  function statChip(ok, label){
+    var cls = ok===false ? 'bad' : ok===true ? 'ok' : 'warn';
+    var icon = ok===false ? '⚠' : ok===true ? '✓' : '?';
+    return '<span class="stat-chip '+cls+'">'+icon+' '+label+'</span>';
+  }
+
+  function renderResults(summaries, records){
+    var html = '';
+    summaries.forEach(function(s){
+      if(s.error){
+        html += '<div class="status-banner bad"><div><b>'+s.name+'</b> 처리 실패: '+s.error+'</div></div>';
+        return;
+      }
+      var ok = (s.countOk!==false) && (s.sumOk!==false);
+      var cls = ok ? 'ok' : 'bad';
+      var countLabel = '건수 <b>'+s.actualCount+'</b>건'+(s.expectedCount!==null?(' / 증명서 '+s.expectedCount+'건'):' (증명서 문구 인식 실패)');
+      var sumLabel = '합계 <b>'+s.calcTotal.toLocaleString()+'</b>원'+(s.printedTotal!=null?(' / 증명서 '+s.printedTotal.toLocaleString()+'원'):' (합계 행 인식 실패)')
+        + (s.sumOk===false ? ' (차이 '+Math.abs(s.calcTotal-s.printedTotal).toLocaleString()+'원)' : '');
+      html += '<div class="status-banner '+cls+'"><div>'+
+        '<b>'+s.name+'</b> — 거래처(인식): '+(s.client||'<i>인식 실패, 수동 입력 필요</i>')+
+        '<div class="verify-stats">'+statChip(s.countOk, countLabel)+statChip(s.sumOk, sumLabel)+'</div>'+
+        (s.sumOk===false ? '<div class="small" style="margin-top:4px;">이 차이만큼 어긋난 행을 찾아 대조해 주세요</div>' : '') +
+        '</div></div>';
+    });
+    document.getElementById('bannerHost').innerHTML = html || '<div class="status-banner warn">처리된 파일이 없습니다.</div>';
+    renderTable(records);
+    // 처리 결과가 화면 아래쪽에 나타나므로, 사용자가 놓치지 않도록 자동으로 스크롤해 보여준다
+    var resultCardEl = document.getElementById('resultCard');
+    if(resultCardEl && resultCardEl.scrollIntoView) resultCardEl.scrollIntoView({behavior:'smooth', block:'start'});
+  }
+
+  var tableBody = document.getElementById('tableBody');
+  var lastTaxpayerName = '', lastYear = '';
+  var lastSourceXlsxName = '';
+
+  function lastDayOfMonth(y, m){
+    var yn = parseInt(y,10), mn = parseInt(m,10);
+    if(!yn || !mn) return 28;
+    return new Date(yn, mn, 0).getDate();
+  }
+  function fmtDate(r){
+    if(r.payDate) return r.payDate;
+    if(r.fallbackYM){
+      var y = r.fallbackYM.split('-')[0], m = r.fallbackYM.split('-')[1];
+
+      var d = lastDayOfMonth(y, m);
+      return {y:y, m:m, d:(d<10?'0'+d:''+d)};
+    }
+    return {y:'',m:'',d:''};
+  }
+
+
+  var ACCOUNT_TABLE = [
+    {code:'101', name:'현금'},
+    {code:'103', name:'보통예금'},
+    {code:'817', name:'세금과공과'},
+    {code:'126', name:'회사설정계정과목'},
+    {code:'254', name:'예수금'}
+  ];
+  function renderAccountDatalists(){
+    var codeList = document.getElementById('accountCodeList');
+    var nameList = document.getElementById('accountNameList');
+    if(codeList) codeList.innerHTML = ACCOUNT_TABLE.map(function(a){
+      return '<option value="'+a.code+'">'+a.code+' - '+a.name+'</option>';
+    }).join('');
+    if(nameList) nameList.innerHTML = ACCOUNT_TABLE.map(function(a){
+      return '<option value="'+a.name+'">'+a.name+' ('+a.code+')</option>';
+    }).join('');
+  }
+  renderAccountDatalists();
+
+  // ---------- 금액 콤마 표시 ----------
+  function formatMoney(n){
+    n = Math.round(Number(n));
+    if(isNaN(n)) n = 0;
+    return n.toLocaleString('ko-KR');
+  }
+  function formatMoneyInput(input){
+    var before = input.value;
+    var selStart = (input.selectionStart==null) ? before.length : input.selectionStart;
+    var digitsBeforeCursor = before.slice(0, selStart).replace(/[^0-9]/g,'').length;
+    var digits = before.replace(/[^0-9]/g,'');
+    var raw = digits==='' ? NaN : parseInt(digits,10);
+    var formatted = isNaN(raw) ? '' : formatMoney(raw);
+    input.value = formatted;
+    var pos=0, count=0;
+    while(pos<formatted.length && count<digitsBeforeCursor){
+      if(/[0-9]/.test(formatted.charAt(pos))) count++;
+      pos++;
+    }
+    input.setSelectionRange(pos,pos);
+  }
+
+
+  function resolveAccount(v){
+    v = String(v||'').trim();
+    if(!v) return null;
+    var hit = ACCOUNT_TABLE.filter(function(a){ return a.code===v || a.name===v; })[0];
+    return hit || null;
+  }
+
+  var DEBIT_CODE = '817', DEBIT_ACCOUNT = '세금과공과';
+  var CREDIT_CODE = '101', CREDIT_ACCOUNT = '현금';
+
+
+  // 특별징수분(원천세 예수금 정산 성격)은 실무상 거의 항상 "예수금"으로 처리되므로 기본값을 예수금으로 둔다.
+  // "0. 기본값 설정"의 입력창에서 언제든 다른 계정으로 바꿀 수 있다.
+  var SPECIAL_CODE = '254', SPECIAL_ACCOUNT = '예수금';
+
+  // "0. 기본값 설정" 카드에서 입력한 값을 읽어온다. 목록에 있는 계정명/코드면 코드-이름을 서로 맞춰주고,
+  // 목록에 없는 값을 직접 입력했으면 그 값을 그대로 쓰고, 비어 있으면 지정된 기본값을 쓴다.
+  function getDefaults(){
+    function acct(inputId, fallbackCode, fallbackName){
+      var el = document.getElementById(inputId);
+      var v = el ? el.value.trim() : '';
+      if(!v) return {code:fallbackCode, name:fallbackName};
+      var hit = resolveAccount(v);
+      return hit ? hit : {code:'', name:v};
+    }
+    function text(inputId){
+      var el = document.getElementById(inputId);
+      return el ? el.value.trim() : '';
+    }
+    return {
+      client: text('bulkClient'),
+      clientCode: text('bulkClientCode'),
+      debit: acct('bulkAccount', DEBIT_CODE, DEBIT_ACCOUNT),
+      special: acct('bulkAccountSpecial', SPECIAL_CODE, SPECIAL_ACCOUNT),
+      credit: acct('bulkAccountCredit', CREDIT_CODE, CREDIT_ACCOUNT)
+    };
+  }
+
+  function renderTable(records){
+    tableBody.innerHTML = '';
+    var defaults = getDefaults();
+    // 새로 변환한 결과이므로 이전 "확인 필요한 행만 보기" 필터 상태를 초기화한다
+    reviewFilterOn = false;
+    var toggleBtnEl = document.getElementById('toggleReviewFilterBtn');
+    if(toggleBtnEl) toggleBtnEl.textContent = '확인 필요한 행만 보기';
+    var colCount = document.querySelectorAll('#dataTable thead th').length;
+    var lastFile = null;
+    records.forEach(function(rec, idx){
+      if(rec.file !== lastFile){
+        // 여러 파일을 한 번에 처리했을 때 어디서부터 다른 파일 몫인지 바로 보이도록 구분 행을 넣는다
+        var sepTr = document.createElement('tr');
+        sepTr.className = 'file-sep';
+        sepTr.innerHTML = '<td colspan="'+colCount+'">📄 '+escapeHtml(rec.file)+'</td>';
+        tableBody.appendChild(sepTr);
+        lastFile = rec.file;
+      }
+      var d = fmtDate(rec);
+      var isSpecialAccount = /^지방소득세\(특별징수\)/.test(rec.memo||'') || /^지방소득세\(법인소득\)/.test(rec.memo||'') ||
+        /^취득세\(자동차\)/.test(rec.memo||'') || /^등록면허세\(차량등록분\)/.test(rec.memo||'');
+      var debitCode = isSpecialAccount ? defaults.special.code : defaults.debit.code;
+      var debitAccount = isSpecialAccount ? defaults.special.name : defaults.debit.name;
+
+
+
+
+      var selfFlagged = rec.needsReview || rec.isReduced || isSpecialAccount || (rec.payDate===null && !rec.isExempt);
+      var flagged = selfFlagged || rec.fileFailed;
+      var noteParts = [];
+      if(rec.fileFailed){
+        // 실제로 어긋난 게 건수인지 합계인지(혹은 둘 다인지) 구분해서 정확히 안내한다
+        var failReason = (rec.countFailed && rec.sumFailed) ? '건수와 합계가'
+                        : rec.countFailed ? '건수가(합계는 정확히 일치합니다)'
+                        : '합계가(건수는 정확히 일치합니다)';
+        if(selfFlagged) noteParts.push('⚠ 이 문서는 '+failReason+' 증명서 인쇄 내용과 달라 자동 검증에 실패했습니다 - 이 쌍을 포함해 문서 전체를 원본과 대조해 주세요');
+        else noteParts.push('이 항목 자체에는 특이사항이 발견되지 않았지만, 이 문서의 '+failReason+' 증명서 인쇄 내용과 달라(문서 내 다른 행에 오류가 있을 수 있음) 문서 전체를 한 번 확인해 주시면 더 안전합니다');
+      }
+      if(rec.autoFixed) noteParts.push('금액 자동 교정: '+rec.autoFixed.where+' 금액이 '+rec.autoFixed.from.toLocaleString()+'원으로 읽혔으나(세액 앞 ₩ 기호가 9로 잘못 인식된 경우), 항목 합계와 소계가 정확히 맞아떨어지는 '+rec.autoFixed.to.toLocaleString()+'원으로 바로잡았습니다');
+      if(rec.sumMismatch) noteParts.push('⚠ 금액 오인식 확정: 이 소계 위의 항목 세액을 더하면 '+rec.sumMismatch.itemSum.toLocaleString()+'원인데 소계는 '+rec.sumMismatch.sogye.toLocaleString()+'원으로 읽혔습니다(차이 '+Math.abs(rec.sumMismatch.sogye-rec.sumMismatch.itemSum).toLocaleString()+'원) - 이 그룹의 숫자를 원본과 대조해 금액을 고쳐주세요');
+      if(rec.outlier) noteParts.push('금액이 이 문서의 다른 항목보다 비정상적으로 커서(자릿수 오인식 의심) 자동으로 표시했습니다');
+      if((rec.amount===null || rec.amount===undefined) && !rec.outlier) noteParts.push(rec.amountMissing!==undefined ? '세액 칸이 비어 있습니다 - 확인 후 금액을 입력해 주세요' : '금액 자동 인식 실패 - 직접 확인/입력 필요');
+      if(rec.needsManualCheck) noteParts.push('비고에 "확인 필요" 등 검토를 요청하는 표시가 있습니다 - 업로드 전에 원본과 대조해 주세요');
+      if(rec.seamokUnknown) noteParts.push("세목명을 자동으로 인식하지 못해 '지방세'로 임시 표시했습니다 - 적요를 원본 증명서와 대조해 정확한 세목으로 고쳐주세요");
+      if(rec.noStatus) noteParts.push('비고란에서 완납/경감/소액징수면제 중 어느 것도 확인되지 않았습니다 - 표 줄 인식 오류로 생긴 행일 수 있으니 원본과 대조해 주세요');
+      if(rec.isReduced) noteParts.push('경감 처리로 완납일자가 증명서에 없어 부과연월 말일로 임시 표기 - 실제 납부일 확인 필요');
+      if(rec.paidNoDate) noteParts.push('증명서에 "완납"만 있고 완납일자가 인쇄되어 있지 않아 부과연월 말일로 표기했습니다 - 필요하면 실제 납부일로 고쳐주세요');
+      if(rec.isExempt) noteParts.push('소액징수면제(세액 0원) - 전표 등록 필요 여부 확인');
+      if(/^지방소득세\(특별징수\)/.test(rec.memo||'')) noteParts.push('특별징수분은 원천세 예수금 정산 성격이라 계정과목을 "'+debitAccount+'"로 표시했습니다 - 회사 정책과 다르면 "0. 기본값 설정"에서 계정을 바꿔주세요');
+      if(/^지방소득세\(법인소득\)/.test(rec.memo||'')) noteParts.push('법인지방소득세는 회사 정책에 따라 법인세비용 등으로 처리하기도 함 - 계정과목 검토(일단 "'+debitAccount+'"로 표시)');
+      if(/^취득세\(자동차\)/.test(rec.memo||'')) noteParts.push('차량 관련 취득세는 통상 차량 취득원가에 자본화 - 세금과공과 대신 "'+debitAccount+'"로 임시 표시, 차량운반구 등 자산 계정으로 대체할지 검토 필요');
+      if(/^등록면허세\(차량등록분\)/.test(rec.memo||'')) noteParts.push('차량 등록면허세도 취득세(자동차)와 마찬가지로 취득원가 자본화 여부 검토 필요 - 일단 "'+debitAccount+'"로 임시 표시');
+      var rowClass = selfFlagged ? 'err' : (flagged ? 'flag' : '');
+      var amtStr = (rec.amount!=null?formatMoney(rec.amount):'');
+
+      var debitTr = document.createElement('tr');
+      debitTr.className = rowClass;
+      debitTr.setAttribute('data-pair', idx);
+      debitTr.setAttribute('data-role', 'debit');
+      debitTr.style.borderTop = '2px solid #d3cabe';
+      debitTr.innerHTML =
+        '<td><input type="checkbox" class="rowchk"></td>'+
+        '<td><input class="f-y" value="'+d.y+'" style="width:52px"></td>'+
+        '<td><input class="f-m" value="'+d.m+'" style="width:36px"></td>'+
+        '<td><input class="f-d" value="'+d.d+'" style="width:36px"></td>'+
+        '<td><input class="f-gubun" value="차변" style="width:44px" readonly></td>'+
+        '<td><input class="f-code1" value="'+escapeHtml(debitCode)+'" list="accountCodeList" style="width:50px"></td>'+
+        '<td><input class="f-account" value="'+escapeHtml(debitAccount)+'" list="accountNameList" style="width:96px"></td>'+
+        '<td class="col-extra"><input class="f-code2" value="'+escapeHtml(defaults.clientCode)+'" style="width:50px"></td>'+
+        '<td><input class="f-client" value="'+escapeHtml(defaults.client||rec.client||'')+'" style="width:120px"></td>'+
+        '<td><input class="f-debit amt" value="'+amtStr+'" style="width:90px;text-align:right"></td>'+
+        '<td><input class="f-credit amt" value="" style="width:70px;text-align:right" readonly></td>'+
+        '<td class="col-extra"><input class="f-code3" style="width:50px"></td>'+
+        '<td><input class="f-memo" value="'+escapeHtml(rec.memo||'')+'" style="width:220px"></td>'+
+        '<td class="col-extra"><input class="f-mgmt" style="width:50px"></td>'+
+        '<td class="note" title="'+escapeHtml(noteParts.join(' / '))+'">'+escapeHtml(noteParts.join(' / '))+'</td>'+
+        '<td class="src-file col-extra">'+escapeHtml(rec.file)+'</td>';
+
+      var creditTr = document.createElement('tr');
+      creditTr.className = rowClass;
+      creditTr.setAttribute('data-pair', idx);
+      creditTr.setAttribute('data-role', 'credit');
+      creditTr.innerHTML =
+        '<td></td>'+
+        '<td><input class="f-y" value="'+d.y+'" style="width:52px"></td>'+
+        '<td><input class="f-m" value="'+d.m+'" style="width:36px"></td>'+
+        '<td><input class="f-d" value="'+d.d+'" style="width:36px"></td>'+
+        '<td><input class="f-gubun" value="대변" style="width:44px" readonly></td>'+
+        '<td><input class="f-code1" value="'+escapeHtml(defaults.credit.code)+'" list="accountCodeList" style="width:50px"></td>'+
+        '<td><input class="f-account-credit" value="'+escapeHtml(defaults.credit.name)+'" list="accountNameList" style="width:96px"></td>'+
+        '<td class="col-extra"><input class="f-code2" style="width:50px"></td>'+
+        '<td><input class="f-client-credit" value="" style="width:120px"></td>'+
+        '<td><input class="f-debit amt" value="" style="width:90px;text-align:right" readonly></td>'+
+        '<td><input class="f-credit amt" value="'+amtStr+'" style="width:70px;text-align:right"></td>'+
+        '<td class="col-extra"><input class="f-code3" style="width:50px"></td>'+
+        '<td><input class="f-memo" value="'+escapeHtml(rec.memo||'')+'" style="width:220px"></td>'+
+        '<td class="col-extra"><input class="f-mgmt" style="width:50px"></td>'+
+        '<td class="note"></td>'+
+        '<td class="src-file col-extra">'+escapeHtml(rec.file)+'</td>';
+
+      tableBody.appendChild(debitTr);
+      tableBody.appendChild(creditTr);
+    });
+    updateTotalLabel();
+    tableBody.querySelectorAll('.f-debit, .f-credit').forEach(function(inp){
+      inp.addEventListener('input', function(){ formatMoneyInput(inp); updateTotalLabel(); });
+    });
+    // 확인메모는 평소엔 말줄임(+마우스 오버 툴팁)으로 짧게 두고, 클릭하면 펼쳐서 전체를 본다
+    tableBody.querySelectorAll('td.note').forEach(function(td){
+      td.addEventListener('click', function(){ td.classList.toggle('expanded'); });
+    });
+
+    tableBody.querySelectorAll('tr').forEach(function(tr){
+      ['f-y','f-m','f-d'].forEach(function(cls){
+        var inp = tr.querySelector('.'+cls);
+        if(!inp) return;
+        inp.addEventListener('input', function(){
+          var pairId = tr.getAttribute('data-pair');
+          tableBody.querySelectorAll('tr[data-pair="'+pairId+'"] .'+cls).forEach(function(other){
+            if(other!==inp) other.value = inp.value;
+          });
+        });
+      });
+      var memoInp = tr.querySelector('.f-memo');
+      if(memoInp){
+        memoInp.addEventListener('input', function(){
+          var pairId = tr.getAttribute('data-pair');
+          tableBody.querySelectorAll('tr[data-pair="'+pairId+'"] .f-memo').forEach(function(other){
+            if(other!==memoInp) other.value = memoInp.value;
+          });
+        });
+      }
+
+
+
+      var codeInp = tr.querySelector('.f-code1');
+      var acctInp = tr.querySelector('.f-account') || tr.querySelector('.f-account-credit');
+      if(codeInp && acctInp){
+        codeInp.addEventListener('input', function(){
+          var hit = resolveAccount(codeInp.value);
+          if(hit){ codeInp.value = hit.code; acctInp.value = hit.name; }
+        });
+        acctInp.addEventListener('input', function(){
+          var hit = resolveAccount(acctInp.value);
+          if(hit){ acctInp.value = hit.name; codeInp.value = hit.code; }
+        });
+      }
+    });
+  }
+
+  function escapeHtml(s){
+    return String(s==null?'':s).replace(/[&<>"']/g, function(c){
+      return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c];
+    });
+  }
+
+  function updateTotalLabel(){
+    var debitRows = tableBody.querySelectorAll('tr[data-role="debit"]');
+    var creditRows = tableBody.querySelectorAll('tr[data-role="credit"]');
+    var debitSum=0, creditSum=0;
+    debitRows.forEach(function(tr){
+      var v = parseFloat((tr.querySelector('.f-debit').value||'0').replace(/,/g,''));
+      if(!isNaN(v)) debitSum+=v;
+    });
+    creditRows.forEach(function(tr){
+      var v = parseFloat((tr.querySelector('.f-credit').value||'0').replace(/,/g,''));
+      if(!isNaN(v)) creditSum+=v;
+    });
+    var match = debitSum===creditSum;
+    var footDebit = document.getElementById('footDebitSum');
+    var footCredit = document.getElementById('footCreditSum');
+    if(footDebit) { footDebit.textContent = debitSum ? formatMoney(debitSum) : ''; footDebit.style.color = match ? '' : 'var(--bad)'; }
+    if(footCredit) { footCredit.textContent = creditSum ? formatMoney(creditSum) : ''; footCredit.style.color = match ? '' : 'var(--bad)'; }
+    var label = document.getElementById('totalLabel');
+    var zeroCount = 0;
+    debitRows.forEach(function(tr){
+      var el = tr.querySelector('.f-debit');
+      if((parseFloat(((el?el.value:'')||'0').replace(/,/g,'')) || 0) === 0) zeroCount++;
+    });
+
+
+    var byYear = {};
+    debitRows.forEach(function(tr){
+      var el = tr.querySelector('.f-y');
+      var amt = parseFloat((tr.querySelector('.f-debit').value||'0').replace(/,/g,'')) || 0;
+      if(amt === 0) return;
+      var y = (el && el.value ? String(el.value).trim() : '') || '연도미상';
+      if(!byYear[y]) byYear[y] = {n:0, sum:0};
+      byYear[y].n++; byYear[y].sum += amt;
+    });
+    var years = Object.keys(byYear).sort();
+    var yearMsg = '';
+    if(years.length > 1){
+      yearMsg = ' · <b style="color:var(--accent,#2b6cb0)">' + years.length + '개 연도가 섞여 있어 다운로드 시 연도별 시트로 나뉩니다</b> <span style="color:var(--muted)">('
+        + years.map(function(y){ return y+'년 '+byYear[y].n+'쌍 '+byYear[y].sum.toLocaleString()+'원'; }).join(' / ')
+        + ') - 위하고에 시트별로 올리시면 됩니다</span>';
+    }
+    var flaggedCount = tableBody.querySelectorAll('tr[data-role="debit"].err, tr[data-role="debit"].flag').length;
+    var flagMsg = flaggedCount
+      ? ' · <b style="color:var(--bad)">⚠ 확인 필요 '+flaggedCount+'쌍</b>'
+      : ' · <b style="color:var(--ok)">✓ 확인 필요 항목 없음</b>';
+    label.innerHTML = debitRows.length+'쌍(전표 '+(debitRows.length*2)+'행) · 차변 합계 '+debitSum.toLocaleString()+'원 · 대변 합계 '+creditSum.toLocaleString()+'원 · '+
+      (match ? '<b style="color:var(--ok)">✓ 차변=대변 일치</b>' : '<b style="color:var(--bad)">⚠ 차변≠대변 불일치 - 표를 확인해 주세요</b>')+
+      flagMsg+
+      (zeroCount ? ' · <span style="color:var(--muted)">세액 0원 '+zeroCount+'건은 업로드 파일에서 자동 제외됩니다(합계 영향 없음)</span>' : '')+
+      yearMsg;
+  }
+
+
+
+  function checkedPairIds(){
+    var ids = [];
+    tableBody.querySelectorAll('tr[data-role="debit"]').forEach(function(tr){
+      var chk = tr.querySelector('.rowchk');
+      if(chk && chk.checked) ids.push(tr.getAttribute('data-pair'));
+    });
+    return ids;
+  }
+
+  function rowsInScope(role, scope){
+    var out = [];
+    var ids = scope==='selected' ? checkedPairIds() : null;
+    tableBody.querySelectorAll('tr[data-role="'+role+'"]').forEach(function(tr){
+      if(scope==='selected' && ids.indexOf(tr.getAttribute('data-pair'))<0) return;
+      if(scope==='special'){
+        var memoInp = tr.querySelector('.f-memo');
+        var memo = memoInp ? memoInp.value : '';
+        if(!/특별징수/.test(memo)) return;
+      }
+      out.push(tr);
+    });
+    return out;
+  }
+  function applyAccount(role, inputId, scope){
+    var v = document.getElementById(inputId).value;
+    if(!v.trim()){ alert('적용할 계정과목을 먼저 입력해 주세요.'); return; }
+    var hit = resolveAccount(v);
+    var rows = rowsInScope(role, scope);
+    if(!rows.length){
+      alert(scope==='selected' ? '표 왼쪽 체크박스로 적용할 행을 먼저 선택해 주세요.'
+           : scope==='special' ? '적요가 "특별징수"인 행이 없습니다.' : '적용할 행이 없습니다.');
+      return;
+    }
+    rows.forEach(function(tr){
+      var acctInp = tr.querySelector(role==='debit' ? '.f-account' : '.f-account-credit');
+      var codeInp = tr.querySelector('.f-code1');
+      if(acctInp) acctInp.value = hit ? hit.name : v;
+      if(codeInp && hit) codeInp.value = hit.code;
+    });
+  }
+  // "0. 거래처 · 계정과목 설정"의 채워진 칸만 골라 한 번에 적용한다(빈 칸은 건드리지 않음)
+  function applyAllDefaults(scope){
+    var vClient = document.getElementById('bulkClient').value;
+    var vClientCode = document.getElementById('bulkClientCode').value;
+    var vDebitAcc = document.getElementById('bulkAccount').value.trim();
+    var vCreditAcc = document.getElementById('bulkAccountCredit').value.trim();
+    if(!vClient && !vClientCode && !vDebitAcc && !vCreditAcc){
+      alert('적용할 값을 먼저 입력해 주세요.');
+      return;
+    }
+    var rows = rowsInScope('debit', scope);
+    if(!rows.length){
+      alert(scope==='selected' ? '표 왼쪽 체크박스로 적용할 행을 먼저 선택해 주세요.' : '적용할 행이 없습니다.');
+      return;
+    }
+    var hitDebit = vDebitAcc ? resolveAccount(vDebitAcc) : null;
+    var hitCredit = vCreditAcc ? resolveAccount(vCreditAcc) : null;
+    rows.forEach(function(tr){
+      if(vClient){ var c = tr.querySelector('.f-client'); if(c) c.value = vClient; }
+      if(vClientCode){ var cc = tr.querySelector('.f-code2'); if(cc) cc.value = vClientCode; }
+      if(vDebitAcc){
+        var a = tr.querySelector('.f-account'); if(a) a.value = hitDebit ? hitDebit.name : vDebitAcc;
+        var code1 = tr.querySelector('.f-code1'); if(code1 && hitDebit) code1.value = hitDebit.code;
+      }
+      if(vCreditAcc){
+        var pairId = tr.getAttribute('data-pair');
+        var creditTr = tableBody.querySelector('tr[data-role="credit"][data-pair="'+pairId+'"]');
+        if(creditTr){
+          var ac = creditTr.querySelector('.f-account-credit'); if(ac) ac.value = hitCredit ? hitCredit.name : vCreditAcc;
+          var code1c = creditTr.querySelector('.f-code1'); if(code1c && hitCredit) code1c.value = hitCredit.code;
+        }
+      }
+    });
+  }
+
+  document.getElementById('applyAllBtn').addEventListener('click', function(){ applyAllDefaults('all'); });
+  document.getElementById('applyAllSelBtn').addEventListener('click', function(){ applyAllDefaults('selected'); });
+  document.getElementById('applyAccountSpecialBtn').addEventListener('click', function(){ applyAccount('debit','bulkAccountSpecial','special'); });
+  document.getElementById('deleteRowBtn').addEventListener('click', function(){
+
+    var pairIds = [];
+    tableBody.querySelectorAll('tr[data-role="debit"]').forEach(function(tr){
+      var chk = tr.querySelector('.rowchk');
+      if(chk && chk.checked) pairIds.push(tr.getAttribute('data-pair'));
+    });
+    pairIds.forEach(function(id){
+      tableBody.querySelectorAll('tr[data-pair="'+id+'"]').forEach(function(tr){ tr.remove(); });
+    });
+    updateTotalLabel();
+  });
+
+  document.getElementById('selectFlaggedBtn').addEventListener('click', function(){
+    var flaggedRows = tableBody.querySelectorAll('tr[data-role="debit"].err, tr[data-role="debit"].flag');
+    if(!flaggedRows.length){ alert('확인이 필요한 행이 없습니다.'); return; }
+    // 정확히 "확인 필요" 행만 선택된 상태로 맞춘다(기존 체크는 해제)
+    tableBody.querySelectorAll('tr[data-role="debit"] .rowchk').forEach(function(chk){ chk.checked = false; });
+    flaggedRows.forEach(function(tr){ var chk = tr.querySelector('.rowchk'); if(chk) chk.checked = true; });
+  });
+
+  var reviewFilterOn = false;
+  function applyReviewFilter(onlyFlagged){
+    var visiblePairIds = {};
+    tableBody.querySelectorAll('tr[data-role="debit"]').forEach(function(tr){
+      var show = !onlyFlagged || tr.classList.contains('err') || tr.classList.contains('flag');
+      if(show) visiblePairIds[tr.getAttribute('data-pair')] = true;
+    });
+    tableBody.querySelectorAll('tr[data-pair]').forEach(function(tr){
+      tr.style.display = visiblePairIds[tr.getAttribute('data-pair')] ? '' : 'none';
+    });
+    // 파일 구분 행은, 그 파일의 행이 하나도 안 보이면 같이 숨긴다
+    tableBody.querySelectorAll('tr.file-sep').forEach(function(sepTr){
+      var next = sepTr.nextElementSibling, anyVisible = false;
+      while(next && !next.classList.contains('file-sep')){
+        if(next.style.display !== 'none'){ anyVisible = true; break; }
+        next = next.nextElementSibling;
+      }
+      sepTr.style.display = anyVisible ? '' : 'none';
+    });
+  }
+  document.getElementById('toggleReviewFilterBtn').addEventListener('click', function(){
+    reviewFilterOn = !reviewFilterOn;
+    applyReviewFilter(reviewFilterOn);
+    this.textContent = reviewFilterOn ? '전체 보기' : '확인 필요한 행만 보기';
+    if(reviewFilterOn && !tableBody.querySelector('tr[data-role="debit"].err, tr[data-role="debit"].flag')){
+      alert('확인이 필요한 행이 없습니다. 전체 보기로 되돌립니다.');
+      reviewFilterOn = false;
+      applyReviewFilter(false);
+      this.textContent = '확인 필요한 행만 보기';
+    }
+  });
+
+  document.getElementById('toggleCompactBtn').addEventListener('click', function(){
+    var table = document.getElementById('dataTable');
+    var compact = table.classList.toggle('compact');
+    this.textContent = compact ? '자세히 보기(코드·관리·파일)' : '간단히 보기';
+  });
+
+  document.getElementById('downloadBtn').addEventListener('click', function(){
+    var headers = ["년","월","일","구분","Code","계정과목","Code","거래처","차변(출금)","대변(입금)","Code","적요","관리"];
+    var aoa = [headers];
+
+
+
+
+    var skippedPairs = [];
+    tableBody.querySelectorAll('tr[data-role="debit"]').forEach(function(tr){
+      function v(cls){ var el = tr.querySelector('.'+cls); return el? el.value : ''; }
+      var pairId = tr.getAttribute('data-pair');
+      var creditTr = tableBody.querySelector('tr[data-role="credit"][data-pair="'+pairId+'"]');
+      var d = parseFloat((v('f-debit')||'0').replace(/,/g,'')) || 0;
+      var c = 0;
+      if(creditTr){
+        var creditEl = creditTr.querySelector('.f-credit');
+        c = parseFloat(((creditEl?creditEl.value:'')||'0').replace(/,/g,'')) || 0;
+      }
+      // 차변·대변이 둘 다 0일 때만 스킵한다(한쪽만 0으로 남은 행을 잘못 지우지 않도록)
+      if(d === 0 && c === 0) skippedPairs.push({id: pairId, memo: v('f-memo')});
+    });
+    var skipIds = skippedPairs.map(function(s){ return s.id; });
+
+
+
+
+
+    var yearOfPair = {};
+    tableBody.querySelectorAll('tr[data-role="debit"]').forEach(function(tr){
+      var el = tr.querySelector('.f-y');
+      var y = el && el.value ? String(el.value).trim() : '';
+      yearOfPair[tr.getAttribute('data-pair')] = y || '연도미상';
+    });
+
+    var groups = {};
+    var yearOrder = [];
+    tableBody.querySelectorAll('tr').forEach(function(tr){
+      var pid = tr.getAttribute('data-pair');
+      if(pid===null) return; // 파일 구분용 안내 행 등 실제 전표 행이 아닌 것은 건너뛴다
+      if(skipIds.indexOf(pid)>=0) return;
+      var yr = yearOfPair[pid] || '연도미상';
+      if(!groups[yr]){
+        groups[yr] = {aoa: [headers.slice()], noteRows: [], debitTotal: 0, creditTotal: 0};
+        yearOrder.push(yr);
+      }
+      var g = groups[yr];
+      function val(cls){ var el = tr.querySelector('.'+cls); return el? el.value : ''; }
+      var debit = parseFloat((val('f-debit')||'0').replace(/,/g,'')) || 0;
+      var credit = parseFloat((val('f-credit')||'0').replace(/,/g,'')) || 0;
+      g.debitTotal += debit;
+      g.creditTotal += credit;
+      var account = val('f-account') || val('f-account-credit');
+      var client = val('f-client') || val('f-client-credit');
+      g.aoa.push([
+        val('f-y')? parseInt(val('f-y'),10) : '',
+        val('f-m')? parseInt(val('f-m'),10) : '',
+        val('f-d')? parseInt(val('f-d'),10) : '',
+        val('f-gubun') && !isNaN(parseInt(val('f-gubun'),10)) ? parseInt(val('f-gubun'),10) : val('f-gubun'),
+        val('f-code1'),
+        account,
+        val('f-code2'),
+        client,
+        debit || '',
+        credit || '',
+        val('f-code3'),
+        val('f-memo'),
+        val('f-mgmt')
+      ]);
+      var noteEl = tr.querySelector('.note');
+      var noteText = noteEl ? noteEl.textContent.trim() : '';
+      if(noteText){
+        var srcEl = tr.querySelector('.src-file');
+        g.noteRows.push({rowNum: g.aoa.length, file: srcEl ? srcEl.textContent : '', note: noteText});
+      }
+    });
+    yearOrder.sort();
+
+
+
+    var wb = XLSX.utils.book_new();
+    var multiYear = yearOrder.length > 1;
+    var sheetNames = {};
+    yearOrder.forEach(function(yr){
+      var g = groups[yr];
+      var ws = XLSX.utils.aoa_to_sheet(g.aoa);
+      ws['!cols'] = [{wch:6},{wch:5},{wch:5},{wch:6},{wch:7},{wch:14},{wch:7},{wch:16},{wch:13},{wch:13},{wch:7},{wch:40},{wch:8}];
+
+      g.noteRows.forEach(function(nr){
+        [nr.rowNum, nr.rowNum+1].forEach(function(rn){
+          for(var c=0;c<13;c++){
+            var addr = XLSX.utils.encode_cell({r:rn-1, c:c});
+            if(!ws[addr]) ws[addr] = {t:'s', v:''};
+            ws[addr].s = { fill: { fgColor: { rgb: 'FFF6DF' } } };
+          }
+        });
+      });
+      var nm = multiYear ? (yr==='연도미상' ? '연도미상' : yr+'년') : '일반전표입력';
+      sheetNames[yr] = nm;
+      XLSX.utils.book_append_sheet(wb, ws, nm);
+    });
+
+    var noteAoa = [['행번호(해당 시트 기준)','시트','파일','확인 필요 사항']];
+    if(multiYear){
+      noteAoa.push(['', '', '',
+        '위하고는 연도별로만 업로드할 수 있어, 전표를 연도별 시트로 나눠 담았습니다: '
+        + yearOrder.map(function(y){ return sheetNames[y]+'('+((groups[y].aoa.length-1)/2)+'쌍, '
+            + groups[y].debitTotal.toLocaleString()+'원)'; }).join(' / ')
+        + ' - 시트를 하나씩 골라 그대로 올리시면 됩니다.']);
+      noteAoa.push(['', '', '', '']);
+    }
+    yearOrder.forEach(function(yr){
+      groups[yr].noteRows.forEach(function(nr){ noteAoa.push([nr.rowNum, sheetNames[yr], nr.file, nr.note]); });
+    });
+    var noteRows = [];
+    yearOrder.forEach(function(yr){ noteRows = noteRows.concat(groups[yr].noteRows); });
+    if(noteRows.length===0) noteAoa.push(['', '', '', '자동 검증에서 별도로 표시된 항목이 없습니다. 그래도 다운로드 전 원본과 한 번 대조하는 것을 권장합니다.']);
+
+    if(skippedPairs.length){
+      noteAoa.push(['','','','']);
+      noteAoa.push(['(참고) 금액 0원이라 업로드 파일에서 제외한 건 - 합계에는 영향 없음', '', '', '']);
+      skippedPairs.forEach(function(s){
+        noteAoa.push(['제외', '', '', (s.memo||'(적요 없음)')+' : 세액 0원(소액징수면제 등)이라 전표로 만들 것이 없어 업로드 파일에서 제외했습니다']);
+      });
+    }
+    var ws2 = XLSX.utils.aoa_to_sheet(noteAoa);
+    ws2['!cols'] = [{wch:18},{wch:12},{wch:26},{wch:88}];
+    XLSX.utils.book_append_sheet(wb, ws2, '확인필요사항');
+
+    var fileName;
+    if(lastSourceXlsxName){
+
+
+      var base = sanitizeFileName(lastSourceXlsxName);
+      fileName = (/\(업로드용\)\s*$/.test(base) ? base : base+'_(업로드용)') + '.xlsx';
+    } else {
+      var yearPart = lastYear ? (String(lastYear).slice(2)+'년 ') : '';
+      var namePart = lastTaxpayerName ? (sanitizeFileName(lastTaxpayerName)+'_') : '';
+      fileName = namePart+yearPart+'지방세 세목별 과세증명서_(업로드용).xlsx';
+    }
+    XLSX.writeFile(wb, fileName, {cellStyles:true});
+  });
+
+  // 여기까지 오면 runBtn 등 필요한 변수가 모두 준비된 상태이므로 이제 라이브러리 상태를 확인한다
+  checkLibs();
+
+})();
+</script>
+</body>
+</html>

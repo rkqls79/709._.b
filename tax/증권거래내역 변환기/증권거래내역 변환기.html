@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="utf-8">
+<title>증권 거래내역 변환기</title>
+<style>
+  :root {
+    --bg: #faf8f5;
+    --panel: #ffffff;
+    --border: #efeae2;
+    --text: #332f29;
+    --muted: #948c80;
+    --accent: #7a8fa6;
+    --accent-light: #eef2f7;
+    --sage: #7d9b8a;
+    --sage-dark: #6a8a77;
+    --ok-bg: #f1f6f3;
+    --ok-border: #e2efe7;
+    --ok-text: #3d6653;
+    --err-bg: #f9f1f1;
+    --err-border: #f3e4e4;
+    --err-text: #7a4040;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    padding: 1cm 20px 80px;
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
+    line-height: 1.5;
+  }
+  .wrap { max-width: 920px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--muted); margin: 0 0 24px; font-size: 14px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+    margin-bottom: 20px;
+  }
+  .drop {
+    border: 2px dashed var(--border);
+    border-radius: 12px;
+    padding: 36px 20px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color .15s, background .15s;
+  }
+  .drop:hover, .drop.drag {
+    border-color: var(--accent);
+    background: var(--accent-light);
+  }
+  .drop .icon { font-size: 32px; margin-bottom: 8px; }
+  .drop .main { font-size: 15px; font-weight: 600; }
+  .drop .hint { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  input[type=file] { display: none; }
+  .status {
+    margin-top: 14px;
+    padding: 12px 14px;
+    border-radius: 8px;
+    font-size: 13.5px;
+    display: none;
+    white-space: pre-line;
+  }
+  .status.ok { display: block; background: var(--ok-bg); border: 1px solid var(--ok-border); color: var(--ok-text); }
+  .status.err { display: block; background: var(--err-bg); border: 1px solid var(--err-border); color: var(--err-text); }
+  .status.info { display: block; background: var(--accent-light); border: 1px solid #cdd9e2; color: #5a6e84; }
+  .actions { display: flex; gap: 10px; margin-top: 16px; flex-wrap: wrap; }
+  button {
+    appearance: none;
+    border: none;
+    border-radius: 7px;
+    padding: 9px 18px;
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    background: var(--sage);
+    color: #fff;
+  }
+  button:hover { background: var(--sage-dark); }
+  button:disabled { background: #d9d3c9; cursor: not-allowed; }
+  button.secondary { background: #fff; color: var(--text); border: 1px solid var(--border); }
+  button.secondary:hover { background: #f5f2ed; }
+  .tablewrap {
+    overflow: auto;
+    max-height: 480px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+  }
+  table { border-collapse: collapse; width: 100%; font-size: 12.5px; white-space: nowrap; }
+  th, td { padding: 6px 10px; border-bottom: 1px solid var(--border); text-align: right; }
+  th:first-child, td:first-child { text-align: left; }
+  thead th {
+    position: sticky; top: 0;
+    background: #f8f5f0;
+    border-bottom: 2px solid var(--border);
+    color: var(--muted);
+    font-weight: 600;
+  }
+  tbody tr:nth-child(even) { background: #fbf9f6; }
+  .meta { color: var(--muted); font-size: 13px; margin: 10px 0 6px; }
+  .footer-note { color: var(--muted); font-size: 12.5px; margin-top: 8px; }
+  h2 { font-size: 16px; margin: 0 0 12px; }
+  code { background: #f8f5f0; padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📊 증권 거래내역 변환기</h1>
+  <p class="sub">거래 1건이 2행으로 쪼개진 증권사(예: 미래에셋증권) 거래내역 파일을, 거래 1건 = 1행으로 병합해줍니다. 브라우저 안에서만 처리되며 서버로 전송되지 않습니다.</p>
+
+  <div class="panel">
+    <div class="drop" id="drop">
+      <div class="icon">📁</div>
+      <div class="main">파일을 여기에 끌어다 놓거나 클릭해서 선택하세요</div>
+      <div class="hint">.xls / .xlsx / .html / .htm / .csv — 실제로는 HTML 표 형식인 xls 파일도 지원합니다</div>
+      <input type="file" id="fileInput" accept=".xls,.xlsx,.html,.htm,.csv,.txt">
+    </div>
+    <div class="status" id="status"></div>
+  </div>
+
+  <div class="panel" id="resultPanel" style="display:none;">
+    <h2>미리보기</h2>
+    <div class="meta" id="meta"></div>
+    <div class="tablewrap"><table id="table"></table></div>
+    <div class="actions">
+      <button id="downloadCsv">CSV로 다운로드</button>
+      <button id="downloadXlsx" class="secondary">엑셀(.xlsx)로 다운로드</button>
+    </div>
+    <div class="footer-note" id="xlsxNote"></div>
+  </div>
+</div>
+
+<script>
+(function () {
+  const dropEl = document.getElementById('drop');
+  const fileInput = document.getElementById('fileInput');
+  const statusEl = document.getElementById('status');
+  const resultPanel = document.getElementById('resultPanel');
+  const metaEl = document.getElementById('meta');
+  const tableEl = document.getElementById('table');
+  const downloadCsvBtn = document.getElementById('downloadCsv');
+  const downloadXlsxBtn = document.getElementById('downloadXlsx');
+  const xlsxNote = document.getElementById('xlsxNote');
+
+  let sheetJsLoaded = false;
+  let currentHeader = null;
+  let currentRecords = null;
+  let currentFileBase = 'converted';
+
+  // SheetJS는 CDN에서 지연 로드한다. 오프라인이면 실패할 수 있으니 실패해도 CSV는 항상 동작하게 한다.
+  const sheetJsScript = document.createElement('script');
+  sheetJsScript.src = 'https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js';
+  sheetJsScript.onload = () => { sheetJsLoaded = true; };
+  sheetJsScript.onerror = () => {
+    sheetJsLoaded = false;
+    xlsxNote.textContent = '엑셀(.xlsx) 다운로드는 인터넷 연결이 필요합니다(변환 라이브러리 로드 실패). 대신 CSV 다운로드를 이용해주세요.';
+  };
+  document.head.appendChild(sheetJsScript);
+
+  function showStatus(type, msg) {
+    statusEl.className = 'status ' + type;
+    statusEl.textContent = msg;
+  }
+
+  function cellsOf(tr) {
+    return Array.from(tr.children).map(td => td.textContent.replace(/\s+/g, ' ').trim());
+  }
+
+  // HTML 문자열에서 "2행=1건" 패턴의 표를 찾아 헤더/레코드로 병합한다.
+  function parseWorkbookHtml(text) {
+    const doc = new DOMParser().parseFromString(text, 'text/html');
+    const tables = Array.from(doc.querySelectorAll('table'));
+    if (!tables.length) {
+      throw new Error('이 파일 안에서 표(<table>)를 찾지 못했습니다. 지원하지 않는 형식일 수 있습니다.');
+    }
+
+    // 행이 가장 많은 표를 실제 거래내역 표로 간주한다.
+    let dataTable = tables[0], maxRows = 0;
+    for (const t of tables) {
+      const n = t.querySelectorAll('tr').length;
+      if (n > maxRows) { maxRows = n; dataTable = t; }
+    }
+
+    const rows = Array.from(dataTable.querySelectorAll('tr'));
+    if (rows.length < 4) {
+      throw new Error('데이터 행이 너무 적습니다(' + rows.length + '행). 이 표 구조는 지원 대상이 아닐 수 있습니다.');
+    }
+
+    const countA = cellsOf(rows[0]).length;
+    const countB = cellsOf(rows[1]).length;
+
+    if (countA === countB) {
+      throw new Error('첫 두 행의 칸 수가 같아서(각 ' + countA + '칸) "2행=1건" 패턴으로 보이지 않습니다.\n이 도구는 홀수행/짝수행이 한 세트로 묶인 거래내역 전용입니다.');
+    }
+
+    for (let i = 0; i < rows.length; i++) {
+      const c = cellsOf(rows[i]).length;
+      const expected = (i % 2 === 0) ? countA : countB;
+      if (c !== expected) {
+        throw new Error('행 패턴이 도중에 어긋납니다 (행 ' + (i + 1) + ': ' + c + '칸, 기대값 ' + expected + '칸).\n이 표는 단순 반복 패턴이 아니어서 자동 병합이 어렵습니다.');
+      }
+    }
+
+    const header = cellsOf(rows[0]).concat(cellsOf(rows[1]));
+    const records = [];
+    let leftover = 0;
+    for (let i = 2; i < rows.length; i += 2) {
+      if (i + 1 >= rows.length) { leftover = 1; break; }
+      records.push(cellsOf(rows[i]).concat(cellsOf(rows[i + 1])));
+    }
+
+    return { header, records, totalRows: rows.length, leftover };
+  }
+
+  async function decodeFile(file) {
+    const buf = await file.arrayBuffer();
+    // 1차: UTF-8로 시도. 대체문자(�)가 다수 나오면 EUC-KR(구형 HTS 내보내기)로 재시도.
+    let text = new TextDecoder('utf-8').decode(buf);
+    const badRatio = (text.match(/�/g) || []).length / Math.max(text.length, 1);
+    if (badRatio > 0.005) {
+      try {
+        text = new TextDecoder('euc-kr').decode(buf);
+      } catch (e) { /* euc-kr 미지원 브라우저면 utf-8 결과 유지 */ }
+    }
+    return text;
+  }
+
+  function renderPreview(header, records) {
+    const thead = '<thead><tr>' + header.map(h => '<th>' + escapeHtml(h || '') + '</th>').join('') + '</tr></thead>';
+    const rowsToShow = records.slice(0, 200);
+    const tbody = '<tbody>' + rowsToShow.map(r =>
+      '<tr>' + r.map(c => '<td>' + escapeHtml(c) + '</td>').join('') + '</tr>'
+    ).join('') + '</tbody>';
+    tableEl.innerHTML = thead + tbody;
+  }
+
+  function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, ch => ({
+      '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+    }[ch]));
+  }
+
+  function toCsv(header, records) {
+    const esc = (v) => {
+      const s = String(v == null ? '' : v);
+      return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    };
+    const lines = [header.map(esc).join(',')];
+    for (const r of records) lines.push(r.map(esc).join(','));
+    return '﻿' + lines.join('\r\n');
+  }
+
+  function downloadBlob(blob, filename) {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 5000);
+  }
+
+  async function handleFile(file) {
+    currentFileBase = (file.name || 'converted').replace(/\.[^.]+$/, '');
+    showStatus('info', '파일을 읽는 중입니다…');
+    try {
+      const text = await decodeFile(file);
+      const { header, records, totalRows, leftover } = parseWorkbookHtml(text);
+      currentHeader = header;
+      currentRecords = records;
+
+      let msg = '변환 완료: 원본 ' + totalRows + '행 → 거래 ' + records.length + '건(각 1행)으로 병합했습니다.';
+      if (leftover) msg += '\n※ 마지막에 짝이 맞지 않는 행이 1개 있어 제외했습니다.';
+      showStatus('ok', msg);
+
+      metaEl.textContent = '열 ' + header.length + '개 · 행 ' + records.length + '개 (미리보기는 최대 200행)';
+      renderPreview(header, records);
+      resultPanel.style.display = 'block';
+    } catch (err) {
+      resultPanel.style.display = 'none';
+      showStatus('err', '변환 실패: ' + err.message);
+    }
+  }
+
+  dropEl.addEventListener('click', () => fileInput.click());
+  dropEl.addEventListener('dragover', (e) => { e.preventDefault(); dropEl.classList.add('drag'); });
+  dropEl.addEventListener('dragleave', () => dropEl.classList.remove('drag'));
+  dropEl.addEventListener('drop', (e) => {
+    e.preventDefault();
+    dropEl.classList.remove('drag');
+    if (e.dataTransfer.files && e.dataTransfer.files[0]) handleFile(e.dataTransfer.files[0]);
+  });
+  fileInput.addEventListener('change', () => {
+    if (fileInput.files && fileInput.files[0]) handleFile(fileInput.files[0]);
+  });
+
+  downloadCsvBtn.addEventListener('click', () => {
+    if (!currentRecords) return;
+    const csv = toCsv(currentHeader, currentRecords);
+    downloadBlob(new Blob([csv], { type: 'text/csv;charset=utf-8;' }), currentFileBase + '_변환.csv');
+  });
+
+  downloadXlsxBtn.addEventListener('click', () => {
+    if (!currentRecords) return;
+    if (!sheetJsLoaded || typeof XLSX === 'undefined') {
+      showStatus('err', '엑셀 변환 라이브러리를 아직 불러오지 못했습니다. 인터넷 연결을 확인하거나 CSV 다운로드를 이용해주세요.');
+      return;
+    }
+    const aoa = [currentHeader, ...currentRecords];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, '거래내역');
+    XLSX.writeFile(wb, currentFileBase + '_변환.xlsx');
+  });
+})();
+</script>
+</body>
+</html>

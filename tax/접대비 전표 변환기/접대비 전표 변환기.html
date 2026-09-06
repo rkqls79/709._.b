@@ -1,0 +1,583 @@
+<!doctype html>
+<html lang="ko">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>접대비 전표 자동입력</title>
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5.1.1/dist/tesseract.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  :root{
+    --bg:#faf8f5; --card:#ffffff; --border:#efeae2; --text:#332f29; --sub:#948c80;
+    --accent:#7a8fa6; --sage:#7d9b8a; --rose:#a87878;
+    --sage-bg:#f1f6f3; --rose-bg:#f9f1f1; --sage-tag:#e2efe7; --rose-tag:#f3e4e4;
+    --shadow:0 2px 8px rgba(60,56,49,.06);
+  }
+  body{margin:0;background:var(--bg);color:var(--text);
+    font-family:'Malgun Gothic','맑은 고딕',-apple-system,BlinkMacSystemFont,"Apple SD Gothic Neo",sans-serif;
+    line-height:1.55;font-size:13.5px;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1400px;margin:0 auto;padding:1cm 20px 2cm}
+  header.top{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:22px;padding-bottom:16px;border-bottom:1px solid var(--border)}
+  header.top .logo{font-size:20px;line-height:1}
+  h1{font-size:20px;margin:0;font-weight:700;letter-spacing:-0.3px;display:flex;align-items:center;gap:10px}
+  .lede{color:var(--sub);margin:10px 0 18px;font-size:12px}
+  .card{background:var(--card);border:1px solid var(--border);border-radius:12px;
+    padding:18px;box-shadow:var(--shadow);margin-bottom:18px}
+  .card h2{font-size:14px;margin:0 0 12px;font-weight:700;display:flex;align-items:center;gap:8px}
+  .card h2 .num{width:20px;height:20px;border-radius:50%;background:var(--sage-tag);
+    color:#3d6653;font-size:11px;display:flex;align-items:center;justify-content:center;font-weight:700}
+  .settings{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-end}
+  .field{display:flex;flex-direction:column;gap:5px}
+  .field label{font-size:11.5px;color:var(--sub);font-weight:600}
+  .field input{padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;font-size:14px;width:130px;font-family:inherit;color:var(--text);background:#fff}
+  .field input:focus{outline:none;border-color:var(--accent)}
+  .hint{font-size:12px;color:var(--sub)}
+  .drop{border:2px dashed var(--border);border-radius:12px;padding:28px 18px;text-align:center;
+    background:#fff;cursor:pointer;transition:.15s}
+  .drop:hover,.drop.over{border-color:var(--accent);background:#f5f2ed}
+  .drop:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  .drop .big{font-size:14px;font-weight:600;margin-bottom:4px;color:var(--text)}
+  .drop .small{font-size:12px;color:var(--sub)}
+  .drop .icon{font-size:28px;margin-bottom:6px}
+
+  .gallery{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:12px;margin-top:16px}
+  .gcell{position:relative;border:1px solid var(--border);border-radius:10px;overflow:hidden;background:#fff}
+  .gcell img{width:100%;height:120px;object-fit:cover;display:block;cursor:pointer}
+  .gcell .name{font-size:10.5px;color:var(--sub);padding:5px 7px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .gcell .rm{position:absolute;top:5px;right:5px;width:22px;height:22px;border-radius:50%;
+    background:rgba(60,56,49,.65);color:#fff;border:0;cursor:pointer;font-size:13px;line-height:1;
+    display:flex;align-items:center;justify-content:center}
+  .gcell .rm:hover{background:var(--rose)}
+  .gcell .stat{position:absolute;top:5px;left:5px;padding:2px 7px;border-radius:99px;font-size:10.5px;font-weight:700;color:#fff;display:none}
+  .gcell .stat.show{display:block}
+  .gcell .stat.wait{background:var(--sub)}
+  .gcell .stat.ok{background:var(--sage)}
+  .gcell .stat.warn{background:var(--rose)}
+  .gcell .spin{position:absolute;inset:0;background:rgba(255,255,255,.6);display:none;align-items:center;justify-content:center}
+  .gcell .spin.show{display:flex}
+  .gcell .spin i{width:26px;height:26px;border:3px solid var(--border);border-top-color:var(--sage);border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .btn{border:0;border-radius:7px;padding:9px 18px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:.15s}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .btn-primary,.btn-accent{background:var(--sage);color:#fff}
+  .btn-primary:hover:not(:disabled),.btn-accent:hover:not(:disabled){background:#6a8a77}
+  .btn-ghost{background:#fff;color:var(--text);border:1.5px solid var(--border)}.btn-ghost:hover:not(:disabled){background:#f5f2ed}
+  .btn-row{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;align-items:center}
+  #progressBox{margin-top:14px;display:none}
+  .bar{height:5px;background:var(--sage-tag);border-radius:99px;overflow:hidden}
+  .bar>i{display:block;height:100%;width:0;background:var(--sage);transition:width .2s}
+  #progressText{font-size:12px;color:var(--sub);margin-top:6px}
+  .tablewrap{overflow-x:auto;border:1px solid var(--border);border-radius:10px}
+  table{border-collapse:collapse;width:100%;font-size:12.5px;min-width:820px}
+  th,td{border-bottom:1px solid var(--border);padding:9px 10px;text-align:center;white-space:nowrap}
+  th{background:#f8f5f0;color:var(--sub);font-weight:700;font-size:11.5px}
+  tbody tr:hover{background:#f8f5f0}
+  tr.baddate{background:var(--rose-bg)}tr.baddate:hover{background:var(--rose-tag)}
+  td .thumb{width:44px;height:44px;object-fit:cover;border-radius:6px;border:1px solid var(--border);cursor:pointer}
+  td input.cell{width:100%;min-width:66px;border:1px solid transparent;background:transparent;padding:6px 7px;border-radius:6px;font-size:12.5px;font-family:inherit;text-align:center;color:var(--text)}
+  td input.cell:hover{border-color:var(--border)}
+  td input.cell:focus{outline:none;border-color:var(--accent);background:#fff}
+  td input.gname{text-align:left;min-width:150px}
+  .badge{display:inline-block;padding:2px 10px;border-radius:20px;font-size:11px;font-weight:700;cursor:pointer}
+  .badge.w{background:#eef2f7;color:#5a6e84}.badge.f{background:var(--rose-tag);color:#7a4040}
+  .del{color:var(--rose);cursor:pointer;font-size:16px;border:0;background:none;padding:4px 8px;border-radius:6px}
+  .del:hover{background:var(--rose-tag)}
+  .raw{font-size:11px;color:var(--sub);cursor:pointer;text-decoration:underline dotted}
+  .rawbox{display:none;white-space:pre-wrap;text-align:left;font-size:11px;color:var(--sub);background:#f8f5f0;border-radius:6px;padding:8px;margin-top:6px;max-height:150px;overflow:auto}
+  #resultCard{display:none}
+  .summary{font-size:12.5px;color:var(--sub);margin:12px 2px 0;display:flex;gap:16px;flex-wrap:wrap}
+  .summary b{color:var(--text)}
+  .flag{color:var(--rose);font-weight:600}
+  .note{background:#eef2f7;border:1px solid #d8e0ea;border-radius:8px;padding:11px 16px;font-size:12px;color:#5a6e84;margin-top:14px;line-height:1.7}
+  .foot{font-size:11.5px;color:var(--sub);text-align:center;margin-top:26px;line-height:1.7}
+  #modal{display:none;position:fixed;inset:0;background:rgba(30,27,23,.72);z-index:50;align-items:center;justify-content:center;padding:24px}
+  #modal img{max-width:90vw;max-height:88vh;border-radius:10px;box-shadow:0 20px 60px rgba(0,0,0,.4)}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="top">
+    <div>
+      <h1><span class="logo">🧾</span> 접대비 전표 자동입력</h1>
+      <p class="lede">부고장·청첩장 사진을 올리면 날짜를 자동으로 읽어 위하고 업로드용 엑셀(접대비 20만원)을 만들어 줍니다</p>
+    </div>
+  </header>
+  <div class="note">모든 처리는 이 브라우저 안에서만 이루어지며 사진은 외부로 전송되지 않습니다.</div>
+
+
+  <div class="card">
+    <h2><span class="num">1</span> 기본값 설정</h2>
+    <div class="settings">
+      <div class="field">
+        <label>연도 (모든 전표에 적용)</label>
+        <input type="number" id="defYear" min="2000" max="2099" />
+      </div>
+      <div class="field">
+        <label>금액(차변)</label>
+        <input type="text" id="defAmount" inputmode="numeric" value="200,000" />
+      </div>
+      <div class="field" style="flex:1;min-width:200px">
+        <span class="hint">계정과목 <b>접대비(813)</b> · 구분 <b>출금</b> · 적요 <b>거래처 경조사비 지급(조정)</b> 로 고정됩니다.<br>적요코드(10번)는 업로드 후 위하고에서 직접 걸어 주세요.</span>
+      </div>
+    </div>
+  </div>
+
+
+  <div class="card">
+    <h2><span class="num">2</span> 사진 올리기</h2>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="사진 선택 또는 끌어다 놓기">
+      <div class="icon">🖼️</div>
+      <div class="big">여기로 사진을 끌어다 놓거나 클릭해서 선택</div>
+      <div class="small">여러 장 한꺼번에 가능 · JPG·PNG·PDF (부고장·청첩장 캡처 또는 스캔 파일)</div>
+    </div>
+    <input type="file" id="fileInput" accept="image/*,application/pdf" multiple hidden />
+    <div class="gallery" id="gallery"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="runBtn" disabled>📖 날짜 읽기 시작</button>
+      <button class="btn btn-ghost" id="clearBtn" disabled>모두 비우기</button>
+      <span class="hint" id="pickCount"></span>
+    </div>
+    <div id="progressBox">
+      <div class="bar"><i id="progBar"></i></div>
+      <div id="progressText"></div>
+    </div>
+  </div>
+
+
+  <div class="card" id="resultCard">
+    <h2><span class="num">3</span> 검토 · 수정 후 다운로드</h2>
+    <div class="tablewrap">
+      <table>
+        <thead><tr>
+          <th>사진</th><th>년</th><th>월</th><th>일</th>
+          <th>종류</th><th>거래처</th><th>차변</th><th>원문</th><th></th>
+        </tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+    </div>
+    <div class="summary">
+      <span>총 <b id="cntTotal">0</b>건</span>
+      <span class="flag" id="cntBad"></span>
+      <span>합계 차변 <b id="cntSum">0</b>원</span>
+    </div>
+    <div class="note">
+      💡 거래처는 <b>청첩장 / 부고장</b>으로만 들어갑니다. 종류가 틀렸으면 배지를 눌러 바꿀 수 있어요.<br><b>분홍색 줄</b>은 날짜를 자동으로 못 읽은 건이니 꼭 확인해 주세요.
+    </div>
+    <div class="btn-row">
+      <button class="btn btn-accent" id="downloadBtn">⬇️ 위하고 업로드용 엑셀 다운로드</button>
+      <button class="btn btn-ghost" id="resetBtn">전체 초기화</button>
+    </div>
+  </div>
+
+  <p class="foot">
+    모든 판독은 사용자 브라우저 내에서 수행되며 이미지는 서버로 전송되지 않습니다.<br>
+    본 결과물은 참고용이며, 실제 장부 반영 전 담당 세무사의 최종 검토를 거쳐 주세요.
+  </p>
+</div>
+<div id="modal"><img id="modalImg" alt="" /></div>
+
+<script>
+"use strict";
+
+pdfjsLib.GlobalWorkerOptions.workerSrc="https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/build/pdf.worker.min.js";
+
+
+const ACC_CODE=813, ACC_NAME="접대비", GUBUN="출금";
+const JEOKYO="거래처 경조사비 지급(조정)", SHEET_NAME="최종업로드";
+const MAX_DIM=1500;
+const PDF_SCALE=2;
+
+let items=[];
+let worker=null, seq=0;
+
+const $=id=>document.getElementById(id);
+const drop=$("drop"), fileInput=$("fileInput"), gallery=$("gallery");
+const runBtn=$("runBtn"), clearBtn=$("clearBtn"), pickCount=$("pickCount");
+const progressBox=$("progressBox"), progBar=$("progBar"), progressText=$("progressText");
+const resultCard=$("resultCard"), tbody=$("tbody");
+
+$("defYear").value=String(new Date().getFullYear());
+
+// ---------- 금액 콤마 표시 ----------
+function formatMoney(n){
+  n=Math.round(Number(n))||0;
+  return n.toLocaleString("ko-KR");
+}
+function parseMoney(s){
+  const digits=String(s||"").replace(/[^\d]/g,"");
+  return digits===""?NaN:parseInt(digits,10);
+}
+function formatMoneyInput(input){
+  const before=input.value;
+  const selStart=input.selectionStart==null?before.length:input.selectionStart;
+  const digitsBeforeCursor=before.slice(0,selStart).replace(/[^\d]/g,"").length;
+  const raw=parseMoney(before);
+  const formatted=Number.isNaN(raw)?"":formatMoney(raw);
+  input.value=formatted;
+  let pos=0,count=0;
+  while(pos<formatted.length&&count<digitsBeforeCursor){
+    if(/\d/.test(formatted[pos])) count++;
+    pos++;
+  }
+  input.setSelectionRange(pos,pos);
+}
+$("defAmount").addEventListener("input",()=>formatMoneyInput($("defAmount")));
+
+function revokeItemUrl(item){
+  if(item&&item.url) URL.revokeObjectURL(item.url);
+}
+
+drop.addEventListener("click",()=>fileInput.click());
+drop.addEventListener("keydown",e=>{
+  if(e.key==="Enter"||e.key===" "){ e.preventDefault(); fileInput.click(); }
+});
+drop.addEventListener("dragover",e=>{e.preventDefault();drop.classList.add("over");});
+drop.addEventListener("dragleave",()=>drop.classList.remove("over"));
+drop.addEventListener("drop",e=>{e.preventDefault();drop.classList.remove("over");addFiles(e.dataTransfer.files);});
+fileInput.addEventListener("change",e=>{addFiles(e.target.files);fileInput.value="";});
+
+async function addFiles(list){
+  for(const f of list){
+    if(f.type==="application/pdf"){
+      await addPdfFile(f);
+    }else if(f.type.startsWith("image/")){
+      addImageItem(f,f.name,URL.createObjectURL(f));
+    }
+  }
+  updatePickUI();
+}
+function addImageItem(file,name,url){
+  const id=++seq;
+  const amt=parseMoney($("defAmount").value);
+  const mime=(file&&file.type)||"";
+  const item={id,file:{name},mime,url,amount:Number.isNaN(amt)?200000:amt,done:false};
+  items.push(item);
+  renderCell(item);
+  return item;
+}
+function isHeicFile(item){
+  const name=(item.file&&item.file.name)||"";
+  const mime=item.mime||"";
+  return /image\/hei[cf]/i.test(mime) || /\.(heic|heif)$/i.test(name);
+}
+
+async function addPdfFile(f){
+  try{
+    const buf=await f.arrayBuffer();
+    const pdf=await pdfjsLib.getDocument({data:buf}).promise;
+    for(let p=1;p<=pdf.numPages;p++){
+      const page=await pdf.getPage(p);
+      const viewport=page.getViewport({scale:PDF_SCALE});
+      const cv=document.createElement("canvas");
+      cv.width=viewport.width; cv.height=viewport.height;
+      await page.render({canvasContext:cv.getContext("2d"),viewport}).promise;
+      const blob=await new Promise(res=>cv.toBlob(res,"image/png"));
+      const name=pdf.numPages>1?`${f.name} (${p}/${pdf.numPages}p)`:f.name;
+      addImageItem(f,name,URL.createObjectURL(blob));
+    }
+  }catch(err){
+    alert(`"${f.name}" PDF를 읽는 중 오류가 발생했습니다: ${err.message||err}`);
+  }
+}
+function renderCell(item){
+  const cell=document.createElement("div");
+  cell.className="gcell"; cell.dataset.id=item.id;
+  cell.innerHTML=`
+    <span class="stat" data-stat></span>
+    <button class="rm" title="빼기">✕</button>
+    <div class="spin"><i></i></div>
+    <img src="${item.url}" alt="사진">
+    <div class="name">${escapeHtml(item.file.name)}</div>`;
+  const imgEl=cell.querySelector("img");
+  imgEl.addEventListener("click",()=>openModal(item.url));
+  imgEl.addEventListener("error",()=>{
+    // 브라우저가 이 사진(주로 아이폰 HEIC/HEIF)을 열지 못하는 경우 바로 알려준다
+    setStat(item,"warn",isHeicFile(item)?"HEIC 형식":"미리보기 실패");
+  });
+  cell.querySelector(".rm").addEventListener("click",()=>{
+    revokeItemUrl(item);
+    items=items.filter(x=>x.id!==item.id); cell.remove(); updatePickUI();
+  });
+  item.el=cell; gallery.appendChild(cell);
+}
+function updatePickUI(){
+  const n=items.length;
+  pickCount.textContent=n?`${n}장`:"";
+  runBtn.disabled=n===0; clearBtn.disabled=n===0;
+}
+clearBtn.addEventListener("click",()=>{
+  items.forEach(revokeItemUrl);
+  items=[]; gallery.innerHTML=""; updatePickUI(); resultCard.style.display="none";
+});
+function setStat(item,type,txt){
+  const s=item.el.querySelector("[data-stat]");
+  s.className="stat show "+type; s.textContent=txt;
+}
+function setSpin(item,on){ item.el.querySelector(".spin").classList.toggle("show",on); }
+
+
+function loadImg(url){return new Promise((res,rej)=>{const i=new Image();i.onload=()=>res(i);i.onerror=rej;i.src=url;});}
+function toCanvas(img){
+  let {naturalWidth:w,naturalHeight:h}=img;
+  const s=Math.min(MAX_DIM/Math.max(w,h),3);
+  w=Math.round(w*s); h=Math.round(h*s);
+  const cv=document.createElement("canvas"); cv.width=w; cv.height=h;
+  const ctx=cv.getContext("2d");
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality="high";
+  ctx.drawImage(img,0,0,w,h);
+  return cv;
+}
+
+function stretchCanvas(src,lo,hi){
+  const w=src.width,h=src.height;
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const ctx=cv.getContext("2d");ctx.drawImage(src,0,0);
+  const d=ctx.getImageData(0,0,w,h),p=d.data,rng=hi-lo;
+  for(let i=0;i<p.length;i+=4){
+    let g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2];
+    g=(g-lo)/rng*255; g=g<0?0:g>255?255:g;
+    p[i]=p[i+1]=p[i+2]=g;
+  }
+  ctx.putImageData(d,0,0); return cv;
+}
+
+function grayCanvas(src){
+  const w=src.width,h=src.height;
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const ctx=cv.getContext("2d");ctx.drawImage(src,0,0);
+  const d=ctx.getImageData(0,0,w,h),p=d.data;
+  for(let i=0;i<p.length;i+=4){const g=0.299*p[i]+0.587*p[i+1]+0.114*p[i+2];p[i]=p[i+1]=p[i+2]=g;}
+  ctx.putImageData(d,0,0); return cv;
+}
+
+function autocontrastCanvas(src,cutoff){
+  const w=src.width,h=src.height,n=w*h;
+  const cv=document.createElement("canvas");cv.width=w;cv.height=h;
+  const ctx=cv.getContext("2d");ctx.drawImage(src,0,0);
+  const d=ctx.getImageData(0,0,w,h),p=d.data;
+  const hist=new Array(256).fill(0),gray=new Uint8ClampedArray(n);
+  for(let i=0,j=0;i<p.length;i+=4,j++){const g=Math.round(0.299*p[i]+0.587*p[i+1]+0.114*p[i+2]);gray[j]=g;hist[g]++;}
+  const cut=Math.floor(n*cutoff/100); let lo=0,hi=255,c=0;
+  for(let v=0;v<256;v++){c+=hist[v]; if(c>cut){lo=v;break;}}
+  c=0; for(let v=255;v>=0;v--){c+=hist[v]; if(c>cut){hi=v;break;}}
+  if(hi<=lo){lo=0;hi=255;}
+  const scale=255/(hi-lo);
+  for(let i=0,j=0;i<p.length;i+=4,j++){let v=(gray[j]-lo)*scale; v=v<0?0:v>255?255:v; p[i]=p[i+1]=p[i+2]=v;}
+  ctx.putImageData(d,0,0); return cv;
+}
+
+
+function collectMD(text){
+  const t=text.replace(/[Oo]/g,"0").replace(/[lI|]/g,"1");
+  const full=new Set(), bare=new Set(); let m;
+  const r1=/(\d{1,2})\s*월\s*(\d{1,2})\s*일/g;
+  while((m=r1.exec(t))){const mo=+m[1],d=+m[2]; if(valid(mo,d)) full.add(mo+"-"+d);}
+  const r2=/20\d{2}\s*[.\-/,]\s*(\d{1,2})\s*[.\-/,]\s*(\d{1,2})/g;
+  while((m=r2.exec(t))){const mo=+m[1],d=+m[2]; if(valid(mo,d)) full.add(mo+"-"+d);}
+  const r3=/(?:^|[^\d])(\d{1,2})\s*[.]\s*(\d{1,2})(?![\d:])/g;
+  while((m=r3.exec(t))){const mo=+m[1],d=+m[2]; if(valid(mo,d)) bare.add(mo+"-"+d);}
+  return {full,bare};
+}
+function valid(mo,d){return mo>=1&&mo<=12&&d>=1&&d<=31;}
+// "O월 O일"·"2026.9.15"처럼 라벨이 붙은 날짜 후보가 정확히 하나로 좁혀지면
+// 이미 신뢰할 만한 결과로 보고 추가 판독(2·3차)을 건너뛴다.
+function hasConfidentDate(text){ return collectMD(text).full.size===1; }
+
+function chooseMD(texts,isBugo){
+  const score={}, fullseen=new Set();
+  for(const t of texts){
+    const {full,bare}=collectMD(t);
+    full.forEach(k=>{score[k]=(score[k]||0)+2; fullseen.add(k);});
+    bare.forEach(k=>{ if(!full.has(k)) score[k]=(score[k]||0)+1; });
+  }
+  const keys=Object.keys(score);
+  if(!keys.length) return null;
+  let best;
+  if(isBugo){
+    const pool=fullseen.size?[...fullseen]:keys;
+    best=pool.sort(byEarliest)[0];
+  }else{
+    best=keys.sort((a,b)=>score[b]-score[a]||byEarliest(a,b))[0];
+  }
+  const [mo,d]=best.split("-").map(Number);
+  return {m:mo,d:d};
+}
+function byEarliest(a,b){const[am,ad]=a.split("-").map(Number),[bm,bd]=b.split("-").map(Number);return am-bm||ad-bd;}
+
+
+function detectType(text){
+  const f=/(부고|訃告|訃|별세|소천|임종|영면|발인|빈소|영결|장례|喪|故|상주|근조|장지)/;
+  const w=/(청첩|결혼|화혼|혼인|예식|웨딩|화촉|성혼|신랑|신부|wedding)/i;
+  if(f.test(text)&&!w.test(text)) return "부고장";
+  return "청첩장";
+}
+
+
+runBtn.addEventListener("click",async()=>{
+  if(items.length===0) return;
+  runBtn.disabled=true; clearBtn.disabled=true;
+  progressBox.style.display="block"; progBar.style.width="0%";
+  const defYear=parseInt($("defYear").value)||new Date().getFullYear();
+  const amtInput=parseMoney($("defAmount").value);
+  const defAmount=Number.isNaN(amtInput)?200000:amtInput;
+  items.forEach(it=>setStat(it,"wait","대기"));
+  try{
+    if(!worker){
+      progressText.textContent="OCR 엔진 준비 중… (첫 실행은 언어파일을 받느라 시간이 조금 걸립니다)";
+      worker=await Tesseract.createWorker("kor+eng",1,{langPath:"https://cdn.jsdelivr.net/gh/naptha/tessdata@gh-pages/4.0.0_best",gzip:true});
+    }
+    for(let i=0;i<items.length;i++){
+      const it=items[i];
+      progBar.style.width=Math.round(i/items.length*100)+"%";
+      progressText.textContent=`사진 ${i+1} / ${items.length} 판독 중…`;
+      setSpin(it,true); it.el.querySelector("[data-stat]").classList.remove("show");
+      try{
+        const img=await loadImg(it.url);
+        const base=toCanvas(img);
+        // 최대 3단계 판독: 사진 유형마다 잘 읽히는 보정이 달라 모두 시도 후 다수결.
+        // 단, 앞 단계에서 이미 날짜가 확실하게 잡히면 뒤 단계는 건너뛰어 속도를 높인다.
+        await worker.setParameters({tessedit_pageseg_mode:"6"});
+        const r1=(await worker.recognize(stretchCanvas(base,180,245))).data.text||"";
+        const texts=[r1];
+        if(!hasConfidentDate(texts.join("\n"))){
+          await worker.setParameters({tessedit_pageseg_mode:"4"});
+          texts.push((await worker.recognize(autocontrastCanvas(base,2))).data.text||"");
+          if(!hasConfidentDate(texts.join("\n"))){
+            await worker.setParameters({tessedit_pageseg_mode:"6"});
+            texts.push((await worker.recognize(stretchCanvas(base,150,235))).data.text||"");
+          }
+        }
+        const text=texts.join("\n");
+        const type=detectType(text);
+        const md=chooseMD(texts,type==="부고장");
+        it.y=defYear; it.m=md?md.m:""; it.d=md?md.d:"";
+        it.type=type; it.georae=type;
+        it.amount=defAmount; it.raw=text.trim();
+        it.dateOk=!!md; it.done=true;
+        setStat(it, md?"ok":"warn", md?`${it.m}/${it.d}`:"날짜 확인");
+      }catch(err){
+        // 이 사진 판독이 실패해도 나머지 사진은 계속 진행
+        it.y=defYear; it.m=""; it.d=""; it.type="청첩장"; it.georae="청첩장";
+        it.amount=defAmount; it.dateOk=false; it.done=true;
+        if(isHeicFile(it)){
+          it.raw="[판독 실패] 이 사진은 아이폰 HEIC/HEIF 형식이라 이 브라우저에서 열 수 없습니다. 아이폰 사진 앱에서 'JPG로 저장'(내보내기) 한 뒤 다시 올려주세요.";
+          setStat(it,"warn","HEIC 형식");
+        }else{
+          it.raw=`[판독 실패: ${err.message||err}]`;
+          setStat(it,"warn","판독 실패");
+        }
+      }finally{
+        setSpin(it,false);
+      }
+    }
+    progBar.style.width="100%"; progressText.textContent="완료! 아래에서 검토해 주세요.";
+    renderTable(); resultCard.style.display="block"; resultCard.scrollIntoView({behavior:"smooth"});
+  }catch(err){
+    progressText.textContent="오류: "+(err.message||err)+" — 새로고침 후 다시 시도해 주세요.";
+  }finally{
+    runBtn.disabled=false; clearBtn.disabled=false;
+    setTimeout(()=>{progressBox.style.display="none";},1600);
+  }
+});
+
+// ---------- 검토 표 ----------
+function renderTable(){
+  tbody.innerHTML="";
+  items.forEach((r,idx)=>{
+    const tr=document.createElement("tr");
+    if(!r.dateOk) tr.classList.add("baddate");
+    const badge=r.type==="청첩장"?`<span class="badge w" data-toggle="${idx}">청첩장</span>`
+                                 :`<span class="badge f" data-toggle="${idx}">부고장</span>`;
+    tr.innerHTML=`
+      <td><img class="thumb" src="${r.url}" data-full="${r.url}" alt="사진"></td>
+      <td><input class="cell" type="number" data-k="y" data-i="${idx}" value="${r.y}"></td>
+      <td><input class="cell" type="number" data-k="m" data-i="${idx}" value="${r.m}"></td>
+      <td><input class="cell" type="number" data-k="d" data-i="${idx}" value="${r.d}"></td>
+      <td>${badge}</td>
+      <td><input class="cell gname" data-k="georae" data-i="${idx}" value="${escapeAttr(r.georae)}"></td>
+      <td><input class="cell" type="text" inputmode="numeric" data-k="amount" data-i="${idx}" value="${formatMoney(r.amount)}"></td>
+      <td>${r.dateOk?"":`<span class="raw" data-raw="${idx}">보기</span>`}</td>
+      <td><button class="del" data-del="${idx}" title="삭제">✕</button></td>`;
+    tbody.appendChild(tr);
+    if(!r.dateOk){
+      // 날짜를 정상 인식한 행은 원문을 볼 일이 거의 없어 생략하고, 확인이 필요한 행에만 보여준다
+      const trRaw=document.createElement("tr");
+      trRaw.innerHTML=`<td colspan="9" style="padding:0 10px"><div class="rawbox" id="raw${idx}">${escapeHtml(r.raw)||"(인식된 텍스트 없음)"}</div></td>`;
+      tbody.appendChild(trRaw);
+    }
+  });
+  bindCell(); updateSummary();
+}
+function bindCell(){
+  tbody.querySelectorAll("input.cell").forEach(inp=>inp.addEventListener("input",e=>{
+    const i=+e.target.dataset.i,k=e.target.dataset.k;
+    if(k==="amount"){
+      formatMoneyInput(e.target);
+      items[i].amount=parseMoney(e.target.value)||0;
+      updateSummary();
+      return;
+    }
+    let v=e.target.value;
+    if(k!=="georae") v=v===""?"":+v;
+    items[i][k]=v;
+    if(k==="y"||k==="m"||k==="d"){
+      const ok=items[i].m!==""&&items[i].d!==""&&valid(+items[i].m,+items[i].d);
+      items[i].dateOk=ok;
+      e.target.closest("tr").classList.toggle("baddate",!ok);
+    }
+    updateSummary();
+  }));
+  tbody.querySelectorAll(".thumb").forEach(t=>t.addEventListener("click",e=>openModal(e.target.dataset.full)));
+  tbody.querySelectorAll("[data-raw]").forEach(s=>s.addEventListener("click",e=>{
+    const b=$("raw"+e.target.dataset.raw); b.style.display=b.style.display==="block"?"none":"block";
+  }));
+  tbody.querySelectorAll("[data-toggle]").forEach(s=>s.addEventListener("click",e=>{
+    const i=+e.target.dataset.toggle;
+    items[i].type=items[i].type==="청첩장"?"부고장":"청첩장";
+    items[i].georae=items[i].type;   // 종류 바꾸면 거래처도 함께 변경
+    renderTable();
+  }));
+  tbody.querySelectorAll("[data-del]").forEach(b=>b.addEventListener("click",e=>{
+    const idx=+e.target.dataset.del;
+    const removed=items[idx];
+    if(removed&&removed.el) removed.el.remove();
+    revokeItemUrl(removed);
+    items.splice(idx,1); renderTable(); updatePickUI();
+    if(items.length===0) resultCard.style.display="none";
+  }));
+}
+function updateSummary(){
+  $("cntTotal").textContent=items.length;
+  const bad=items.filter(r=>!r.dateOk).length;
+  $("cntBad").textContent=bad?`⚠ 날짜 확인 필요 ${bad}건`:"";
+  $("cntSum").textContent=items.reduce((a,r)=>a+(+r.amount||0),0).toLocaleString();
+}
+
+
+$("downloadBtn").addEventListener("click",()=>{
+  if(items.length===0){alert("내보낼 내용이 없습니다.");return;}
+  const header=["년","월","일","구분","코드","계정과목","거래처코드","거래처","차변","대변","적요"];
+  const aoa=[header];
+  items.forEach(r=>aoa.push([+r.y,+r.m,+r.d,GUBUN,ACC_CODE,ACC_NAME," ",(r.georae||r.type||"청첩장"),(+r.amount||0),"",JEOKYO]));
+  const ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws["!cols"]=[{wch:6},{wch:5},{wch:5},{wch:7},{wch:7},{wch:14},{wch:9},{wch:20},{wch:11},{wch:9},{wch:24}];
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,SHEET_NAME);
+  const t=new Date(),st=`${t.getFullYear()}${String(t.getMonth()+1).padStart(2,"0")}${String(t.getDate()).padStart(2,"0")}`;
+  XLSX.writeFile(wb,`접대비_전표_${st}.xlsx`);
+});
+$("resetBtn").addEventListener("click",()=>{
+  items.forEach(revokeItemUrl);
+  items=[]; gallery.innerHTML=""; tbody.innerHTML=""; resultCard.style.display="none";
+  updatePickUI(); window.scrollTo({top:0,behavior:"smooth"});
+});
+
+
+function escapeHtml(s){return (s||"").replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));}
+function escapeAttr(s){return (s||"").replace(/"/g,"&quot;");}
+function openModal(src){$("modalImg").src=src;$("modal").style.display="flex";}
+$("modal").addEventListener("click",()=>{$("modal").style.display="none";});
+</script>
+</body>
+</html>

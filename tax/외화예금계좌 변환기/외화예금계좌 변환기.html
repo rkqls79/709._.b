@@ -7,27 +7,31 @@
 <style>
   * { box-sizing: border-box; }
   :root {
-    --bg:        #eae6e1;
-    --card:      #f8f6f3;
-    --border:    #ddd8d2;
-    --text:      #3c3831;
-    --sub:       #857e76;
+    --bg:        #faf8f5;
+    --card:      #ffffff;
+    --border:    #efeae2;
+    --text:      #332f29;
+    --sub:       #948c80;
     --accent:    #7a8fa6;
     --sage:      #7d9b8a;
     --sage-dark: #6a8a77;
     --rose:      #a87878;
-    --sage-bg:   #eff4f1;
-    --rose-bg:   #f6efef;
-    --sage-tag:  #deeae3;
-    --rose-tag:  #f0dede;
-    --shadow:    0 2px 8px rgba(60,56,49,0.08);
+    --sage-bg:   #f1f6f3;
+    --rose-bg:   #f9f1f1;
+    --sage-tag:  #e2efe7;
+    --rose-tag:  #f3e4e4;
+    --shadow:    0 2px 8px rgba(60,56,49,0.06);
   }
   body {
-    font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, "Apple SD Gothic Neo", sans-serif;
+    font-family: 'Malgun Gothic', '맑은 고딕', -apple-system, BlinkMacSystemFont, "Apple SD Gothic Neo", sans-serif;
     background: var(--bg);
     color: var(--text);
     margin: 0;
-    padding: 2cm 2cm 24px 2cm;
+  }
+  .wrap {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1cm 20px 24px 20px;
   }
   h1 { font-size: 21px; margin: 0 0 4px; color: var(--text); }
   h2 { font-size: 16px; margin: 0 0 4px; color: var(--text); display: flex; align-items: center; gap: 10px; }
@@ -55,7 +59,7 @@
   .hint { font-size: 12px; color: var(--sub); margin-top: 4px; }
   button {
     background: var(--sage); color: #fff; border: none; border-radius: 7px;
-    padding: 9px 16px; font-size: 13px; cursor: pointer; font-weight: 600;
+    padding: 9px 18px; font-size: 13px; cursor: pointer; font-weight: 600;
     font-family: inherit; transition: background .15s;
   }
   button.secondary { background: var(--sage-bg); color: #3d6653; }
@@ -64,7 +68,7 @@
   button.secondary:hover { background: var(--sage-tag); }
   table { border-collapse: collapse; width: 100%; font-size: 12.5px; }
   th, td { border: 1px solid var(--border); padding: 5px 6px; text-align: center; color: var(--text); }
-  th { background: #f2efeb; font-weight: 600; color: var(--sub); }
+  th { background: #f8f5f0; font-weight: 600; color: var(--sub); }
   td input, td select {
     width: 100%; border: none; background: transparent; text-align: center; font-size: 12.5px; padding: 2px; color: var(--text);
   }
@@ -102,7 +106,7 @@
     background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600;
     cursor: pointer; padding: 4px 0; text-decoration: underline;
   }
-  .rule-summary { font-size: 12.5px; color: var(--sub); background: #f2efeb; border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
+  .rule-summary { font-size: 12.5px; color: var(--sub); background: #f8f5f0; border-radius: 6px; padding: 8px 10px; margin: 6px 0; }
   .note-col { display: none; }
   .show-notes .note-col { display: table-cell; }
   .note-toggle-row { display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--sub); margin-bottom: 8px; }
@@ -117,7 +121,7 @@
     padding: 22px 24px; width: 340px; max-width: 88vw; box-shadow: 0 10px 34px rgba(30,28,24,0.25);
   }
   .modal-box h3 { margin: 0 0 8px; font-size: 15px; color: var(--text); }
-  .modal-box p { margin: 0 0 14px; font-size: 12.5px; color: var(--sub); line-height: 1.6; }
+  .modal-box p { margin: 0 0 14px; font-size: 12.5px; color: var(--sub); line-height: 1.6; white-space: pre-line; }
   .modal-box input {
     width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 7px;
     font-size: 13.5px; margin-bottom: 16px; font-family: inherit; color: var(--text); background: #fff;
@@ -140,6 +144,7 @@
 </head>
 <body>
 
+<div class="wrap">
 <h1>외화예금 전표 자동변환기</h1>
 <div class="sub">외화계좌 엑셀과 환율 파일을 올리면 자동으로 원화 환산해서 전표 형식으로 만들어줍니다. 모든 처리는 이 화면 안에서만 이뤄지고 파일은 어디에도 전송되지 않아요.</div>
 
@@ -185,7 +190,7 @@
 <div class="card" id="previewCard" style="display:none">
   <h2><span class="step-num">2</span> 확인 후 다운로드</h2>
   <div class="summary-box" id="summaryBox" style="margin-bottom:10px;"></div>
-  <div class="card-desc">빨간색 행은 확인이 필요한 거래예요. 셀을 클릭하면 바로 고칠 수 있어요. 계정·거래처를 채우면 자동으로 규칙에 저장돼서 다음에도 같은 적요는 자동 분류돼요.</div>
+  <div class="card-desc">빨간색 행은 확인이 필요한 거래예요. 셀을 클릭하면 바로 고칠 수 있어요. 계정·거래처를 채우면 자동으로 규칙에 저장돼서, 다음에 통장적요에 날짜·번호만 다르고 나머지가 비슷한 거래가 와도 자동 분류돼요.</div>
   <div class="rule-summary" id="quickFixSaveTarget" style="margin-top:-6px;"></div>
   <div id="balanceCheck" style="margin-bottom:10px;font-size:13px"></div>
   <label class="note-toggle-row"><input type="checkbox" id="toggleNotes"> 환율 적용 참고정보 같이 보기</label>
@@ -247,7 +252,7 @@
     <div class="row" style="margin-bottom:10px;">
       <div class="field">
         <label class="title">보통예금 계정과목 <span style="font-weight:400;color:#999;">(비우면 기본값 보통예금)</span></label>
-        <input type="text" id="vendorMainAccount" placeholder="보통예금">
+        <input type="text" id="vendorMainAccount" placeholder="보통예금" list="accountNameList">
       </div>
       <div class="field">
         <label class="title">보통예금 코드 <span style="font-weight:400;color:#999;">(비우면 기본값 103)</span></label>
@@ -261,10 +266,30 @@
       </div>
       <div class="field">
         <label class="title">결산(이자) 거래처명</label>
-        <input type="text" id="vendorSettleCust" placeholder="예: OO은행">
+        <input type="text" id="vendorSettleCust" placeholder="예: OO은행" list="custNameList">
       </div>
     </div>
-    <div class="hint" style="margin:-4px 0 10px;">거래구분에 "결산"이 포함된 거래는 자동으로 계정과목 이자수익(901) + 위 거래처로 처리돼요.</div>
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label class="title">원천징수 거래처코드 (세무서)</label>
+        <input type="text" id="vendorWithholdNationalCode" placeholder="예: 002">
+      </div>
+      <div class="field">
+        <label class="title">원천징수 거래처명 (세무서)</label>
+        <input type="text" id="vendorWithholdNational" placeholder="예: 역삼세무서" list="custNameList">
+      </div>
+    </div>
+    <div class="row" style="margin-bottom:10px;">
+      <div class="field">
+        <label class="title">원천징수 거래처코드 (구청)</label>
+        <input type="text" id="vendorWithholdLocalCode" placeholder="예: 003">
+      </div>
+      <div class="field">
+        <label class="title">원천징수 거래처명 (구청)</label>
+        <input type="text" id="vendorWithholdLocal" placeholder="예: 강남구청" list="custNameList">
+      </div>
+    </div>
+    <div class="hint" style="margin:-4px 0 10px;">거래구분에 "결산"이 포함된 거래는 입금액을 원천징수 후 순액으로 보고 세율을 역산해서, 보통예금(순액) / 선납세금-세무서(국세 14%) / 선납세금-구청(그 10%인 지방소득세) / 이자수익(세전 총액, 계정과목 901 + 위 결산 거래처)까지 4줄로 자동 분개돼요. 단, 원천징수세액 합계가 1,000원 미만이면 선납세금을 나누지 않고 입금액 전부를 이자수익으로 처리해요.</div>
     <div class="rule-summary" id="vendorRuleSummary"></div>
     <table id="vendorRuleTable">
       <thead><tr><th style="width:20%">통장적요에 이 단어가 있으면</th><th style="width:12%">코드</th><th style="width:20%">계정과목</th><th style="width:14%">거래처코드</th><th style="width:20%">거래처명</th><th style="width:14%"></th></tr></thead>
@@ -294,6 +319,9 @@
 
 </div>
 
+<datalist id="accountNameList"></datalist>
+<datalist id="custNameList"></datalist>
+
 <div class="modal-overlay hidden" id="modalOverlay">
   <div class="modal-box">
     <h3 id="modalTitle"></h3>
@@ -304,6 +332,7 @@
       <button id="modalConfirmBtn">확인</button>
     </div>
   </div>
+</div>
 </div>
 
 <script>
@@ -364,6 +393,52 @@ async function alertModal(message, title) {
   await openModal({ title: title || '알림', message, showInput: false, confirmText: '확인', showCancel: false });
 }
 
+// 사용자가 입력한 텍스트(적요 키워드, 거래처명 등)를 innerHTML로 그릴 때 " < > & 때문에
+// 태그/속성이 깨지지 않도록 이스케이프
+function escHtml(s) {
+  return String(s ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+// 계정과목·거래처명 입력창의 자동완성(datalist) 목록을 지금까지 등록된 공통규칙/거래처/거래처규칙에서 모아 갱신
+function refreshAutocompleteLists() {
+  const accounts = new Set(['보통예금', '이자수익', '수수료비용', '선납세금']);
+  const custs = new Set();
+  mappingRules.forEach(r => { if (r.account) accounts.add(r.account); if (r.cust) custs.add(r.cust); });
+  vendorProfiles.forEach(v => {
+    if (v.mainAccount) accounts.add(v.mainAccount);
+    if (v.settleCust) custs.add(v.settleCust);
+    if (v.withholdNational) custs.add(v.withholdNational);
+    if (v.withholdLocal) custs.add(v.withholdLocal);
+    (v.rules || []).forEach(r => { if (r.account) accounts.add(r.account); if (r.cust) custs.add(r.cust); });
+  });
+  const accountList = document.getElementById('accountNameList');
+  const custList = document.getElementById('custNameList');
+  if (accountList) accountList.innerHTML = Array.from(accounts).map(a => `<option value="${escHtml(a)}">`).join('');
+  if (custList) custList.innerHTML = Array.from(custs).map(c => `<option value="${escHtml(c)}">`).join('');
+}
+
+// 코드→계정과목명 자동완성용 매핑. 확신할 수 없는 계정과목 코드표를 통째로 넣는 대신,
+// 이 앱이 원래 쓰는 기본 4개 + 지금까지 공통규칙/거래처규칙에 사용자가 직접 등록해둔 코드-계정과목 조합만 사용
+// (사용자가 직접 입력한 값이라 정확함이 보장되고, 회사마다 다른 계정과목 코드 체계에도 자동으로 맞춰짐).
+function codeToAccountMap() {
+  const map = { '103': '보통예금', '901': '이자수익', '831': '수수료비용', '136': '선납세금' };
+  mappingRules.forEach(r => { if (r.code && r.account) map[r.code] = r.account; });
+  vendorProfiles.forEach(v => (v.rules || []).forEach(r => { if (r.code && r.account) map[r.code] = r.account; }));
+  return map;
+}
+// 코드 입력창(data-f="code")에 값을 적으면, 같은 행의 계정과목 칸이 비어있을 때만
+// 위 매핑에서 같은 코드로 등록된 계정과목명을 찾아 자동으로 채워줌 (이미 채워진 이름은 덮어쓰지 않음)
+function autoFillAccountFromCode(codeInp) {
+  const tr = codeInp.closest('tr');
+  const accountInp = tr && tr.querySelector('input[data-f="account"]');
+  if (!accountInp || accountInp.value.trim()) return;
+  const known = codeToAccountMap()[codeInp.value.trim()];
+  if (!known) return;
+  accountInp.value = known;
+  accountInp.dispatchEvent(new Event('input', { bubbles: true }));
+  accountInp.dispatchEvent(new Event('change', { bubbles: true }));
+}
+
 const MAPPING_KEY = 'fx_mapping_rules_v1';
 let mappingRules = [];
 let currentRows = []; // holds {y,m,d,gubun,code,account,custCode,cust,dr,cr,memo,note,_issue}
@@ -396,7 +471,7 @@ function renderRuleSummary() {
   if (!mappingRules.length) { box.textContent = '등록된 규칙이 없습니다. 아래에서 규칙을 추가해보세요.'; return; }
   const items = mappingRules
     .filter(r => r.keyword)
-    .map(r => `<b>${r.keyword}</b> → ${r.account || '(계정 미지정)'}`)
+    .map(r => `<b>${escHtml(r.keyword)}</b> → ${escHtml(r.account) || '(계정 미지정)'}`)
     .join(' &nbsp;·&nbsp; ');
   box.innerHTML = `현재 ${mappingRules.length}개 규칙 적용 중: ${items}`;
 }
@@ -407,11 +482,11 @@ function renderMappingTable() {
   mappingRules.forEach((rule, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input data-idx="${idx}" data-f="keyword" value="${rule.keyword||''}"></td>
-      <td><input data-idx="${idx}" data-f="code" value="${rule.code||''}"></td>
-      <td><input data-idx="${idx}" data-f="account" value="${rule.account||''}"></td>
-      <td><input data-idx="${idx}" data-f="custCode" value="${rule.custCode||''}"></td>
-      <td><input data-idx="${idx}" data-f="cust" value="${rule.cust||''}"></td>
+      <td><input data-idx="${idx}" data-f="keyword" value="${escHtml(rule.keyword)}"></td>
+      <td><input data-idx="${idx}" data-f="code" value="${escHtml(rule.code)}"></td>
+      <td><input data-idx="${idx}" data-f="account" value="${escHtml(rule.account)}" list="accountNameList"></td>
+      <td><input data-idx="${idx}" data-f="custCode" value="${escHtml(rule.custCode)}"></td>
+      <td><input data-idx="${idx}" data-f="cust" value="${escHtml(rule.cust)}" list="custNameList"></td>
       <td><button class="secondary small" data-del="${idx}">삭제</button></td>
     `;
     body.appendChild(tr);
@@ -421,7 +496,11 @@ function renderMappingTable() {
       mappingRules[inp.dataset.idx][inp.dataset.f] = inp.value;
       saveMappingRules();
       renderRuleSummary();
+      refreshAutocompleteLists();
     });
+  });
+  body.querySelectorAll('input[data-f="code"]').forEach(inp => {
+    inp.addEventListener('input', () => autoFillAccountFromCode(inp));
   });
   body.querySelectorAll('button[data-del]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -432,6 +511,7 @@ function renderMappingTable() {
     });
   });
   renderRuleSummary();
+  refreshAutocompleteLists();
 }
 document.getElementById('addMappingRow').addEventListener('click', () => {
   mappingRules.push({ keyword:'', account:'', code:'', custCode:'', cust:'' });
@@ -491,7 +571,7 @@ function getSelectedVendor() {
 }
 function renderVendorSelect() {
   const optionsHtml = '<option value="">(공통 규칙만 사용)</option>' +
-    vendorProfiles.map(v => `<option value="${v.id}">${v.name}</option>`).join('');
+    vendorProfiles.map(v => `<option value="${v.id}">${escHtml(v.name)}</option>`).join('');
   const validId = vendorProfiles.some(v => v.id === selectedVendorId) ? selectedVendorId : '';
   selectedVendorId = validId;
   // 설정 탭의 거래처 선택과 변환하기 탭의 간단 선택, 두 군데 모두 동기화
@@ -503,6 +583,7 @@ function renderVendorSelect() {
   });
   document.getElementById('vendorEmptyHint').style.display = vendorProfiles.length ? 'none' : 'block';
   renderVendorDetail();
+  refreshAutocompleteLists();
 }
 function renderVendorDetail() {
   const vendor = getSelectedVendor();
@@ -513,6 +594,10 @@ function renderVendorDetail() {
   document.getElementById('vendorMainCode').value = vendor.mainCode || '';
   document.getElementById('vendorSettleCustCode').value = vendor.settleCustCode || '';
   document.getElementById('vendorSettleCust').value = vendor.settleCust || '';
+  document.getElementById('vendorWithholdNationalCode').value = vendor.withholdNationalCode || '';
+  document.getElementById('vendorWithholdNational').value = vendor.withholdNational || '';
+  document.getElementById('vendorWithholdLocalCode').value = vendor.withholdLocalCode || '';
+  document.getElementById('vendorWithholdLocal').value = vendor.withholdLocal || '';
   renderVendorRuleTable();
 }
 function renderVendorRuleSummary() {
@@ -522,9 +607,9 @@ function renderVendorRuleSummary() {
   if (!vendor.rules.length) { box.textContent = `"${vendor.name}" 전용 규칙 없음 — 공통 규칙 사용 중`; return; }
   const items = vendor.rules
     .filter(r => r.keyword)
-    .map(r => `<b>${r.keyword}</b> → ${r.account || '(계정 미지정)'}`)
+    .map(r => `<b>${escHtml(r.keyword)}</b> → ${escHtml(r.account) || '(계정 미지정)'}`)
     .join(' &nbsp;·&nbsp; ');
-  box.innerHTML = `"${vendor.name}" 전용 규칙 ${vendor.rules.length}개: ${items}`;
+  box.innerHTML = `"${escHtml(vendor.name)}" 전용 규칙 ${vendor.rules.length}개: ${items}`;
 }
 function renderVendorRuleTable() {
   const vendor = getSelectedVendor();
@@ -534,11 +619,11 @@ function renderVendorRuleTable() {
   vendor.rules.forEach((rule, idx) => {
     const tr = document.createElement('tr');
     tr.innerHTML = `
-      <td><input data-idx="${idx}" data-f="keyword" value="${rule.keyword||''}"></td>
-      <td><input data-idx="${idx}" data-f="code" value="${rule.code||''}"></td>
-      <td><input data-idx="${idx}" data-f="account" value="${rule.account||''}"></td>
-      <td><input data-idx="${idx}" data-f="custCode" value="${rule.custCode||''}"></td>
-      <td><input data-idx="${idx}" data-f="cust" value="${rule.cust||''}"></td>
+      <td><input data-idx="${idx}" data-f="keyword" value="${escHtml(rule.keyword)}"></td>
+      <td><input data-idx="${idx}" data-f="code" value="${escHtml(rule.code)}"></td>
+      <td><input data-idx="${idx}" data-f="account" value="${escHtml(rule.account)}" list="accountNameList"></td>
+      <td><input data-idx="${idx}" data-f="custCode" value="${escHtml(rule.custCode)}"></td>
+      <td><input data-idx="${idx}" data-f="cust" value="${escHtml(rule.cust)}" list="custNameList"></td>
       <td><button class="secondary small" data-del="${idx}">삭제</button></td>
     `;
     body.appendChild(tr);
@@ -548,7 +633,11 @@ function renderVendorRuleTable() {
       vendor.rules[inp.dataset.idx][inp.dataset.f] = inp.value;
       saveVendorProfiles();
       renderVendorRuleSummary();
+      refreshAutocompleteLists();
     });
+  });
+  body.querySelectorAll('input[data-f="code"]').forEach(inp => {
+    inp.addEventListener('input', () => autoFillAccountFromCode(inp));
   });
   body.querySelectorAll('button[data-del]').forEach(btn => {
     btn.addEventListener('click', () => {
@@ -559,6 +648,7 @@ function renderVendorRuleTable() {
     });
   });
   renderVendorRuleSummary();
+  refreshAutocompleteLists();
 }
 // 설정 탭의 거래처 선택과 변환하기 탭의 간단 선택, 둘 중 어디서 바꾸든 서로 동기화
 function onVendorSelectChange(e) {
@@ -581,7 +671,7 @@ function switchTab(tab) {
 document.getElementById('btnAddVendor').addEventListener('click', async () => {
   const name = await promptModal('새 거래처 등록', '예: A상사', '');
   if (!name) return;
-  const v = { id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', rules: [] };
+  const v = { id: 'v' + Date.now().toString(36) + Math.random().toString(36).slice(2, 7), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', withholdNationalCode: '', withholdNational: '', withholdLocalCode: '', withholdLocal: '', rules: [] };
   vendorProfiles.push(v);
   saveVendorProfiles();
   selectedVendorId = v.id;
@@ -639,6 +729,30 @@ document.getElementById('vendorSettleCust').addEventListener('input', (e) => {
   vendor.settleCust = e.target.value;
   saveVendorProfiles();
 });
+document.getElementById('vendorWithholdNationalCode').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.withholdNationalCode = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorWithholdNational').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.withholdNational = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorWithholdLocalCode').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.withholdLocalCode = e.target.value;
+  saveVendorProfiles();
+});
+document.getElementById('vendorWithholdLocal').addEventListener('input', (e) => {
+  const vendor = getSelectedVendor();
+  if (!vendor) return;
+  vendor.withholdLocal = e.target.value;
+  saveVendorProfiles();
+});
 
 // 지금 활성화된 규칙 목록: 거래처가 선택돼 있으면 그 거래처 전용 규칙, 아니면 공통 규칙
 function activeRuleList() {
@@ -661,21 +775,26 @@ async function parseRateFile(file) {
   const doc = new DOMParser().parseFromString(text, 'text/html');
   const trs = doc.querySelectorAll('tr');
   const rateMap = {};
+  const denomByCurrency = {}; // 예: 엔화처럼 "100엔당" 등 100단위로 고시되는 통화를 감지해서 기록 (화면에 안내용)
   trs.forEach(tr => {
     const cells = Array.from(tr.querySelectorAll('td')).map(td => td.textContent.trim());
     if (cells.length < 3) return;
     const dm = cells[0].match(/^(\d{4})\.(\d{2})\.(\d{2})$/);
     if (!dm) return;
     const dateKey = `${dm[1]}-${dm[2]}-${dm[3]}`;
-    const cm = cells[1].match(/\(([A-Za-z]{3})\)/);
+    // 통화 표시가 "미국 달러(USD)"처럼 1단위인 경우가 대부분이지만, "일본 엔(JPY)100" / "(100JPY)"처럼
+    // 통화코드 앞뒤에 표시 단위(예: 100엔당) 숫자가 붙는 경우가 있어 같이 인식해서 환율을 1단위 기준으로 정규화한다.
+    const cm = cells[1].match(/(\d+)?\s*\(?\s*([A-Za-z]{3})\s*\)?\s*(\d+)?/);
     if (!cm) return;
-    const cur = cm[1].toUpperCase();
-    const rate = parseFloat(cells[2].replace(/,/g, ''));
+    const cur = cm[2].toUpperCase();
+    const denom = parseInt(cm[1] || cm[3] || '1', 10) || 1;
+    let rate = parseFloat(cells[2].replace(/,/g, ''));
     if (isNaN(rate)) return;
+    if (denom !== 1) { rate = rate / denom; denomByCurrency[cur] = denom; }
     if (!rateMap[cur]) rateMap[cur] = {};
     rateMap[cur][dateKey] = rate;
   });
-  return rateMap;
+  return { rateMap, denomByCurrency };
 }
 
 // 적요에 쓸 "USD2,201.6*@1,455.7" 형식 숫자 포맷 (천단위 콤마, 불필요한 0은 생략)
@@ -699,6 +818,17 @@ function findRate(rateMap, cur, dateKey) {
     d.setDate(d.getDate() - 1);
   }
   return null;
+}
+
+// 엑셀에 시트가 여러 개인 경우 "거래일시" 컬럼이 있는 시트를 찾아서 사용 (없으면 기존처럼 첫 시트)
+function pickFxSheetRows(wb) {
+  for (const name of wb.SheetNames) {
+    const ws = wb.Sheets[name];
+    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    if (rows.some(r => r.some(c => String(c).trim() === '거래일시'))) return rows;
+  }
+  const ws0 = wb.Sheets[wb.SheetNames[0]];
+  return XLSX.utils.sheet_to_json(ws0, { header: 1, defval: '' });
 }
 
 function findCol(headerRow, name) {
@@ -821,6 +951,15 @@ function verifyBalances(dataRows, cCur, cAmt, cBal, cGubun, cDate, cMemo) {
   return warnings;
 }
 
+// 이자소득 원천징수: 국세(소득세) 14% + 그 국세분의 10%인 지방소득세(구청) = 합계 15.4%
+// (소득세법 제129조 제1항 제1호 다목 / 지방세법 특별징수 — 세율이 바뀌면 이 두 숫자만 수정)
+const WITHHOLD_NATIONAL_RATE = 0.14;
+const WITHHOLD_LOCAL_RATE_OF_NATIONAL = 0.10;
+// 원천징수세액(국세+지방세 합계)이 이 금액 미만이면 선납세금을 나누지 않고 입금액 전부를 이자수익으로 처리.
+// 참고: 소득세법 제86조의 "소액부징수"(원천징수세액 1천원 미만 시 미징수)는 조문상 이자소득(제127조①1호)에는
+// 적용되지 않아 법적으로는 소액도 원천징수 대상이지만, 사용자 요청에 따라 실무 편의상 이 기준을 둠.
+const WITHHOLD_SKIP_UNDER = 1000;
+
 function processFxRows(rows, rateMap, fileName, vendor) {
   let headerRowIdx = -1;
   for (let i = 0; i < rows.length; i++) {
@@ -843,8 +982,10 @@ function processFxRows(rows, rateMap, fileName, vendor) {
 
   const out = [];
   let issueCount = 0;
+  let txnSeq = 0; // 거래 1건당 여러 행(결산은 4행)이 나올 수 있어, 같은 거래끼리 묶는 용도의 키
 
   dataRows.forEach(r => {
+    const txnKey = 'tx' + (txnSeq++);
     const dt = parseDateCell(r[cDate]);
     const gubun = String(r[cGubun] || '').trim();
     const currencyRaw = String(r[cCur] || '').trim();
@@ -855,10 +996,15 @@ function processFxRows(rows, rateMap, fileName, vendor) {
     let issue = false, note = '';
 
     if (isNaN(dt)) {
-      out.push(blankIssueRow('날짜 인식 실패: ' + r[cDate], acctNo));
+      // 차변/대변 한 쌍(2행)으로 맞춰서 넣어야 이후 건수 집계·계좌별 그룹핑이 틀어지지 않음
+      const b1 = blankIssueRow('날짜 인식 실패: ' + r[cDate], acctNo, 'main');
+      const b2 = blankIssueRow('날짜 인식 실패: ' + r[cDate], acctNo, 'counterpart');
+      b1._txnKey = txnKey; b2._txnKey = txnKey;
+      out.push(b1, b2);
       issueCount++;
       return;
     }
+    const rowsBeforeTxn = out.length; // 이번 거래에서 몇 행을 push했든(결산 2~4행, 그 외 2행) 뒤에서 한번에 txnKey를 매기기 위한 시작 위치
     const y = dt.getFullYear(), m = dt.getMonth() + 1, d = dt.getDate();
     const dateKey = `${y}-${String(m).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
 
@@ -880,7 +1026,7 @@ function processFxRows(rows, rateMap, fileName, vendor) {
     else { line1Side = null; issue = true; note += ' 거래구분 인식불가(' + gubun + ')'; }
     const line2Side = line1Side === 'dr' ? 'cr' : (line1Side === 'cr' ? 'dr' : null);
 
-    // 거래구분에 "결산"이 있으면 이자결산으로 보고, 적요 규칙 매칭 없이 이자수익(901) + 거래처 등록에서 지정한 결산 거래처로 고정
+    // 거래구분에 "결산"이 있으면 이자결산으로 보고, 적요 규칙 매칭 없이 이자수익 + 원천징수(선납세금) 분개로 고정
     const isSettle = gubun.includes('결산');
 
     // 거래처 전용 규칙을 먼저 찾고, 없으면 공통 규칙에서 찾음 (대소문자 구분 없이 매칭 — 영문 상호명 대응)
@@ -890,25 +1036,79 @@ function processFxRows(rows, rateMap, fileName, vendor) {
     if (!isSettle && !rule) { issue = true; note += ' 상대계정 매칭규칙 없음'; }
     if (issue) issueCount++;
 
-    out.push({
-      y, m, d,
-      gubun: line1Side === 'dr' ? '차변' : (line1Side === 'cr' ? '대변' : ''),
-      code: (vendor && vendor.mainCode) ? vendor.mainCode : '103',
-      account: (vendor && vendor.mainAccount) ? vendor.mainAccount : '보통예금',
-      custCode: '', cust: '',
-      dr: line1Side === 'dr' ? krw : '', cr: line1Side === 'cr' ? krw : '',
-      memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note, _issue: issue, role: 'main', acctNo
-    });
-    out.push({
-      y, m, d,
-      gubun: line2Side === 'dr' ? '차변' : (line2Side === 'cr' ? '대변' : ''),
-      code: isSettle ? '901' : (rule ? rule.code : ''),
-      account: isSettle ? '이자수익' : (rule ? rule.account : ''),
-      custCode: isSettle ? ((vendor && vendor.settleCustCode) || '') : (rule ? (rule.custCode || '') : ''),
-      cust: isSettle ? ((vendor && vendor.settleCust) || '') : (rule ? (rule.cust || '') : ''),
-      dr: line2Side === 'dr' ? krw : '', cr: line2Side === 'cr' ? krw : '',
-      memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'counterpart', acctNo
-    });
+    if (isSettle) {
+      // 통장에 입금된 이자는 원천징수 후 순액이므로, 세율을 역산해서
+      // 보통예금(순액) / 선납세금-세무서(국세) / 선납세금-구청(지방소득세) / 이자수익(세전 총액) 4줄로 분개.
+      // 이자수익 금액은 역산값이 아니라 실제로 찍힌 세 줄(순액+국세+지방세)의 합으로 정해서 차대변이 항상 딱 맞게 함.
+      const grossEstimate = krw / (1 - WITHHOLD_NATIONAL_RATE * (1 + WITHHOLD_LOCAL_RATE_OF_NATIONAL));
+      const nationalTax = Math.round(grossEstimate * WITHHOLD_NATIONAL_RATE);
+      const localTax = Math.round(nationalTax * WITHHOLD_LOCAL_RATE_OF_NATIONAL);
+      const withholdTotal = nationalTax + localTax;
+      const interestGross = krw + withholdTotal;
+
+      out.push({
+        y, m, d, gubun: '차변',
+        code: (vendor && vendor.mainCode) ? vendor.mainCode : '103',
+        account: (vendor && vendor.mainAccount) ? vendor.mainAccount : '보통예금',
+        custCode: '', cust: '',
+        dr: krw, cr: '',
+        memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note, _issue: issue, role: 'main', acctNo
+      });
+      if (withholdTotal < WITHHOLD_SKIP_UNDER) {
+        // 원천징수세액 합계가 기준(기본 1,000원) 미만이면 선납세금을 나누지 않고 입금액 전부를 이자수익으로 처리
+        out.push({
+          y, m, d, gubun: '대변',
+          code: '901', account: '이자수익',
+          custCode: (vendor && vendor.settleCustCode) || '', cust: (vendor && vendor.settleCust) || '',
+          dr: '', cr: krw,
+          memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'counterpart', acctNo
+        });
+      } else {
+        out.push({
+          y, m, d, gubun: '차변',
+          code: '136', account: '선납세금',
+          custCode: (vendor && vendor.withholdNationalCode) || '', cust: (vendor && vendor.withholdNational) || '',
+          dr: nationalTax, cr: '',
+          memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'withhold-national', acctNo
+        });
+        out.push({
+          y, m, d, gubun: '차변',
+          code: '136', account: '선납세금',
+          custCode: (vendor && vendor.withholdLocalCode) || '', cust: (vendor && vendor.withholdLocal) || '',
+          dr: localTax, cr: '',
+          memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'withhold-local', acctNo
+        });
+        out.push({
+          y, m, d, gubun: '대변',
+          code: '901', account: '이자수익',
+          custCode: (vendor && vendor.settleCustCode) || '', cust: (vendor && vendor.settleCust) || '',
+          dr: '', cr: interestGross,
+          memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'counterpart', acctNo
+        });
+      }
+    } else {
+      out.push({
+        y, m, d,
+        gubun: line1Side === 'dr' ? '차변' : (line1Side === 'cr' ? '대변' : ''),
+        code: (vendor && vendor.mainCode) ? vendor.mainCode : '103',
+        account: (vendor && vendor.mainAccount) ? vendor.mainAccount : '보통예금',
+        custCode: '', cust: '',
+        dr: line1Side === 'dr' ? krw : '', cr: line1Side === 'cr' ? krw : '',
+        memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note, _issue: issue, role: 'main', acctNo
+      });
+      out.push({
+        y, m, d,
+        gubun: line2Side === 'dr' ? '차변' : (line2Side === 'cr' ? '대변' : ''),
+        code: rule ? rule.code : '',
+        account: rule ? rule.account : '',
+        custCode: rule ? (rule.custCode || '') : '',
+        cust: rule ? (rule.cust || '') : '',
+        dr: line2Side === 'dr' ? krw : '', cr: line2Side === 'cr' ? krw : '',
+        memo: memoDisplay, memoKey: memo, fxTag: memoDisplay, note: '', _issue: issue, role: 'counterpart', acctNo
+      });
+    }
+    // 이번 거래에 방금 push한 행(결산이면 소액 여부에 따라 2~4행, 그 외는 2행) 전부를 같은 txnKey로 묶음
+    for (let i = rowsBeforeTxn; i < out.length; i++) out[i]._txnKey = txnKey;
   });
 
   return { out, error: null, issueCount, acctNo, acctName, balanceWarnings };
@@ -985,16 +1185,17 @@ async function checkRateCoverage() {
   if (!fxInput.files.length || !rateInput.files.length) { box.innerHTML = ''; return; }
   try {
     let rateMap = {};
+    let denomInfo = {};
     for (const f of Array.from(rateInput.files)) {
-      const m = await parseRateFile(f);
-      for (const cur in m) rateMap[cur] = Object.assign(rateMap[cur] || {}, m[cur]);
+      const parsed = await parseRateFile(f);
+      for (const cur in parsed.rateMap) rateMap[cur] = Object.assign(rateMap[cur] || {}, parsed.rateMap[cur]);
+      Object.assign(denomInfo, parsed.denomByCurrency);
     }
     const fxCurrencies = new Set();
     for (const f of Array.from(fxInput.files)) {
       const buf = await f.arrayBuffer();
       const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+      const rows = pickFxSheetRows(wb);
       let headerRowIdx = -1;
       for (let i = 0; i < rows.length; i++) {
         if (rows[i].some(c => String(c).trim() === '거래일시')) { headerRowIdx = i; break; }
@@ -1011,10 +1212,13 @@ async function checkRateCoverage() {
     if (mySeq !== rateCoverageSeq) return; // 그 사이에 파일이 또 바뀌었으면 이 결과는 버림
     const rateCurrencies = new Set(Object.keys(rateMap));
     const missing = Array.from(fxCurrencies).filter(c => !rateCurrencies.has(c));
+    const denomNote = Object.keys(denomInfo).length
+      ? `<div style="margin-top:2px">${Object.entries(denomInfo).map(([c,d]) => `${c}은(는) ${d}단위 고시로 인식해서 환율을 1단위 기준으로 자동 환산했어요`).join(', ')} — 실제 고시 방식과 다르면 꼭 확인해주세요.</div>`
+      : '';
     if (missing.length) {
-      box.innerHTML = `<span class="badge warn">환율 파일 확인 필요</span> 외화계좌 파일에 <b>${missing.join(', ')}</b> 통화가 있는데, 올린 환율 파일에는 이 통화 데이터가 없어요. 해당 통화의 매매기준율 파일을 추가로 올려주세요.`;
+      box.innerHTML = `<span class="badge warn">환율 파일 확인 필요</span> 외화계좌 파일에 <b>${missing.join(', ')}</b> 통화가 있는데, 올린 환율 파일에는 이 통화 데이터가 없어요. 해당 통화의 매매기준율 파일을 추가로 올려주세요.${denomNote}`;
     } else if (fxCurrencies.size) {
-      box.innerHTML = `<span class="badge ok">환율 커버리지 확인됨</span> 외화계좌 파일의 통화(${Array.from(fxCurrencies).join(', ')})가 환율 파일에 모두 있어요.`;
+      box.innerHTML = `<span class="badge ok">환율 커버리지 확인됨</span> 외화계좌 파일의 통화(${Array.from(fxCurrencies).join(', ')})가 환율 파일에 모두 있어요.${denomNote}`;
     } else {
       box.innerHTML = '';
     }
@@ -1028,16 +1232,25 @@ setupDropzone('rateDrop', 'rateFiles', 'rateFileList', checkRateCoverage);
 document.getElementById('btnProcess').addEventListener('click', async () => {
   const fxInput = document.getElementById('fxFiles');
   const rateInput = document.getElementById('rateFiles');
-  if (!fxInput.files.length) { alert('외화계좌 거래내역 엑셀을 선택해주세요.'); return; }
-  if (!rateInput.files.length) { alert('매매기준율 파일을 선택해주세요.'); return; }
+  if (!fxInput.files.length) { await alertModal('외화계좌 거래내역 엑셀을 선택해주세요.'); return; }
+  if (!rateInput.files.length) { await alertModal('매매기준율 파일을 선택해주세요.'); return; }
+
+  // 파일이 크거나 여러 개면 몇 초 걸릴 수 있어서, 처리 중에는 버튼을 비활성화하고 상태를 표시
+  const btnProcess = document.getElementById('btnProcess');
+  const btnProcessLabel = btnProcess.textContent;
+  btnProcess.disabled = true;
+  btnProcess.textContent = '처리 중...';
+  try {
 
   let rateMap = {};
+  let denomInfo = {};
   for (const f of Array.from(rateInput.files)) {
-    const m = await parseRateFile(f);
-    for (const cur in m) rateMap[cur] = Object.assign(rateMap[cur] || {}, m[cur]);
+    const parsed = await parseRateFile(f);
+    for (const cur in parsed.rateMap) rateMap[cur] = Object.assign(rateMap[cur] || {}, parsed.rateMap[cur]);
+    Object.assign(denomInfo, parsed.denomByCurrency);
   }
   if (Object.keys(rateMap).length === 0) {
-    alert('매매기준율 파일에서 환율 데이터를 읽지 못했습니다. 파일 형식을 확인해주세요.');
+    await alertModal('매매기준율 파일에서 환율 데이터를 읽지 못했습니다. 파일 형식을 확인해주세요.');
     return;
   }
 
@@ -1052,10 +1265,9 @@ document.getElementById('btnProcess').addEventListener('click', async () => {
   for (const file of Array.from(fxInput.files)) {
     const buf = await file.arrayBuffer();
     const wb = XLSX.read(buf, { type: 'array', cellDates: true });
-    const ws = wb.Sheets[wb.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json(ws, { header: 1, defval: '' });
+    const rows = pickFxSheetRows(wb);
     const result = processFxRows(rows, rateMap, file.name, vendor);
-    if (result.error) { alert(`"${file.name}" 파일 처리 중 오류: ${result.error}`); continue; }
+    if (result.error) { await alertModal(`"${file.name}" 파일 처리 중 오류: ${result.error}`); continue; }
     // 계좌번호를 못 찾은 파일은 서로 다른 계좌로 취급 (파일명 기준으로 구분, 잘못 합쳐지는 것 방지)
     const acctKey = result.acctNo || `미확인 (${file.name})`;
     result.out.forEach(row => { row.acctNo = acctKey; });
@@ -1086,6 +1298,7 @@ document.getElementById('btnProcess').addEventListener('click', async () => {
   });
 
   // 중복 업로드 감지: 같은 계좌+날짜+구분+금액+적요 조합이 두 번 이상 나오면 표시
+  // (결산 거래는 한 거래에 4행이 나오므로 "바로 앞 행"이 아니라 _txnKey로 같은 거래끼리 묶어서 판단)
   const dupCounts = {};
   allOut.forEach(row => {
     if (row.role !== 'main') return;
@@ -1094,19 +1307,25 @@ document.getElementById('btnProcess').addEventListener('click', async () => {
   });
   let dupExtraCount = 0;
   Object.values(dupCounts).forEach(c => { if (c > 1) dupExtraCount += (c - 1); });
-  allOut.forEach((row, i) => {
-    const sig = `${row.acctNo}|${row.y}-${row.m}-${row.d}|${row.gubun}|${row.dr}|${row.cr}|${row.memoKey}`;
-    const prev = allOut[i - 1];
-    const pairSig = row.role === 'counterpart'
-      ? (prev ? `${prev.acctNo}|${prev.y}-${prev.m}-${prev.d}|${prev.gubun}|${prev.dr}|${prev.cr}|${prev.memoKey}` : sig)
-      : sig;
-    if (dupCounts[pairSig] > 1) row._dup = true;
+  const mainSigByTxn = {};
+  allOut.forEach(row => {
+    if (row.role === 'main') {
+      mainSigByTxn[row._txnKey] = `${row.acctNo}|${row.y}-${row.m}-${row.d}|${row.gubun}|${row.dr}|${row.cr}|${row.memoKey}`;
+    }
+  });
+  allOut.forEach(row => {
+    const sig = mainSigByTxn[row._txnKey];
+    if (sig && dupCounts[sig] > 1) row._dup = true;
   });
 
   currentRows = allOut;
   originalRows = JSON.parse(JSON.stringify(allOut));
-  renderSummary(allOut, totalIssues, acctOrder, acctFileCount, allBalanceWarnings, dupExtraCount, vendor ? vendor.name : '', acctNameByKey);
+  renderSummary(allOut, totalIssues, acctOrder, acctFileCount, allBalanceWarnings, dupExtraCount, vendor ? vendor.name : '', acctNameByKey, denomInfo);
   renderPreview(allOut);
+  } finally {
+    btnProcess.disabled = false;
+    btnProcess.textContent = btnProcessLabel;
+  }
 });
 
 // ---------- 적요별 빠른 분류 패널 ----------
@@ -1122,15 +1341,19 @@ function derivePrefix(row) {
 
 // 상대계정 편집 후 그 통장적요+계좌 그룹 전체의 "확인 필요" 표시를 다시 계산 (계정이 채워졌으면 해제)
 function refreshIssueForGroup(acctNo, memoKey) {
-  currentRows.forEach((row, i) => {
-    if (row.role === 'counterpart' && row.acctNo === acctNo && row.memoKey === memoKey) {
-      const mainRow = currentRows[i - 1];
-      const hasOtherIssue = !!(mainRow && mainRow.note && (mainRow.note.includes('환율매칭실패') || mainRow.note.includes('거래구분 인식불가')));
-      const nowFilled = !!(row.account && String(row.account).trim());
-      const stillIssue = hasOtherIssue || !nowFilled;
-      row._issue = stillIssue;
-      if (mainRow && mainRow.role === 'main') mainRow._issue = stillIssue;
-    }
+  // 결산 거래는 한 거래에 4행(main + 상대 3행)이라 "바로 앞 행"이 아니라 _txnKey로 같은 거래를 묶어서 판단
+  const byTxn = {};
+  currentRows.forEach(row => {
+    if (row.acctNo !== acctNo || row.memoKey !== memoKey) return;
+    (byTxn[row._txnKey] = byTxn[row._txnKey] || []).push(row);
+  });
+  Object.values(byTxn).forEach(group => {
+    const mainRow = group.find(r => r.role === 'main');
+    const hasOtherIssue = !!(mainRow && mainRow.note && (mainRow.note.includes('환율매칭실패') || mainRow.note.includes('거래구분 인식불가')));
+    const nonMainRows = group.filter(r => r.role !== 'main');
+    const allFilled = nonMainRows.every(r => r.account && String(r.account).trim());
+    const stillIssue = hasOtherIssue || !allFilled;
+    group.forEach(r => { r._issue = stillIssue; });
   });
 }
 
@@ -1168,49 +1391,64 @@ function removeRuleByKeyword(keyword) {
   }
 }
 
+// 통장적요 맨 앞부터, 날짜·참조번호가 시작되는 지점(숫자가 3자리 이상 이어지는 곳, -./,로 이어진 것 포함) 직전까지만
+// 남겨서 "이자결산20260901" → "이자결산"처럼 재사용 가능한 키워드를 뽑아냄. 중간에 숫자를 지우고 뒷부분을 이어붙이면
+// 그 형태 그대로는 실제 적요에 없어서(숫자가 그 사이에 껴 있으니) 매칭이 안 되므로, 반드시 "앞부분만 남기는" 방식으로 처리.
+// 적요가 통째로 숫자/번호뿐이라 앞부분이 안 남는 경우엔 원문 그대로 사용.
+function deriveRuleKeyword(memo) {
+  const s = String(memo || '');
+  const m = s.match(/\d[\d,\-./]{2,}/);
+  const prefix = (m ? s.slice(0, m.index) : s).trim();
+  return prefix.length >= 2 ? prefix : (s.trim() || memo);
+}
+
 // 상대계정(계정과목/코드/거래처)을 채우면 규칙을 항상 자동 저장, 지우면 규칙도 같이 삭제
 function autoSaveRuleForRow(row) {
   if (!row.memoKey) return;
+  const keyword = deriveRuleKeyword(row.memoKey);
   if (row.account && String(row.account).trim()) {
-    upsertRuleFromGroup({ memoKey: row.memoKey, account: row.account, code: row.code, custCode: row.custCode, cust: row.cust });
+    upsertRuleFromGroup({ memoKey: keyword, account: row.account, code: row.code, custCode: row.custCode, cust: row.cust });
   } else {
-    removeRuleByKeyword(row.memoKey);
+    removeRuleByKeyword(keyword);
   }
   renderActiveRuleTable();
 }
 
-function blankIssueRow(reasonText, acctNo) {
-  return { y:'', m:'', d:'', gubun:'', code:'', account:'', custCode:'', cust:'', dr:'', cr:'', memo: reasonText, memoKey: reasonText, note:'', _issue:true, role:'unknown', acctNo };
+function blankIssueRow(reasonText, acctNo, role) {
+  return { y:'', m:'', d:'', gubun:'', code:'', account:'', custCode:'', cust:'', dr:'', cr:'', memo: reasonText, memoKey: reasonText, note:'', _issue:true, role: role || 'unknown', acctNo };
 }
 
-function renderSummary(rows, issueCount, acctOrder, acctFileCount, balanceWarnings, dupGroupCount, vendorName, acctNameByKey) {
+function renderSummary(rows, issueCount, acctOrder, acctFileCount, balanceWarnings, dupGroupCount, vendorName, acctNameByKey, denomInfo) {
   const box = document.getElementById('summaryBox');
-  const total = rows.length;
+  // 결산(이자) 거래는 4행(보통예금/세무서/구청/이자수익), 그 외는 2행이라 행수를 그냥 2로 나누면 안 되고
+  // 거래마다 정확히 1개씩 있는 role:'main' 행 개수로 건수를 셈
+  const total = rows.filter(r => r.role === 'main').length;
   acctOrder = acctOrder || [];
   acctFileCount = acctFileCount || {};
   acctNameByKey = acctNameByKey || {};
   balanceWarnings = balanceWarnings || [];
   dupGroupCount = dupGroupCount || 0;
+  denomInfo = denomInfo || {};
   const unmatched = acctOrder.filter(a => a.startsWith('미확인'));
 
   const badges = [
-    `<span style="font-size:12.5px;color:var(--sub);white-space:nowrap">거래 ${total/2}건 · 계좌 ${acctOrder.length}개</span>`,
-    vendorName ? `<span class="badge ok">거래처: ${vendorName}</span>` : '',
+    `<span style="font-size:12.5px;color:var(--sub);white-space:nowrap">거래 ${total}건 · 계좌 ${acctOrder.length}개</span>`,
+    vendorName ? `<span class="badge ok">거래처: ${escHtml(vendorName)}</span>` : '',
     `<span class="badge ${issueCount ? 'warn' : 'ok'}">${issueCount ? '확인 필요 ' + issueCount + '건' : '전부 자동 매칭'}</span>`,
     balanceWarnings.length ? `<span class="badge warn">잔액불일치 ${balanceWarnings.length}건</span>` : '',
     dupGroupCount ? `<span class="badge warn">중복의심 ${dupGroupCount}건</span>` : ''
   ].filter(Boolean).join(' ');
 
   const acctListHtml = acctOrder.map(a => {
-    const cnt = rows.filter(r => r.acctNo === a).length / 2;
+    const cnt = rows.filter(r => r.acctNo === a && r.role === 'main').length;
     const files = acctFileCount[a] || 1;
-    const label = (acctNameByKey[a] && acctNameByKey[a] !== a) ? `${acctNameByKey[a]} ${a}` : a;
+    const label = (acctNameByKey[a] && acctNameByKey[a] !== a) ? `${escHtml(acctNameByKey[a])} ${escHtml(a)}` : escHtml(a);
     return `<div>· ${label} — ${cnt}건${files > 1 ? ` (파일 ${files}개 병합됨)` : ''}</div>`;
   }).join('');
   const balanceWarningHtml = balanceWarnings.length
     ? `<div style="margin-top:6px"><b>거래후잔액 불일치</b></div>` +
       balanceWarnings.slice(0, 5).map(w =>
-        `<div style="font-size:12px;margin-top:2px">· "${w.fileName}" ${w.date || '날짜미상'}${w.memo ? ' (' + w.memo + ')' : ''} — ${w.currency} 계산값 ${fmtFxNum(w.expected)} / 실제 ${fmtFxNum(w.declared)} (차이 ${fmtFxNum(w.diff)})</div>`
+        `<div style="font-size:12px;margin-top:2px">· "${escHtml(w.fileName)}" ${escHtml(w.date) || '날짜미상'}${w.memo ? ' (' + escHtml(w.memo) + ')' : ''} — ${w.currency} 계산값 ${fmtFxNum(w.expected)} / 실제 ${fmtFxNum(w.declared)} (차이 ${fmtFxNum(w.diff)})</div>`
       ).join('') +
       (balanceWarnings.length > 5 ? `<div style="font-size:12px;margin-top:2px">외 ${balanceWarnings.length - 5}건 더 있음</div>` : '')
     : '';
@@ -1220,6 +1458,9 @@ function renderSummary(rows, issueCount, acctOrder, acctFileCount, balanceWarnin
   const unmatchedHtml = unmatched.length
     ? `<div style="margin-top:6px"><b>계좌번호를 자동으로 못 찾은 파일이 있어요</b> — 파일별로 따로 처리했어요.</div>`
     : '';
+  const denomHtml = Object.keys(denomInfo).length
+    ? `<div style="margin-top:6px"><b>환율 단위 자동 환산 적용</b> — ${Object.entries(denomInfo).map(([c,d]) => `${c} (${d}단위 고시 → 1단위로 환산)`).join(', ')}. 실제 고시 방식과 다르면 반드시 확인해주세요.</div>`
+    : '';
 
   box.innerHTML = `
     <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
@@ -1228,6 +1469,7 @@ function renderSummary(rows, issueCount, acctOrder, acctFileCount, balanceWarnin
     </div>
     <div id="summaryDetail" style="display:none;margin-top:8px;font-size:12.5px;line-height:1.7;">
       ${unmatchedHtml}
+      ${denomHtml}
       ${balanceWarningHtml}
       ${dupHtml}
       <div style="margin-top:6px">${acctListHtml}</div>
@@ -1261,6 +1503,17 @@ function updateBalanceCheck() {
   `;
 }
 
+// 다운로드 파일명에 쓸 거래일자 범위 라벨: 실제 거래들의 년월을 기준으로 "202609" 또는 "202608-202609".
+// (오늘 날짜가 아니라 실제 거래일자 기준이라, 지난달 자료를 나중에 처리해도 파일명만 보고 몇 월 자료인지 알 수 있음)
+function txnDateRangeLabel(rows) {
+  const keys = rows.filter(r => r.y && r.m && r.d)
+    .map(r => `${r.y}${String(r.m).padStart(2,'0')}${String(r.d).padStart(2,'0')}`)
+    .sort();
+  if (!keys.length) return new Date().toISOString().slice(0,10).replace(/-/g,'');
+  const first = keys[0].slice(0, 6), last = keys[keys.length - 1].slice(0, 6);
+  return first === last ? first : `${first}-${last}`;
+}
+
 const AUTO_FILL_FIELDS = ['account', 'code', 'custCode', 'cust'];
 
 // 차변/대변 금액에 천단위 콤마를 넣어서 보여주기 위한 포맷 (저장값 자체는 콤마 없는 숫자 그대로 유지)
@@ -1284,6 +1537,7 @@ function renderPreview(rows) {
   const body = document.getElementById('previewBody');
   card.style.display = 'block';
   body.innerHTML = '';
+  refreshAutocompleteLists();
 
   const targetBox = document.getElementById('quickFixSaveTarget');
   if (targetBox) {
@@ -1306,10 +1560,16 @@ function renderPreview(rows) {
     // 계좌번호가 바뀌는 지점에 그룹 구분 행 삽입 (다운로드 엑셀에는 포함되지 않음, 화면 표시용)
     if (row.acctNo !== prevAcct) {
       const acctRows = rows.filter(r => r.acctNo === row.acctNo);
-      const cnt = acctRows.length / 2;
-      const issueCnt = acctRows.filter(r => r._issue).length / 2;
+      const cnt = acctRows.filter(r => r.role === 'main').length;
+      const issueCnt = acctRows.filter(r => r.role === 'main' && r._issue).length;
+      // 검색/필터가 걸려있으면 "지금 화면에 보이는 건수 / 전체 건수"도 같이 보여줌
+      let cntLabel = `${cnt}건`;
+      if (term || issueOnly) {
+        const shownCnt = acctRows.filter(r => r.role === 'main' && matchesPreviewSearch(r, term) && (!issueOnly || r._issue)).length;
+        if (shownCnt !== cnt) cntLabel = `${shownCnt}/${cnt}건 표시 중`;
+      }
       const headerTr = document.createElement('tr');
-      headerTr.innerHTML = `<td colspan="14" style="text-align:left;background:var(--sage-bg);font-weight:700;color:#3d6653">계좌번호: ${row.acctLabel || row.acctNo || '미확인'} (${cnt}건${issueCnt ? `, 확인필요 ${issueCnt}건` : ''})</td>`;
+      headerTr.innerHTML = `<td colspan="14" style="text-align:left;background:var(--sage-bg);font-weight:700;color:#3d6653">계좌번호: ${escHtml(row.acctLabel || row.acctNo || '미확인')} (${cntLabel}${issueCnt ? `, 확인필요 ${issueCnt}건` : ''})</td>`;
       body.appendChild(headerTr);
       prevAcct = row.acctNo;
     }
@@ -1318,18 +1578,19 @@ function renderPreview(rows) {
     if (row._dup) tr.classList.add('dup-row');
     const fields = ['y','m','d','gubun','code','account','custCode','cust','dr','cr','memo'];
     tr.innerHTML =
-      `<td style="text-align:left;color:var(--sub);font-size:11.5px">${row.memoKey || ''}</td>`
-      + `<td><input data-idx="${idx}" data-f="notePrefix" value="${derivePrefix(row) || ''}"></td>`
+      `<td style="text-align:left;color:var(--sub);font-size:11.5px">${escHtml(row.memoKey)}</td>`
+      + `<td><input data-idx="${idx}" data-f="notePrefix" value="${escHtml(derivePrefix(row))}"></td>`
       + fields.map(f => {
         const display = (f === 'dr' || f === 'cr') ? fmtKrw(row[f]) : (row[f] ?? '');
-        return `<td><input data-idx="${idx}" data-f="${f}" value="${display}"></td>`;
+        const listAttr = f === 'account' ? ' list="accountNameList"' : (f === 'cust' ? ' list="custNameList"' : '');
+        return `<td><input data-idx="${idx}" data-f="${f}" value="${escHtml(display)}"${listAttr}></td>`;
       }).join('')
-      + `<td class="note-col" style="color:var(--sub);font-size:11px">${row.note || ''}</td>`;
+      + `<td class="note-col" style="color:var(--sub);font-size:11px">${escHtml(row.note)}</td>`;
     body.appendChild(tr);
   });
   if ((term || issueOnly) && shown === 0) {
     const emptyTr = document.createElement('tr');
-    const msg = term ? `"${term}"에 해당하는 거래가 없어요.` : '확인이 필요한 거래가 없어요. 전부 자동 분류됐어요.';
+    const msg = term ? `"${escHtml(term)}"에 해당하는 거래가 없어요.` : '확인이 필요한 거래가 없어요. 전부 자동 분류됐어요.';
     emptyTr.innerHTML = `<td colspan="14" style="text-align:center;color:var(--sub);padding:16px">${msg}</td>`;
     body.appendChild(emptyTr);
   }
@@ -1374,6 +1635,9 @@ function renderPreview(rows) {
       renderPreview(currentRows);
     });
   });
+  body.querySelectorAll('input[data-f="code"]').forEach(inp => {
+    inp.addEventListener('input', () => autoFillAccountFromCode(inp));
+  });
   // 적요 접두어: 같은 계좌+통장적요를 가진 모든 거래(차변/대변 모두)의 적요 맨 앞에 반영
   body.querySelectorAll('input[data-f="notePrefix"]').forEach(inp => {
     inp.addEventListener('change', () => {
@@ -1386,15 +1650,26 @@ function renderPreview(rows) {
   updateBalanceCheck();
 }
 
-document.getElementById('btnDownload').addEventListener('click', () => {
-  if (!currentRows.length) { alert('먼저 변환을 실행해주세요.'); return; }
+document.getElementById('btnDownload').addEventListener('click', async () => {
+  if (!currentRows.length) { await alertModal('먼저 변환을 실행해주세요.'); return; }
+  const remainingIssues = currentRows.filter(r => r._issue).length;
+  if (remainingIssues) {
+    const proceed = await confirmModal(
+      '확인 필요한 거래가 남아있어요',
+      `아직 확인이 필요한 거래가 ${remainingIssues}건 있어요. 계정과목·거래처가 비어있는 채로 다운로드될 수 있어요.\n그래도 다운로드할까요?`,
+      '다운로드', true
+    );
+    if (!proceed) return;
+  }
   let totalDr = 0, totalCr = 0;
   currentRows.forEach(r => { totalDr += Number(r.dr) || 0; totalCr += Number(r.cr) || 0; });
   if (totalDr !== totalCr) {
-    const proceed = confirm(
+    const proceed = await confirmModal(
+      '차대변 불일치',
       `차변 합계(${totalDr.toLocaleString('ko-KR')}원)와 대변 합계(${totalCr.toLocaleString('ko-KR')}원)가 일치하지 않습니다.\n` +
       `차액: ${Math.abs(totalDr - totalCr).toLocaleString('ko-KR')}원\n\n` +
-      `그래도 다운로드할까요?`
+      `그래도 다운로드할까요?`,
+      '다운로드', true
     );
     if (!proceed) return;
   }
@@ -1409,12 +1684,22 @@ document.getElementById('btnDownload').addEventListener('click', () => {
     ]);
   });
   const ws = XLSX.utils.aoa_to_sheet(aoa);
+  // 차변(8)/대변(9) 컬럼에 천단위 콤마 표시 서식 적용 (저장되는 값 자체는 그대로 숫자라 재업로드엔 영향 없음)
+  const range = XLSX.utils.decode_range(ws['!ref']);
+  for (let R = range.s.r + 1; R <= range.e.r; R++) {
+    [8, 9].forEach(C => {
+      const addr = XLSX.utils.encode_cell({ r: R, c: C });
+      if (ws[addr] && typeof ws[addr].v === 'number') ws[addr].z = '#,##0';
+    });
+  }
+  ws['!cols'] = [
+    {wch:5},{wch:4},{wch:4},{wch:6},{wch:6},{wch:14},{wch:10},{wch:14},{wch:12},{wch:12},{wch:26}
+  ];
   const wbOut = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(wbOut, ws, 'Sheet1');
-  const today = new Date().toISOString().slice(0,10).replace(/-/g,'');
   const vendor = getSelectedVendor();
   const vendorPart = vendor ? `_${vendor.name.replace(/[\\/:*?"<>|]/g, '')}` : '';
-  XLSX.writeFile(wbOut, `일반전표입력${vendorPart}_${today}.xlsx`);
+  XLSX.writeFile(wbOut, `일반전표입력${vendorPart}_${txnDateRangeLabel(currentRows)}.xlsx`);
 });
 
 document.getElementById('previewSearch').addEventListener('input', () => {
@@ -1428,9 +1713,10 @@ document.getElementById('toggleIssueOnly').addEventListener('change', () => {
   if (currentRows.length) renderPreview(currentRows);
 });
 
-document.getElementById('btnReset').addEventListener('click', () => {
-  if (!originalRows.length) { alert('되돌릴 대상이 없어요. 먼저 변환을 실행해주세요.'); return; }
-  if (!confirm('지금까지 직접 수정한 내용이 사라지고, 방금 변환했던 상태로 되돌아가요. 계속할까요?')) return;
+document.getElementById('btnReset').addEventListener('click', async () => {
+  if (!originalRows.length) { await alertModal('되돌릴 대상이 없어요. 먼저 변환을 실행해주세요.'); return; }
+  const ok = await confirmModal('변환 결과로 되돌리기', '지금까지 직접 수정한 내용이 사라지고, 방금 변환했던 상태로 되돌아가요. 계속할까요?', '되돌리기', true);
+  if (!ok) return;
   currentRows = JSON.parse(JSON.stringify(originalRows));
   document.getElementById('previewSearch').value = '';
   renderPreview(currentRows);
@@ -1444,8 +1730,8 @@ document.getElementById('btnExportSettings').addEventListener('click', () => {
   mappingRules.forEach(r => commonRows.push([r.keyword || '', r.code || '', r.account || '', r.custCode || '', r.cust || '']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(commonRows), '공통규칙');
 
-  const vendorListRows = [['거래처명', '보통예금 계정과목', '보통예금 코드', '결산 거래처코드', '결산 거래처명']];
-  vendorProfiles.forEach(v => vendorListRows.push([v.name || '', v.mainAccount || '', v.mainCode || '', v.settleCustCode || '', v.settleCust || '']));
+  const vendorListRows = [['거래처명', '보통예금 계정과목', '보통예금 코드', '결산 거래처코드', '결산 거래처명', '원천징수(세무서) 코드', '원천징수(세무서) 거래처명', '원천징수(구청) 코드', '원천징수(구청) 거래처명']];
+  vendorProfiles.forEach(v => vendorListRows.push([v.name || '', v.mainAccount || '', v.mainCode || '', v.settleCustCode || '', v.settleCust || '', v.withholdNationalCode || '', v.withholdNational || '', v.withholdLocalCode || '', v.withholdLocal || '']));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet(vendorListRows), '거래처목록');
 
   const vendorRuleRows = [['거래처명', '적요 키워드', '코드', '계정과목', '거래처코드', '거래처명(상대)']];
@@ -1494,7 +1780,7 @@ document.getElementById('importSettingsFile').addEventListener('change', async (
       let seq = 0;
       const ensureVendor = (name) => {
         if (!vendorMap[name]) {
-          vendorMap[name] = { id: 'v' + Date.now().toString(36) + (seq++) + Math.random().toString(36).slice(2, 5), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', rules: [] };
+          vendorMap[name] = { id: 'v' + Date.now().toString(36) + (seq++) + Math.random().toString(36).slice(2, 5), name, mainAccount: '', mainCode: '', settleCustCode: '', settleCust: '', withholdNationalCode: '', withholdNational: '', withholdLocalCode: '', withholdLocal: '', rules: [] };
           order.push(name);
         }
         return vendorMap[name];
@@ -1507,6 +1793,10 @@ document.getElementById('importSettingsFile').addEventListener('change', async (
         v.mainCode = cell(r, 2);
         v.settleCustCode = cell(r, 3);
         v.settleCust = cell(r, 4);
+        v.withholdNationalCode = cell(r, 5);
+        v.withholdNational = cell(r, 6);
+        v.withholdLocalCode = cell(r, 7);
+        v.withholdLocal = cell(r, 8);
       });
       sheetRows('거래처규칙').forEach(r => {
         const name = cell(r, 0);
