@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<title>부가세·4대보험 분개 생성기</title>
+<title>부가세·4대보험·원천세 분개 생성기</title>
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   * { box-sizing: border-box; }
@@ -39,7 +39,7 @@
   .settings-grid label{display:flex;align-items:center;gap:8px;font-size:12px;color:var(--sub);font-weight:600;white-space:nowrap;}
   .settings-grid label input{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;padding:6px 9px;font:inherit;color:var(--text);}
 
-  .agency-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+  .agency-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(185px,1fr));gap:12px;}
   @media (max-width:760px){ .agency-grid{grid-template-columns:1fr;} }
   .agency-row{display:flex;flex-direction:column;gap:8px;padding:12px 14px;background:#fff;border:1px solid var(--border);border-radius:8px;}
   .agency-name{font-size:12.5px;font-weight:700;color:var(--text);}
@@ -95,18 +95,26 @@
   .gubun-pill[data-v="출금"]{background-color:var(--sage-tag);color:#2f6b4f;}
   .gubun-pill[data-v="입금"]{background-color:var(--rose-tag);color:#7a4040;}
 
-  .two-col-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;margin-bottom:0;}
+  .two-col-row{display:grid;grid-template-columns:1fr 1fr;gap:18px;align-items:start;margin-bottom:18px;}
   .col-left,.col-right{display:flex;flex-direction:column;gap:18px;min-width:0;}
   .col-left .card,.col-right .card{margin-bottom:0;}
+  .two-col-row.equal{align-items:stretch;}
+  .two-col-row.equal .col-left,.two-col-row.equal .col-right{height:100%;}
+  .two-col-row.equal .card{flex:1;display:flex;flex-direction:column;}
+  .two-col-row.equal .card .tablewrap,.two-col-row.equal .card .preview{flex:1;}
   @media (max-width:900px){ .two-col-row{grid-template-columns:1fr;} }
 
   .ins4-cols{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+  .ins4-cols.wht-cols{grid-template-columns:repeat(2,1fr);}
   @media (max-width:520px){ .ins4-cols{grid-template-columns:1fr;} }
   .ins4-col{display:flex;flex-direction:column;gap:6px;min-width:0;}
   .ins4-fill{display:flex;gap:4px;}
   .ins4-fill input{flex:1;min-width:0;border:1px solid var(--line);border-radius:5px;padding:4px 6px;font-size:11.5px;text-align:right;color:var(--text);}
   .btn-mini{border:0;background:var(--sage-tag);color:#2f6b4f;border-radius:5px;padding:0 9px;font-size:11px;font-weight:700;cursor:pointer;white-space:nowrap;font-family:inherit;}
   .btn-mini:hover{background:#cfe3d7;}
+  .btn-mini.wide-mini{width:100%;margin-top:4px;padding:5px 0;}
+  .autocalc{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--sub);font-weight:600;margin:0 0 8px;cursor:pointer;}
+  .autocalc input{margin:0;accent-color:var(--sage);}
   .grid-table{border-collapse:collapse;width:100%;table-layout:fixed;}
   .grid-table th,.grid-table td{border:1px solid var(--border);padding:4px 4px;}
   .grid-table th{background:#f8f5f0;color:var(--sub);font-size:11px;white-space:nowrap;}
@@ -122,8 +130,8 @@
 
 <header>
   <div>
-    <h1>🧾 부가세·4대보험 분개 생성기</h1>
-    <p>개인사업자 가결산용 — 부가세 예수금·대급금 정산/납부, 4대보험 근로자부담 예수금 현금 처리를 위하고 일반전표 형식으로 만들어 줍니다.</p>
+    <h1>🧾 부가세·4대보험·원천세 분개 생성기</h1>
+    <p>개인사업자 가결산용 — 부가세 예수금·대급금 정산/납부, 4대보험 근로자부담 예수금, 소득세·지방소득세 원천징수 예수금 현금 처리를 위하고 일반전표 형식으로 만들어 줍니다.</p>
   </div>
 </header>
 
@@ -131,10 +139,10 @@
 
   <div class="card">
     <div class="card-head">
-      <h2>0. 공단별 거래처 설정</h2>
+      <h2>0. 거래처 설정 (공단 · 원천세 납부처)</h2>
       <details class="help">
         <summary>설명</summary>
-        <div class="help-body">4대보험 출금 전표에 쓰일 거래처명·거래처코드입니다. 회사마다 위하고에 등록된 거래처코드가 다르니 맞춰서 입력해 주세요.</div>
+        <div class="help-body">4대보험·원천세 출금 전표에 쓰일 거래처명·거래처코드입니다. 회사마다 위하고에 등록된 거래처코드가 다르니 맞춰서 입력해 주세요.<br>원천세 납부처 거래처명은 관할과 상관없이 <b>세무서·구청</b>으로 통일해 뒀습니다.</div>
       </details>
     </div>
     <div class="agency-grid">
@@ -153,10 +161,20 @@
         <label>거래처코드 <input id="clientEICode" placeholder="코드"></label>
         <label>거래처 <input id="clientEI" value="근로복지공단"></label>
       </div>
+      <div class="agency-row">
+        <div class="agency-name">근로소득세(국세)</div>
+        <label>거래처코드 <input id="clientITCode" placeholder="코드"></label>
+        <label>거래처 <input id="clientIT" value="세무서"></label>
+      </div>
+      <div class="agency-row">
+        <div class="agency-name">지방소득세(지방세)</div>
+        <label>거래처코드 <input id="clientLTCode" placeholder="코드"></label>
+        <label>거래처 <input id="clientLT" value="구청"></label>
+      </div>
     </div>
   </div>
 
-  <div class="two-col-row">
+  <div class="two-col-row equal">
   <div class="col-left">
   <div class="card">
     <div class="card-head">
@@ -193,7 +211,9 @@
       <button class="btn btn-secondary" id="clearVatBtn">입력값 지우기</button>
     </div>
   </div>
+  </div>
 
+  <div class="col-right">
   <div class="card">
     <div class="card-head">
       <h2>①-2 부가세 납부 분개</h2>
@@ -213,8 +233,10 @@
     </div>
   </div>
   </div>
+  </div>
 
-  <div class="col-right">
+  <div class="two-col-row equal">
+  <div class="col-left">
   <div class="card">
     <div class="card-head">
       <h2>② 4대보험 예수금(근로자부담분) 현금 처리</h2>
@@ -242,10 +264,45 @@
     </div>
   </div>
   </div>
+
+  <div class="col-right">
+  <div class="card">
+    <div class="card-head">
+      <h2>③ 소득세·지방소득세 예수금(원천징수분) 현금 처리</h2>
+      <details class="help">
+        <summary>계산 방식</summary>
+        <div class="help-body">
+          4대보험과 똑같이 <b>"출금" 전표</b>(계정과목·거래처·금액 한 줄, 대변은 위하고가 자동 처리)로 만듭니다.
+          급여에서 원천징수해 장부에 예수금으로 잡혀 있는 <b>근로소득세</b>와 <b>지방소득세(특별징수분)</b>를 납부일 기준으로 정리합니다.
+          소득세는 세무서(국세), 지방소득세는 시·군·구청(지방세)으로 납부처가 달라 각각 한 줄씩 나갑니다.<br>
+          표의 월은 귀속월이 아니라 <b>실제 출금(납부)한 달</b> 기준입니다 — 1월 행은 보통 전년 12월 귀속분입니다.
+          반기납부 승인을 받았다면 납부한 달(보통 1월·7월)에만 금액을 넣으면 됩니다.<br>
+          <b>자동 계산</b>을 켜두면 소득세를 입력하는 즉시 같은 달 지방소득세가 소득세액의 10%(10원 미만 절사)로 채워집니다.
+          자동으로 채워진 뒤에도 지방소득세 칸은 직접 고칠 수 있고, 체크를 끄면 두 칸 모두 수동 입력이 됩니다.
+          실제 신고·납부액과 다를 수 있으니 <b>원천징수이행상황신고서·납부서 금액과 반드시 대조</b>해 주세요.
+        </div>
+      </details>
+    </div>
+    <details class="help">
+      <summary>납부일 변경(기본 10일)</summary>
+      <div class="field-row" style="align-items:flex-end;margin:10px 0 0;">
+        <div class="field"><label>납부일</label><input id="whtDay" type="number" min="1" max="31" value="10" style="max-width:70px;"></div>
+      </div>
+    </details>
+    <label class="autocalc"><input type="checkbox" id="whtAuto" checked> 지방소득세를 소득세의 10%(10원 미만 절사)로 자동 계산</label>
+    <div class="tablewrap" style="margin-bottom:14px;padding:12px;">
+      <div id="whtGrid" class="ins4-cols wht-cols"></div>
+    </div>
+    <div class="toolbar">
+      <button class="btn btn-cta" id="addWhtBtn">채워진 달 일괄 전표 생성 →</button>
+      <button class="btn btn-secondary" id="clearWhtBtn">입력값 지우기</button>
+    </div>
+  </div>
+  </div>
   </div>
 
   <div class="card" id="entryTableCard">
-    <h2>③ 생성된 전표 미리보기 (직접 수정 가능)</h2>
+    <h2>④ 생성된 전표 미리보기 (직접 수정 가능)</h2>
     <div class="footer-hint" style="margin-bottom:10px;">
       <span class="gubun-pill" data-v="출금" style="cursor:default;">출금</span> 행은 계정과목·거래처·차변 금액만 있고 대변이 비어 있습니다 — 위하고에서 대변(현금)을 자동으로 채워주는 방식이라 정상입니다.
     </div>
@@ -499,6 +556,112 @@
     renderTable();
   });
 
+  // ---------- 월별 금액 입력 그리드(4대보험 · 원천세 공용) ----------
+  // types: [{key,label,clientId,clientCodeId,memo?,extraBtn?,onExtra?}], data: {1~12월: {key:금액}}
+  function monthGrid(gridId, types, data, opts){
+    var el = $(gridId);
+    opts = opts || {};
+    // 입력 중 포커스가 튀지 않도록 전체 렌더 없이 해당 칸만 다시 써준다
+    function syncCell(m, key){
+      var inp = el.querySelector('input.cellamt[data-m="'+m+'"][data-t="'+key+'"]');
+      if(inp) inp.value = data[m][key] ? formatMoney(data[m][key]) : "";
+    }
+    function changed(m, key){
+      if(opts.afterChange) opts.afterChange(data, m, key, {syncCell:syncCell});
+    }
+    function render(){
+      var html = "";
+      types.forEach(function(t){
+        html += '<div class="ins4-col">'+
+          '<div class="ins4-fill"><input class="amt fillamt" data-t="'+t.key+'" placeholder="전체 월 동일금액"><button type="button" class="btn-mini fillbtn" data-t="'+t.key+'">일괄 적용</button></div>'+
+          '<table class="grid-table"><thead><tr><th colspan="2">'+t.label+'</th></tr></thead><tbody>';
+        for(var m=1;m<=12;m++){
+          var v = data[m][t.key];
+          html += '<tr><td>'+m+'월</td><td><input class="amt cellamt" data-m="'+m+'" data-t="'+t.key+'" value="'+(v?formatMoney(v):"")+'" placeholder="0"></td></tr>';
+        }
+        html += "</tbody></table>";
+        if(t.extraBtn) html += '<button type="button" class="btn-mini wide-mini extrabtn" data-t="'+t.key+'">'+t.extraBtn+'</button>';
+        html += "</div>";
+      });
+      el.innerHTML = html;
+      el.querySelectorAll("input.cellamt").forEach(function(inp){
+        inp.addEventListener("input", function(){
+          formatMoneyInput(inp);
+          var m = +inp.getAttribute("data-m"), t = inp.getAttribute("data-t");
+          data[m][t] = parseMoney(inp.value);
+          changed(m, t);
+        });
+      });
+      el.querySelectorAll("input.fillamt").forEach(function(inp){
+        inp.addEventListener("input", function(){ formatMoneyInput(inp); });
+        // 금액 입력 후 "일괄 적용" 버튼을 안 누르고 Enter만 쳐도 바로 적용되도록
+        inp.addEventListener("keydown", function(e){
+          if(e.key === "Enter"){
+            e.preventDefault();
+            e.stopPropagation();
+            el.querySelector('.fillbtn[data-t="'+inp.getAttribute("data-t")+'"]').click();
+          }
+        });
+      });
+      el.querySelectorAll(".fillbtn").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var t = btn.getAttribute("data-t");
+          var v = parseMoney(el.querySelector('.fillamt[data-t="'+t+'"]').value);
+          if(v===0){ alert("적용할 금액을 먼저 입력해 주세요."); return; }
+          for(var m=1;m<=12;m++){ data[m][t] = v; changed(m, t); }
+          render();
+        });
+      });
+      // 항목별 보조 버튼(예: 지방소득세를 소득세의 10%로 채우기)
+      el.querySelectorAll(".extrabtn").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          var t = btn.getAttribute("data-t");
+          types.forEach(function(x){ if(x.key===t && x.onExtra) x.onExtra(data); });
+          render();
+        });
+      });
+    }
+    function clear(){
+      for(var m=1;m<=12;m++){
+        types.forEach(function(t){ data[m][t.key] = 0; });
+      }
+      render();
+    }
+    render();
+    return { render:render, clear:clear };
+  }
+
+  // 금액이 채워진 달만 골라 "출금" 전표를 만든다(4대보험 · 원천세 공용)
+  function addCashEntries(types, data, dayInputId, defaultMemo){
+    var y = thisYear;
+    var day = $(dayInputId).value || 10;
+    // 실제 금액이 채워진 항목 중 거래처코드가 비어있는 게 있으면 미리 확인(위하고 업로드 시 거래처코드 누락으로 거절될 수 있음)
+    var missingCodes = [];
+    types.forEach(function(t){
+      var used = false;
+      for(var m=1;m<=12;m++){ if(data[m][t.key]>0) used = true; }
+      if(used && !$(t.clientCodeId).value.trim()) missingCodes.push(t.label);
+    });
+    if(missingCodes.length){
+      if(!confirm(missingCodes.join(", ")+" 거래처코드가 비어있습니다. 위하고 업로드 시 거절될 수 있는데 그래도 계속할까요?")) return;
+    }
+    var any = false;
+    var gid = nextGroupId();
+    for(var m=1;m<=12;m++){
+      types.forEach(function(t){
+        var v = data[m][t.key];
+        if(v>0){
+          any = true;
+          addEntry({y:y,m:m,d:day,gubun:"출금",account:ACCT_WITHHOLDING,
+            client:$(t.clientId).value.trim(), clientCode:$(t.clientCodeId).value.trim(),
+            debit:v, memo:(t.memo || defaultMemo), groupId:gid});
+        }
+      });
+    }
+    if(!any){ alert("채워진 달이 없습니다. 표에 금액을 입력해 주세요."); return; }
+    renderTable();
+  }
+
   // ---------- ② 4대보험 예수금(근로자부담) — 3개 보험 나란히, 월별 목록 ----------
   var INS_TYPES = [
     {key:"np", label:"국민연금", clientId:"clientNP", clientCodeId:"clientNPCode"},
@@ -507,87 +670,50 @@
   ];
   var ins4Data = {};
   for(var mi=1; mi<=12; mi++) ins4Data[mi] = {np:0,hi:0,ei:0};
-
-  function renderIns4Grid(){
-    var el = $("ins4Grid");
-    var html = "";
-    INS_TYPES.forEach(function(t){
-      html += '<div class="ins4-col">'+
-        '<div class="ins4-fill"><input class="amt fillamt" data-t="'+t.key+'" placeholder="전체 월 동일금액"><button type="button" class="btn-mini fillbtn" data-t="'+t.key+'">일괄 적용</button></div>'+
-        '<table class="grid-table"><thead><tr><th colspan="2">'+t.label+'</th></tr></thead><tbody>';
-      for(var m=1;m<=12;m++){
-        var v = ins4Data[m][t.key];
-        html += '<tr><td>'+m+'월</td><td><input class="amt cellamt" data-m="'+m+'" data-t="'+t.key+'" value="'+(v?formatMoney(v):"")+'" placeholder="0"></td></tr>';
-      }
-      html += "</tbody></table></div>";
-    });
-    el.innerHTML = html;
-    el.querySelectorAll("input.cellamt").forEach(function(inp){
-      inp.addEventListener("input", function(){
-        formatMoneyInput(inp);
-        var m = +inp.getAttribute("data-m"), t = inp.getAttribute("data-t");
-        ins4Data[m][t] = parseMoney(inp.value);
-      });
-    });
-    el.querySelectorAll("input.fillamt").forEach(function(inp){
-      inp.addEventListener("input", function(){ formatMoneyInput(inp); });
-      // 금액 입력 후 "일괄 적용" 버튼을 안 누르고 Enter만 쳐도 바로 적용되도록
-      inp.addEventListener("keydown", function(e){
-        if(e.key === "Enter"){
-          e.preventDefault();
-          e.stopPropagation();
-          var t = inp.getAttribute("data-t");
-          el.querySelector('.fillbtn[data-t="'+t+'"]').click();
-        }
-      });
-    });
-    el.querySelectorAll(".fillbtn").forEach(function(btn){
-      btn.addEventListener("click", function(){
-        var t = btn.getAttribute("data-t");
-        var fillInput = el.querySelector('.fillamt[data-t="'+t+'"]');
-        var v = parseMoney(fillInput.value);
-        if(v===0){ alert("적용할 금액을 먼저 입력해 주세요."); return; }
-        for(var m=1;m<=12;m++) ins4Data[m][t] = v;
-        renderIns4Grid();
-      });
-    });
-  }
-  renderIns4Grid();
+  var ins4Grid = monthGrid("ins4Grid", INS_TYPES, ins4Data);
 
   $("addIns4Btn").addEventListener("click", function(){
-    var y = thisYear;
-    var day = $("ins4Day").value || 10;
-    var any = false;
-    // 실제 금액이 채워진 보험 중 거래처코드가 비어있는 게 있으면 미리 확인(위하고 업로드 시 거래처코드 누락으로 거절될 수 있음)
-    var missingCodes = [];
-    INS_TYPES.forEach(function(t){
-      var used = false;
-      for(var m=1;m<=12;m++){ if(ins4Data[m][t.key]>0) used = true; }
-      if(used && !$(t.clientCodeId).value.trim()) missingCodes.push(t.label);
-    });
-    if(missingCodes.length){
-      if(!confirm(missingCodes.join(", ")+" 거래처코드가 비어있습니다. 위하고 업로드 시 거절될 수 있는데 그래도 계속할까요?")) return;
-    }
-    var gid = nextGroupId();
-    for(var m=1;m<=12;m++){
-      var d = ins4Data[m];
-      INS_TYPES.forEach(function(t){
-        var v = d[t.key];
-        if(v>0){
-          any = true;
-          var client = $(t.clientId).value.trim();
-          var clientCode = $(t.clientCodeId).value.trim();
-          addEntry({y:y,m:m,d:day,gubun:"출금",account:ACCT_WITHHOLDING,client:client,clientCode:clientCode,debit:v,memo:"의보연금예수금 납부",groupId:gid});
-        }
-      });
-    }
-    if(!any){ alert("채워진 달이 없습니다. 표에 금액을 입력해 주세요."); return; }
-    renderTable();
+    addCashEntries(INS_TYPES, ins4Data, "ins4Day", "의보연금예수금 납부");
   });
   $("clearIns4Btn").addEventListener("click", function(){
     if(!confirm("입력한 값을 모두 지울까요?")) return;
-    for(var m=1;m<=12;m++) ins4Data[m] = {np:0,hi:0,ei:0};
-    renderIns4Grid();
+    ins4Grid.clear();
+  });
+
+  // ---------- ③ 소득세·지방소득세 예수금(원천징수분) — 납부한 달 기준 ----------
+  // 특별징수 지방소득세는 통상 소득세액의 10%(10원 미만 절사) — 신고서 금액과 다르면 자동계산을 끄고 직접 입력한다
+  function localTaxOf(incomeTax){ return Math.floor(incomeTax/100)*10; }
+  var WHT_TYPES = [
+    {key:"it", label:"근로소득세", clientId:"clientIT", clientCodeId:"clientITCode", memo:"소득세예수금 납부"},
+    {key:"lt", label:"지방소득세", clientId:"clientLT", clientCodeId:"clientLTCode", memo:"지방소득세예수금 납부",
+      extraBtn:"소득세의 10%로 다시 채우기",
+      onExtra:function(data){
+        for(var m=1;m<=12;m++) data[m].lt = localTaxOf(data[m].it);
+      }}
+  ];
+  var whtData = {};
+  for(var wi=1; wi<=12; wi++) whtData[wi] = {it:0, lt:0};
+  var whtGrid = monthGrid("whtGrid", WHT_TYPES, whtData, {
+    // 소득세를 입력하는 즉시 같은 달 지방소득세를 10%로 채운다
+    afterChange: function(data, m, key, api){
+      if(key!=="it" || !$("whtAuto").checked) return;
+      data[m].lt = localTaxOf(data[m].it);
+      api.syncCell(m, "lt");
+    }
+  });
+  // 자동계산을 다시 켜면 이미 입력해 둔 소득세 기준으로 한 번에 맞춰준다
+  $("whtAuto").addEventListener("change", function(){
+    if(!$("whtAuto").checked) return;
+    for(var m=1;m<=12;m++) whtData[m].lt = localTaxOf(whtData[m].it);
+    whtGrid.render();
+  });
+
+  $("addWhtBtn").addEventListener("click", function(){
+    addCashEntries(WHT_TYPES, whtData, "whtDay", "원천세예수금 납부");
+  });
+  $("clearWhtBtn").addEventListener("click", function(){
+    if(!confirm("입력한 값을 모두 지울까요?")) return;
+    whtGrid.clear();
   });
 
   function refreshPreviews(){ renderVatPreview(); renderPayPreview(); }
@@ -735,7 +861,7 @@
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "일반전표입력");
     var t = new Date(), st = t.getFullYear()+String(t.getMonth()+1).padStart(2,"0")+String(t.getDate()).padStart(2,"0");
-    XLSX.writeFile(wb, "부가세_4대보험_분개_"+st+".xlsx");
+    XLSX.writeFile(wb, "부가세_4대보험_원천세_분개_"+st+".xlsx");
   });
 
 })();
